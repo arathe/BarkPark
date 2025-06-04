@@ -41,7 +41,7 @@ BarkPark is a dog social network application consisting of:
 **Authentication**: JWT tokens with bcrypt password hashing
 **Image Storage**: AWS S3 for profile and gallery images
 **iOS Architecture**: MVVM + Coordinator pattern, cloud-first online-only approach
-**Current Status**: Backend API and iOS app with authentication + dog profiles complete
+**Current Status**: Backend API and iOS app with authentication + dog profiles + photo uploads complete
 
 ## Environment Setup
 
@@ -179,11 +179,13 @@ npm run dev
 - Apple-style design system with modern UI/UX
 - Complete authentication flow (Welcome, Login, SignUp)
 - Cloud-first architecture with online-only data flow
-- "My Pack" view showcasing dogs as heroes with large photos
-- Add Dog form with comprehensive profile creation
+- "My Pack" view showcasing dogs with profile photos
+- Add Dog form with profile photo picker (PhotosPicker iOS 16+)
+- **Photo upload functionality working** (profile photos to S3)
 - TabView navigation with 4 main sections
 - MVVM architecture with ObservableObject view models
 - JWT token management and API integration
+- **Image processing and compression** for optimal uploads
 
 **Authentication API Endpoints**:
 - `POST /api/auth/register` - Create new user account
@@ -273,6 +275,47 @@ open iOS/BarkPark/BarkPark.xcodeproj
 #    - View dog list in "My Pack"
 #    - Tap dog card → View dog details
 ```
+
+## iOS Photo Upload Implementation
+
+**✅ Complete Photo Upload System**:
+- **PhotosPicker Integration**: Native iOS 16+ photo selection
+- **Image Processing**: Automatic resize (1024px max) and compression (3MB target)  
+- **Multipart Upload**: Full multipart/form-data support in APIService
+- **Profile Photos**: Upload during dog creation in AddDogView
+- **Photo Display**: AsyncImage in MyPackView dog cards with paw print fallback
+- **Error Handling**: Comprehensive error management and user feedback
+
+**Key iOS Components**:
+```swift
+// Core photo upload files
+iOS/BarkPark/BarkPark/Core/Network/ImageProcessor.swift      // Image validation, resize, compression
+iOS/BarkPark/BarkPark/Core/Network/APIService.swift          // Multipart upload methods
+iOS/BarkPark/BarkPark/Features/DogProfiles/Views/AddDogView.swift  // Photo picker UI
+iOS/BarkPark/BarkPark/Features/DogProfiles/ViewModels/DogProfileViewModel.swift  // Upload logic
+```
+
+**Photo Upload Flow**:
+1. User selects photo via PhotosPicker in AddDogView
+2. Image processed (resize to 1024px, compress to <3MB)
+3. Dog profile created via API
+4. Profile photo uploaded to S3 via multipart request
+5. Dog data updated with S3 image URL
+6. Photo displays in MyPackView AsyncImage
+
+**Image Processing Pipeline**:
+- **Validation**: PNG/JPEG/WebP format check
+- **Resize**: Max 1024px (optimal for profile photos)
+- **Compress**: Target 3MB (accounts for multipart overhead)
+- **Upload**: Multipart/form-data with proper boundaries
+- **Display**: AsyncImage with placeholder fallback
+
+**Technical Notes**:
+- Uses PhotosUI framework (requires iOS 16+)
+- All photo operations are async/await with MainActor compliance
+- Images automatically compressed to prevent 5MB backend limit issues
+- Comprehensive test coverage for all photo functionality
+- Supports both profile photos and gallery images (gallery UI pending)
 
 ## Pending Features
 
