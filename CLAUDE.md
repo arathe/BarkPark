@@ -21,7 +21,8 @@ BarkPark is a dog social network application consisting of:
 
 **Database**: PostgreSQL with simplified schema (PostGIS not yet installed for geospatial)
 **Authentication**: JWT tokens with bcrypt password hashing
-**Current Status**: JWT auth system completed and tested
+**Image Storage**: AWS S3 for profile and gallery images
+**Current Status**: JWT auth system and dog profiles completed and tested
 
 ## Environment Setup
 
@@ -39,6 +40,9 @@ createdb barkpark
 
 # Initialize schema (use simple version for now)
 psql -d barkpark -f scripts/init-db-simple.sql
+
+# Update dogs table with comprehensive profile fields (run once)
+psql -d barkpark -f scripts/update-dogs-table.sql
 ```
 
 **Environment Variables**:
@@ -46,6 +50,7 @@ psql -d barkpark -f scripts/init-db-simple.sql
 - Set `DB_USER` to your macOS username (not 'postgres')
 - Leave `DB_PASSWORD` empty for local development
 - JWT_SECRET is set for development
+- AWS S3 credentials required for image uploads (set in .env)
 
 ## Development Commands
 
@@ -72,11 +77,29 @@ curl http://localhost:3000/health
 - Protected routes with Bearer token auth
 - Password hashing with bcrypt
 
-**API Endpoints**:
+**✅ Dog Profile System**:
+- Complete CRUD operations for dog profiles
+- Comprehensive profile data (personality, health, activities)
+- AWS S3 image upload (profile photo + gallery)
+- JSON field support for activities and gallery images
+- Age calculation from birthday
+- User ownership validation and security
+
+**Authentication API Endpoints**:
 - `POST /api/auth/register` - Create new user account
 - `POST /api/auth/login` - Authenticate and get JWT token
 - `GET /api/auth/me` - Get current user profile (protected)
 - `PUT /api/auth/me` - Update user profile (protected)
+
+**Dog Profile API Endpoints**:
+- `GET /api/dogs` - Get all user's dogs
+- `POST /api/dogs` - Create new dog profile
+- `GET /api/dogs/:id` - Get specific dog
+- `PUT /api/dogs/:id` - Update dog profile
+- `DELETE /api/dogs/:id` - Delete dog profile
+- `POST /api/dogs/:id/profile-image` - Upload profile photo
+- `POST /api/dogs/:id/gallery` - Upload gallery photos (up to 5)
+- `DELETE /api/dogs/:id/gallery` - Remove gallery photo
 
 ## Testing
 
@@ -94,20 +117,60 @@ curl -X POST http://localhost:3000/api/auth/login \
 # Access protected route (use token from login response)
 curl -X GET http://localhost:3000/api/auth/me \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+# Create dog profile
+curl -X POST http://localhost:3000/api/dogs \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "name": "Buddy",
+    "breed": "Golden Retriever",
+    "birthday": "2020-05-15",
+    "weight": 65.5,
+    "gender": "male",
+    "sizeCategory": "large",
+    "energyLevel": "high",
+    "friendlinessDogs": 5,
+    "friendlinessPeople": 4,
+    "trainingLevel": "advanced",
+    "favoriteActivities": ["fetch", "swimming", "hiking"],
+    "isVaccinated": true,
+    "isSpayedNeutered": true,
+    "bio": "Buddy is a friendly and energetic Golden Retriever"
+  }'
+
+# Get all dogs for user
+curl -X GET http://localhost:3000/api/dogs \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
 ## Pending Features
 
-- Dog profile CRUD operations
-- Dog park geospatial queries (needs PostGIS)
+- Dog park geospatial queries (needs PostGIS installation)
 - Friend connections and social features
 - Real-time messaging with Socket.io
 - Park administrator notices
-- Image upload to AWS S3
+- Check-in functionality for dogs visiting parks
 
 ## Database Notes
 
-Currently using simplified schema without PostGIS due to installation complexity. Dog parks table uses `latitude/longitude` columns instead of `GEOMETRY` type. When PostGIS is installed later, migrate to use `scripts/init-db.sql` for proper geospatial support.
+**Schema Evolution:**
+- Started with simplified schema (`scripts/init-db-simple.sql`)
+- Dogs table enhanced with comprehensive profile fields (`scripts/update-dogs-table.sql`)
+- Currently using `latitude/longitude` columns instead of PostGIS `GEOMETRY` type
+- When PostGIS is installed later, migrate to use `scripts/init-db.sql` for proper geospatial support
+
+**Dog Profile Data Structure:**
+- Core: name, breed, birthday (age calculated), weight, gender, size
+- Personality: energy level, friendliness scales (1-5), training level, activities (JSON array)
+- Health: vaccination status, spay/neuter status, special needs
+- Media: profile image URL, gallery images (JSON array)
+- All images stored in AWS S3 with automatic cleanup on deletion
+
+**Key Technical Notes:**
+- PostgreSQL JSON fields require special parsing in Node.js model layer
+- S3 integration handles file uploads with unique naming and organized folder structure
+- Database constraints enforce valid enum values and friendliness scale ranges
 
 ## Deployment
 

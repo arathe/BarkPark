@@ -3,7 +3,16 @@
     "allow": [
       "Bash(ls:*)",
       "Bash(find:*)",
-      "Bash(git init:*)"
+      "Bash(git init:*)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "Bash(gh auth:*)",
+      "Bash(git remote add:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(git add:*)",
+      "Bash(export:*)",
+      "Bash(pkill:*)",
+      "Bash(git pull:*)"
     ],
     "deny": []
   }
