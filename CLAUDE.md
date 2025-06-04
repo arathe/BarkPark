@@ -69,7 +69,58 @@ psql -d barkpark -f scripts/update-dogs-table.sql
 - Set `DB_USER` to your macOS username (not 'postgres')
 - Leave `DB_PASSWORD` empty for local development
 - JWT_SECRET is set for development
-- AWS S3 credentials required for image uploads (set in .env)
+- AWS S3 credentials required for image uploads (see S3 setup below)
+
+**AWS S3 Setup** (for photo uploads):
+```bash
+# 1. Create S3 bucket (must be globally unique)
+# - Bucket name: barkpark-images-[your-name]
+# - Region: us-east-1 (matches .env default)
+# - Disable "Block all public access" 
+
+# 2. Create IAM user with S3 permissions
+# - User: barkpark-s3-user
+# - Policy: Custom policy with bucket access (see below)
+# - Generate access keys
+
+# 3. Set bucket policy for public read access:
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::YOUR_BUCKET_NAME/*"
+    }
+  ]
+}
+
+# 4. IAM policy for user:
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:PutObjectAcl"],
+      "Resource": "arn:aws:s3:::YOUR_BUCKET_NAME/*"
+    },
+    {
+      "Effect": "Allow", 
+      "Action": ["s3:ListBucket"],
+      "Resource": "arn:aws:s3:::YOUR_BUCKET_NAME"
+    }
+  ]
+}
+```
+
+**Update .env with S3 credentials**:
+```bash
+AWS_ACCESS_KEY_ID=your_access_key_id
+AWS_SECRET_ACCESS_KEY=your_secret_access_key  
+AWS_REGION=us-east-1
+S3_BUCKET_NAME=barkpark-images-[your-name]
+```
 
 **iOS App Setup**:
 - Xcode 15+ required for iOS 16+ target
@@ -118,10 +169,11 @@ npm run dev
 **✅ Dog Profile System**:
 - Complete CRUD operations for dog profiles
 - Comprehensive profile data (personality, health, activities)
-- AWS S3 image upload (profile photo + gallery)
+- **AWS S3 image upload working** (profile photo + gallery)
 - JSON field support for activities and gallery images
 - Age calculation from birthday
 - User ownership validation and security
+- **Photo upload endpoints fully functional**
 
 **✅ iOS SwiftUI App**:
 - Apple-style design system with modern UI/UX
@@ -190,6 +242,17 @@ curl -X POST http://localhost:3000/api/dogs \
 # Get all dogs for user
 curl -X GET http://localhost:3000/api/dogs \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+# Upload profile photo (replace DOG_ID and image.jpg)
+curl -X POST http://localhost:3000/api/dogs/DOG_ID/profile-image \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -F "image=@image.jpg"
+
+# Upload gallery photos (up to 5 images)
+curl -X POST http://localhost:3000/api/dogs/DOG_ID/gallery \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -F "images=@image1.jpg" \
+  -F "images=@image2.jpg"
 ```
 
 **iOS App Testing:**
