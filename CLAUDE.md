@@ -6,11 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 BarkPark is a dog social network application consisting of:
 - Node.js/Express backend API with PostgreSQL database
-- iOS app frontend (to be built)
+- iOS SwiftUI app with cloud-first architecture
 - Features: user auth, dog profiles, park finder, social messaging, check-ins
 
 ## Architecture
 
+**Backend (Node.js/Express):**
 ```
 /config - Database connection and configuration
 /models - Database models (User, Dog, DogPark, etc.)
@@ -19,10 +20,28 @@ BarkPark is a dog social network application consisting of:
 /scripts - Database initialization and utility scripts
 ```
 
+**iOS App (SwiftUI):**
+```
+/iOS/BarkPark/BarkPark/
+├── Core/
+│   ├── Network/ - APIService with JWT authentication
+│   ├── Design/ - Apple-style design system
+│   ├── Authentication/ - AuthenticationManager
+│   └── Navigation/ - RootView, MainTabView
+├── Features/
+│   ├── Authentication/ - Login/SignUp views
+│   ├── DogProfiles/ - My Pack, Add Dog, Dog Detail
+│   ├── DogParks/ - Parks discovery (placeholder)
+│   ├── Social/ - Friends features (placeholder)
+│   └── Profile/ - User settings
+└── Models/ - Swift models matching backend API
+```
+
 **Database**: PostgreSQL with simplified schema (PostGIS not yet installed for geospatial)
 **Authentication**: JWT tokens with bcrypt password hashing
 **Image Storage**: AWS S3 for profile and gallery images
-**Current Status**: JWT auth system and dog profiles completed and tested
+**iOS Architecture**: MVVM + Coordinator pattern, cloud-first online-only approach
+**Current Status**: Backend API and iOS app with authentication + dog profiles complete
 
 ## Environment Setup
 
@@ -52,8 +71,15 @@ psql -d barkpark -f scripts/update-dogs-table.sql
 - JWT_SECRET is set for development
 - AWS S3 credentials required for image uploads (set in .env)
 
+**iOS App Setup**:
+- Xcode 15+ required for iOS 16+ target
+- Project located in `/iOS/BarkPark/BarkPark.xcodeproj`
+- No external dependencies - uses native SwiftUI and Foundation
+- Backend must be running on localhost:3000 for API calls
+
 ## Development Commands
 
+**Backend:**
 ```bash
 # Install dependencies
 npm install
@@ -66,6 +92,18 @@ npm start
 
 # Test server is running
 curl http://localhost:3000/health
+```
+
+**iOS App:**
+```bash
+# Open Xcode project
+open iOS/BarkPark/BarkPark.xcodeproj
+
+# Build and run in simulator (from Xcode)
+# Cmd+R or Product → Run
+
+# Ensure backend is running first:
+npm run dev
 ```
 
 ## Completed Features
@@ -84,6 +122,16 @@ curl http://localhost:3000/health
 - JSON field support for activities and gallery images
 - Age calculation from birthday
 - User ownership validation and security
+
+**✅ iOS SwiftUI App**:
+- Apple-style design system with modern UI/UX
+- Complete authentication flow (Welcome, Login, SignUp)
+- Cloud-first architecture with online-only data flow
+- "My Pack" view showcasing dogs as heroes with large photos
+- Add Dog form with comprehensive profile creation
+- TabView navigation with 4 main sections
+- MVVM architecture with ObservableObject view models
+- JWT token management and API integration
 
 **Authentication API Endpoints**:
 - `POST /api/auth/register` - Create new user account
@@ -144,6 +192,25 @@ curl -X GET http://localhost:3000/api/dogs \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
+**iOS App Testing:**
+```bash
+# 1. Start backend server
+npm run dev
+
+# 2. Open iOS project in Xcode
+open iOS/BarkPark/BarkPark.xcodeproj
+
+# 3. Run in simulator (Cmd+R)
+# 4. Test authentication flow:
+#    - Welcome screen → "Get Started" → Create account
+#    - Welcome screen → "Already have account" → Login
+# 5. Test dog profiles:
+#    - Empty state → "Add Your First Dog"
+#    - Fill form → "Add [Dog Name]" button
+#    - View dog list in "My Pack"
+#    - Tap dog card → View dog details
+```
+
 ## Pending Features
 
 - Dog park geospatial queries (needs PostGIS installation)
@@ -171,6 +238,14 @@ curl -X GET http://localhost:3000/api/dogs \
 - PostgreSQL JSON fields require special parsing in Node.js model layer
 - S3 integration handles file uploads with unique naming and organized folder structure
 - Database constraints enforce valid enum values and friendliness scale ranges
+
+**iOS Technical Notes:**
+- Custom date formatter required for backend JSON dates (yyyy-MM-dd'T'HH:mm:ss.SSS'Z')
+- APIService handles JWT token persistence in UserDefaults automatically
+- Design system uses Apple's semantic colors and spacing (16pt grid system)
+- Models use camelCase naming to match backend API responses
+- Cloud-first approach: all data flows through API calls, minimal local storage
+- AuthenticationManager and DogProfileViewModel use @MainActor for UI updates
 
 ## Deployment
 
