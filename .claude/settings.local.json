@@ -12,7 +12,22 @@
       "Bash(git add:*)",
       "Bash(export:*)",
       "Bash(pkill:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(npm run dev:*)",
+      "Bash(node server.js)",
+      "Bash(curl:*)",
+      "Bash(grep:*)",
+      "Bash(node test-s3.js)",
+      "Bash(node test-upload.js)",
+      "Bash(rm:*)",
+      "Bash(xcodebuild test:*)",
+      "Bash(xcodebuild:*)",
+      "Bash(cat:*)",
+      "Bash(git submodule:*)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)",
+      "Bash(cp:*)",
+      "Bash(git rm:*)"
     ],
     "deny": []
   }
