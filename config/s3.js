@@ -18,8 +18,8 @@ const uploadToS3 = async (file, folder, filename) => {
     Bucket: bucketName,
     Key: key,
     Body: file.buffer,
-    ContentType: file.mimetype,
-    ACL: 'public-read' // Make images publicly accessible
+    ContentType: file.mimetype
+    // No ACL needed - bucket policy will handle public access
   };
 
   try {
