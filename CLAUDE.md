@@ -369,10 +369,11 @@ open ios/BarkPark/BarkPark.xcodeproj
 1. Start backend server (`npm run dev`)
 2. Launch iOS app in Xcode simulator
 3. Create account or login with existing user
-4. Navigate to "My Pack" → "Add Your First Dog"
+4. Navigate to "My Pack" → "Add Your First Dog" OR tap existing dog → "Edit"
 5. Fill complete form with photo selection
-6. Press "Add [Dog Name]" → Profile created successfully
+6. Press "Add [Dog Name]" or "Save Changes" → Profile created/updated successfully
 7. View dog list with profile photos displayed
+8. **Gallery Management**: Add up to 5 photos, remove photos, set profile photo from gallery
 
 **Architecture Confirmed Working**:
 - 📱 **iOS 16+ target** with PhotosPicker
@@ -382,9 +383,33 @@ open ios/BarkPark/BarkPark.xcodeproj
 - 🎨 **Apple-style design** system with semantic colors/spacing
 - 📸 **Complete photo pipeline** from picker → processing → S3 upload → display
 
+## ✅ Recently Completed Features (June 2025)
+
+**🆕 Dog Profile Editing with Gallery Management:**
+- **Complete EditDogView** - Full editing interface with pre-populated form fields
+- **Gallery management** - Add up to 5 photos, remove individual photos with visual grid
+- **Profile photo selection from gallery** - Choose any gallery image as profile photo via dedicated picker sheet
+- **Backend API extensions** - New `PUT /api/dogs/:id/profile-image-from-gallery` endpoint
+- **Model fixes** - Made `breed` and `birthday` optional to handle legacy data
+- **Connection debugging** - Resolved iOS simulator network issues (localhost → 127.0.0.1)
+- **Git repository cleanup** - Proper .gitignore for iOS, removed user-specific files
+
+**🔧 Key Technical Improvements:**
+- **iOS APIService** - Added updateDog(), setProfileImageFromGallery(), removeGalleryImage() methods
+- **DogProfileViewModel** - Enhanced with editing and gallery management functionality  
+- **Error handling** - Comprehensive debugging logs for API calls and data flow
+- **JSON decoding fixes** - Handle null breed/birthday values from legacy dog records
+- **Repository structure** - Clean iOS file tracking, excluded xcuserdata and *.xcuserstate
+
+**📱 UI/UX Enhancements:**
+- **Apple-style editing interface** with consistent design system
+- **Visual gallery management** with drag-to-remove functionality
+- **Profile photo picker sheet** for selecting from existing gallery images
+- **Form pre-population** from existing dog data with proper validation
+- **Real-time error feedback** and loading states
+
 ## Pending Features
 
-- Gallery photo management UI (EditDogView for multiple photos)
 - Dog park geospatial queries (needs PostGIS installation)
 - Friend connections and social features
 - Real-time messaging with Socket.io
@@ -418,6 +443,9 @@ open ios/BarkPark/BarkPark.xcodeproj
 - Models use camelCase naming to match backend API responses
 - Cloud-first approach: all data flows through API calls, minimal local storage
 - AuthenticationManager and DogProfileViewModel use @MainActor for UI updates
+- **IMPORTANT**: Use `127.0.0.1:3000` instead of `localhost:3000` for iOS Simulator compatibility
+- **Model flexibility**: `breed` and `birthday` are optional in Dog model to handle legacy/incomplete data
+- **Debugging**: Comprehensive logging in APIService and ViewModels for troubleshooting data flow
 
 ## Deployment
 

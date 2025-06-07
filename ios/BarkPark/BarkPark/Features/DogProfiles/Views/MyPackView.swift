@@ -45,6 +45,14 @@ struct MyPackView: View {
             AddDogView()
                 .environmentObject(dogProfileViewModel)
         }
+        .onAppear {
+            print("📱 MyPackView: onAppear called")
+            print("📱 MyPackView: Current dogs count: \(dogProfileViewModel.dogs.count)")
+            print("📱 MyPackView: Is loading: \(dogProfileViewModel.isLoading)")
+            print("📱 MyPackView: Error message: \(dogProfileViewModel.errorMessage ?? "none")")
+            // Load dogs when view appears
+            dogProfileViewModel.loadDogs()
+        }
     }
     
     private var emptyStateView: some View {
@@ -110,7 +118,7 @@ struct DogCard: View {
                         .font(BarkParkDesign.Typography.title2)
                         .foregroundColor(BarkParkDesign.Colors.primaryText)
                     
-                    Text(dog.breed)
+                    Text(dog.breed ?? "Mixed Breed")
                         .font(BarkParkDesign.Typography.body)
                         .foregroundColor(BarkParkDesign.Colors.secondaryText)
                     

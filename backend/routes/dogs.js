@@ -255,6 +255,49 @@ router.post('/:id/gallery', uploadMultiple('images', 5), async (req, res) => {
   }
 });
 
+// Set profile image from gallery
+router.put('/:id/profile-image-from-gallery', [
+  body('imageUrl').isURL().withMessage('Valid image URL is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const dog = await Dog.findByIdAndUser(req.params.id, req.user.id);
+    if (!dog) {
+      return res.status(404).json({ error: 'Dog not found' });
+    }
+
+    const { imageUrl } = req.body;
+
+    // Verify the image URL is in the dog's gallery
+    if (!dog.galleryImages || !dog.galleryImages.includes(imageUrl)) {
+      return res.status(400).json({ error: 'Image URL not found in gallery' });
+    }
+
+    // Delete old profile image if exists and it's different from the new one
+    if (dog.profileImageUrl && dog.profileImageUrl !== imageUrl) {
+      await deleteFromS3(dog.profileImageUrl);
+    }
+
+    // Update dog with new profile image URL
+    const updatedDog = await Dog.update(req.params.id, req.user.id, {
+      profile_image_url: imageUrl
+    });
+
+    res.json({
+      message: 'Profile image set from gallery successfully',
+      dog: updatedDog
+    });
+
+  } catch (error) {
+    console.error('Set profile image from gallery error:', error);
+    res.status(500).json({ error: 'Failed to set profile image from gallery' });
+  }
+});
+
 // Delete gallery image
 router.delete('/:id/gallery', [
   body('imageUrl').isURL().withMessage('Valid image URL is required')

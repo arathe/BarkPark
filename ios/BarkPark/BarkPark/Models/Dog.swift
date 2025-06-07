@@ -10,8 +10,8 @@ import Foundation
 struct Dog: Codable, Identifiable {
     let id: Int
     let name: String
-    let breed: String
-    let birthday: String
+    let breed: String?
+    let birthday: String?
     let age: Int?
     let weight: Double?
     let gender: String
@@ -35,6 +35,8 @@ struct Dog: Codable, Identifiable {
     var computedAge: Int {
         // Use backend-provided age if available, otherwise compute it
         if let age = age { return age }
+        
+        guard let birthday = birthday else { return 0 }
         
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
@@ -118,7 +120,30 @@ struct CreateDogRequest: Codable {
     let bio: String?
 }
 
-// MARK: - Photo Upload Response Models
+// MARK: - Dog Update Request
+struct UpdateDogRequest: Codable {
+    let name: String
+    let breed: String
+    let birthday: String
+    let weight: Double?
+    let gender: String
+    let sizeCategory: String
+    let energyLevel: String
+    let friendlinessDogs: Int
+    let friendlinessPeople: Int
+    let trainingLevel: String
+    let favoriteActivities: [String]
+    let isVaccinated: Bool
+    let isSpayedNeutered: Bool
+    let specialNeeds: String?
+    let bio: String?
+}
+
+// MARK: - API Response Models
+struct DogsResponse: Codable {
+    let dogs: [Dog]
+}
+
 struct DogResponse: Codable {
     let message: String
     let dog: Dog

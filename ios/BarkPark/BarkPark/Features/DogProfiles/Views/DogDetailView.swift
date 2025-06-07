@@ -39,7 +39,7 @@ struct DogDetailView: View {
                             .font(BarkParkDesign.Typography.largeTitle)
                             .foregroundColor(BarkParkDesign.Colors.primaryText)
                         
-                        Text(dog.breed)
+                        Text(dog.breed ?? "Mixed Breed")
                             .font(BarkParkDesign.Typography.title3)
                             .foregroundColor(BarkParkDesign.Colors.secondaryText)
                     }
@@ -169,8 +169,8 @@ struct DogDetailView: View {
             }
         }
         .sheet(isPresented: $showingEditSheet) {
-            Text("Edit Dog View - Coming Soon!")
-                .navigationTitle("Edit \(dog.name)")
+            EditDogView(dog: dog)
+                .environmentObject(DogProfileViewModel())
         }
     }
 }

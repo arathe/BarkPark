@@ -31,11 +31,13 @@ class AuthenticationManager: ObservableObject {
             let loginResponse = try await apiService.login(email: email, password: password)
             
             // Store token
+            print("🔐 AuthenticationManager: Storing token: \(String(loginResponse.token.prefix(20)))...")
             UserDefaults.standard.set(loginResponse.token, forKey: "auth_token")
             
             // Set current user
             currentUser = loginResponse.user
             isAuthenticated = true
+            print("🔐 AuthenticationManager: Login successful for user: \(loginResponse.user.email)")
         } catch {
             errorMessage = error.localizedDescription
         }

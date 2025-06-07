@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - API Configuration
 struct APIConfiguration {
-    static let baseURL = "http://localhost:3000/api"
+    static let baseURL = "http://127.0.0.1:3000/api"
 }
 
 // MARK: - Network Errors
@@ -113,22 +113,47 @@ class APIService {
     // MARK: - Dog Profile Methods
     
     func getDogs() async throws -> [Dog] {
+        print("🌐 APIService: Starting getDogs()")
         let url = URL(string: "\(baseURL)/dogs")!
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         
-        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+        let token = UserDefaults.standard.string(forKey: "auth_token")
+        print("🌐 APIService: Token exists: \(token != nil)")
+        if let token = token {
+            print("🌐 APIService: Using token: \(String(token.prefix(20)))...")
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        } else {
+            print("🌐 APIService: No auth token found!")
         }
         
+        print("🌐 APIService: Making request to \(url)")
         let (data, response) = try await session.data(for: request)
         
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
+        guard let httpResponse = response as? HTTPURLResponse else {
+            print("🌐 APIService: Invalid response type")
             throw APIError.invalidResponse
         }
         
-        return try JSONDecoder().decode([Dog].self, from: data)
+        print("🌐 APIService: HTTP Status: \(httpResponse.statusCode)")
+        
+        if httpResponse.statusCode != 200 {
+            let responseString = String(data: data, encoding: .utf8) ?? "No response body"
+            print("🌐 APIService: Error response: \(responseString)")
+            throw APIError.invalidResponse
+        }
+        
+        let responseString = String(data: data, encoding: .utf8) ?? "No response body"
+        print("🌐 APIService: Raw response (\(data.count) bytes): \(String(responseString.prefix(200)))...")
+        
+        do {
+            let decodedResponse = try JSONDecoder().decode(DogsResponse.self, from: data)
+            print("🌐 APIService: Successfully decoded \(decodedResponse.dogs.count) dogs")
+            return decodedResponse.dogs
+        } catch {
+            print("🌐 APIService: JSON decoding error: \(error)")
+            throw APIError.decodingError
+        }
     }
     
     func createDog(_ dogRequest: CreateDogRequest) async throws -> Dog {
@@ -175,6 +200,31 @@ class APIService {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         return try decoder.decode(Dog.self, from: data)
+    }
+    
+    func updateDog(dogId: Int, updateRequest: UpdateDogRequest) async throws -> Dog {
+        let url = URL(string: "\(baseURL)/dogs/\(dogId)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        request.httpBody = try JSONEncoder().encode(updateRequest)
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.invalidResponse
+        }
+        
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let dogResponse = try decoder.decode(DogResponse.self, from: data)
+        return dogResponse.dog
     }
     
     // MARK: - Photo Upload Methods
@@ -249,6 +299,58 @@ class APIService {
         }
         
         return try JSONDecoder().decode(GalleryUploadResponse.self, from: data)
+    }
+    
+    func setProfileImageFromGallery(dogId: Int, imageUrl: String) async throws -> Dog {
+        let url = URL(string: "\(baseURL)/dogs/\(dogId)/profile-image-from-gallery")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let body = ["imageUrl": imageUrl]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.invalidResponse
+        }
+        
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let dogResponse = try decoder.decode(DogResponse.self, from: data)
+        return dogResponse.dog
+    }
+    
+    func removeGalleryImage(dogId: Int, imageUrl: String) async throws -> Dog {
+        let url = URL(string: "\(baseURL)/dogs/\(dogId)/gallery")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let body = ["imageUrl": imageUrl]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.invalidResponse
+        }
+        
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let dogResponse = try decoder.decode(DogResponse.self, from: data)
+        return dogResponse.dog
     }
     
     // MARK: - Helper Methods
