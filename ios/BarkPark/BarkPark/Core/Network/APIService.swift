@@ -44,6 +44,7 @@ class APIService {
     // MARK: - Authentication Methods
     
     func login(email: String, password: String) async throws -> LoginResponse {
+        print("🔐 APIService: Starting login for email: \(email)")
         let url = URL(string: "\(baseURL)/auth/login")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -56,17 +57,49 @@ class APIService {
         
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         
+        print("🔐 APIService: Making login request to \(url)")
         let (data, response) = try await session.data(for: request)
         
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
+        guard let httpResponse = response as? HTTPURLResponse else {
+            print("🔐 APIService: Invalid response type")
             throw APIError.invalidResponse
         }
         
-        return try JSONDecoder().decode(LoginResponse.self, from: data)
+        print("🔐 APIService: Login response status: \(httpResponse.statusCode)")
+        
+        // Handle different status codes
+        switch httpResponse.statusCode {
+        case 200:
+            print("🔐 APIService: Login successful, decoding response")
+            return try JSONDecoder().decode(LoginResponse.self, from: data)
+            
+        case 400, 401:
+            // Try to decode error message from backend
+            print("🔐 APIService: Login failed with status \(httpResponse.statusCode)")
+            if let errorResponse = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let errorMessage = errorResponse["error"] as? String {
+                print("🔐 APIService: Backend error message: \(errorMessage)")
+                throw APIError.authenticationFailed(errorMessage)
+            } else {
+                let responseString = String(data: data, encoding: .utf8) ?? "No response body"
+                print("🔐 APIService: Raw error response: \(responseString)")
+                throw APIError.authenticationFailed("Invalid email or password")
+            }
+            
+        case 500...599:
+            print("🔐 APIService: Server error: \(httpResponse.statusCode)")
+            throw APIError.serverError
+            
+        default:
+            print("🔐 APIService: Unexpected status code: \(httpResponse.statusCode)")
+            let responseString = String(data: data, encoding: .utf8) ?? "No response body"
+            print("🔐 APIService: Raw response: \(responseString)")
+            throw APIError.invalidResponse
+        }
     }
     
     func register(email: String, password: String, firstName: String, lastName: String) async throws -> RegisterResponse {
+        print("🔐 APIService: Starting registration for email: \(email)")
         let url = URL(string: "\(baseURL)/auth/register")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -81,14 +114,57 @@ class APIService {
         
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         
+        print("🔐 APIService: Making register request to \(url)")
         let (data, response) = try await session.data(for: request)
         
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 201 else {
+        guard let httpResponse = response as? HTTPURLResponse else {
+            print("🔐 APIService: Invalid response type")
             throw APIError.invalidResponse
         }
         
-        return try JSONDecoder().decode(RegisterResponse.self, from: data)
+        print("🔐 APIService: Register response status: \(httpResponse.statusCode)")
+        
+        // Handle different status codes
+        switch httpResponse.statusCode {
+        case 201:
+            print("🔐 APIService: Registration successful, decoding response")
+            return try JSONDecoder().decode(RegisterResponse.self, from: data)
+            
+        case 400:
+            // Validation errors
+            print("🔐 APIService: Registration validation failed")
+            if let errorResponse = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                if let errors = errorResponse["errors"] as? [[String: Any]], !errors.isEmpty {
+                    let errorMessages = errors.compactMap { $0["msg"] as? String }
+                    let message = errorMessages.joined(separator: ", ")
+                    print("🔐 APIService: Validation errors: \(message)")
+                    throw APIError.validationFailed(message)
+                } else if let errorMessage = errorResponse["error"] as? String {
+                    print("🔐 APIService: Backend error: \(errorMessage)")
+                    throw APIError.authenticationFailed(errorMessage)
+                }
+            }
+            throw APIError.validationFailed("Invalid registration data")
+            
+        case 409:
+            // User already exists
+            print("🔐 APIService: User already exists")
+            if let errorResponse = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let errorMessage = errorResponse["error"] as? String {
+                throw APIError.authenticationFailed(errorMessage)
+            }
+            throw APIError.authenticationFailed("User with this email already exists")
+            
+        case 500...599:
+            print("🔐 APIService: Server error: \(httpResponse.statusCode)")
+            throw APIError.serverError
+            
+        default:
+            print("🔐 APIService: Unexpected status code: \(httpResponse.statusCode)")
+            let responseString = String(data: data, encoding: .utf8) ?? "No response body"
+            print("🔐 APIService: Raw response: \(responseString)")
+            throw APIError.invalidResponse
+        }
     }
     
     func getCurrentUser() async throws -> User {
@@ -399,6 +475,9 @@ enum APIError: Error, LocalizedError {
     case invalidResponse
     case decodingError
     case networkError
+    case authenticationFailed(String)
+    case validationFailed(String)
+    case serverError
     
     var errorDescription: String? {
         switch self {
@@ -408,6 +487,12 @@ enum APIError: Error, LocalizedError {
             return "Failed to decode response"
         case .networkError:
             return "Network error occurred"
+        case .authenticationFailed(let message):
+            return message
+        case .validationFailed(let message):
+            return message
+        case .serverError:
+            return "Server error occurred. Please try again later."
         }
     }
 }

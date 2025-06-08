@@ -84,7 +84,11 @@ struct LoginView: View {
                         // Login Button
                         Button {
                             Task {
+                                print("👤 LoginView: Login button tapped")
+                                print("👤 LoginView: Email: \(email)")
                                 await authManager.login(email: email, password: password)
+                                print("👤 LoginView: Login complete, authenticated: \(authManager.isAuthenticated)")
+                                print("👤 LoginView: Error message: \(authManager.errorMessage ?? "none")")
                                 if authManager.isAuthenticated {
                                     dismiss()
                                 }

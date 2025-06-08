@@ -394,6 +394,12 @@ open ios/BarkPark/BarkPark.xcodeproj
 - **Connection debugging** - Resolved iOS simulator network issues (localhost → 127.0.0.1)
 - **Git repository cleanup** - Proper .gitignore for iOS, removed user-specific files
 
+**🔐 Authentication Error Handling Improvements:**
+- **Enhanced APIService error handling** - Properly parse and display backend error messages
+- **Status code handling** - Different error types for 400, 401, 409, and 500+ responses
+- **User-friendly error messages** - Show actual error reasons instead of generic "Invalid response"
+- **Comprehensive debugging logs** - Track authentication flow for troubleshooting
+
 **🔧 Key Technical Improvements:**
 - **iOS APIService** - Added updateDog(), setProfileImageFromGallery(), removeGalleryImage() methods
 - **DogProfileViewModel** - Enhanced with editing and gallery management functionality  
@@ -446,6 +452,11 @@ open ios/BarkPark/BarkPark.xcodeproj
 - **IMPORTANT**: Use `127.0.0.1:3000` instead of `localhost:3000` for iOS Simulator compatibility
 - **Model flexibility**: `breed` and `birthday` are optional in Dog model to handle legacy/incomplete data
 - **Debugging**: Comprehensive logging in APIService and ViewModels for troubleshooting data flow
+- **Authentication Error Handling**: APIService properly parses backend error messages for login/register failures
+  - Login errors (401): "Invalid email or password" displayed to user
+  - Registration errors (409): "User with this email already exists"
+  - Validation errors (400): Field-specific error messages
+  - Server errors (500+): "Server error occurred. Please try again later."
 
 ## Deployment
 

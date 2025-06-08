@@ -27,6 +27,8 @@ class AuthenticationManager: ObservableObject {
         isLoading = true
         errorMessage = nil
         
+        print("🔐 AuthenticationManager: Starting login for \(email)")
+        
         do {
             let loginResponse = try await apiService.login(email: email, password: password)
             
@@ -39,6 +41,8 @@ class AuthenticationManager: ObservableObject {
             isAuthenticated = true
             print("🔐 AuthenticationManager: Login successful for user: \(loginResponse.user.email)")
         } catch {
+            print("🔐 AuthenticationManager: Login failed with error: \(error)")
+            print("🔐 AuthenticationManager: Error localized description: \(error.localizedDescription)")
             errorMessage = error.localizedDescription
         }
         
