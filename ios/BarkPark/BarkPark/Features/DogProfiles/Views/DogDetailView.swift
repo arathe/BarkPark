@@ -10,6 +10,10 @@ import SwiftUI
 struct DogDetailView: View {
     let dog: Dog
     @State private var showingEditSheet = false
+    @State private var showingDeleteAlert = false
+    @State private var isDeleting = false
+    @EnvironmentObject var dogProfileViewModel: DogProfileViewModel
+    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         ScrollView {
@@ -134,21 +138,23 @@ struct DogDetailView: View {
                     // Gallery (if available)
                     if !dog.galleryImages.isEmpty {
                         DetailSection(title: "Photo Gallery") {
-                            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: BarkParkDesign.Spacing.sm) {
+                            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: BarkParkDesign.Spacing.md), count: 3), spacing: BarkParkDesign.Spacing.md) {
                                 ForEach(dog.galleryImages, id: \.self) { imageUrl in
                                     AsyncImage(url: URL(string: imageUrl)) { image in
                                         image
                                             .resizable()
                                             .aspectRatio(contentMode: .fill)
+                                            .frame(width: 100, height: 100)
+                                            .clipped()
                                     } placeholder: {
                                         Rectangle()
                                             .foregroundColor(BarkParkDesign.Colors.tertiaryBackground)
+                                            .frame(width: 100, height: 100)
                                             .overlay(
                                                 ProgressView()
                                                     .progressViewStyle(CircularProgressViewStyle(tint: BarkParkDesign.Colors.dogPrimary))
                                             )
                                     }
-                                    .frame(height: 100)
                                     .clipShape(RoundedRectangle(cornerRadius: BarkParkDesign.CornerRadius.small))
                                 }
                             }
@@ -162,15 +168,67 @@ struct DogDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button("Edit") {
-                    showingEditSheet = true
+                Menu {
+                    Button {
+                        showingEditSheet = true
+                    } label: {
+                        Label("Edit Profile", systemImage: "pencil")
+                    }
+                    
+                    Button(role: .destructive) {
+                        showingDeleteAlert = true
+                    } label: {
+                        Label("Delete Dog", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .foregroundColor(BarkParkDesign.Colors.dogPrimary)
                 }
-                .foregroundColor(BarkParkDesign.Colors.dogPrimary)
             }
         }
         .sheet(isPresented: $showingEditSheet) {
             EditDogView(dog: dog)
-                .environmentObject(DogProfileViewModel())
+                .environmentObject(dogProfileViewModel)
+        }
+        .alert("Delete \(dog.name)?", isPresented: $showingDeleteAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                deleteDog()
+            }
+        } message: {
+            Text("This will permanently delete \(dog.name)'s profile and all associated photos. This action cannot be undone.")
+        }
+        .overlay {
+            if isDeleting {
+                Color.black.opacity(0.5)
+                    .ignoresSafeArea()
+                    .overlay {
+                        VStack(spacing: BarkParkDesign.Spacing.md) {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .scaleEffect(1.5)
+                            Text("Deleting...")
+                                .font(BarkParkDesign.Typography.headline)
+                                .foregroundColor(.white)
+                        }
+                        .padding(BarkParkDesign.Spacing.lg)
+                        .background(BarkParkDesign.Colors.tertiaryBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: BarkParkDesign.CornerRadius.medium))
+                    }
+            }
+        }
+    }
+    
+    private func deleteDog() {
+        isDeleting = true
+        
+        Task {
+            let success = await dogProfileViewModel.deleteDog(dog)
+            isDeleting = false
+            
+            if success {
+                dismiss()
+            }
         }
     }
 }
@@ -233,31 +291,43 @@ struct DetailRow: View {
     }
 }
 
+// MARK: - Preview Data
+struct PreviewData {
+    static let sampleDog: Dog = {
+        let jsonString = """
+        {
+            "id": 1,
+            "name": "Buddy",
+            "breed": "Golden Retriever",
+            "birthday": "2020-05-15",
+            "age": 5,
+            "weight": "65.5",
+            "gender": "male",
+            "sizeCategory": "large",
+            "energyLevel": "high",
+            "friendlinessDogs": 5,
+            "friendlinessPeople": 4,
+            "trainingLevel": "advanced",
+            "favoriteActivities": ["fetch", "swimming", "hiking"],
+            "isVaccinated": true,
+            "isSpayedNeutered": true,
+            "specialNeeds": null,
+            "bio": "Buddy is a friendly and energetic Golden Retriever who loves to play fetch and swim.",
+            "profileImageUrl": null,
+            "galleryImages": [],
+            "userId": 1,
+            "createdAt": "2023-01-01T00:00:00.000Z",
+            "updatedAt": "2023-01-01T00:00:00.000Z"
+        }
+        """
+        let data = jsonString.data(using: .utf8)!
+        return try! JSONDecoder().decode(Dog.self, from: data)
+    }()
+}
+
 #Preview {
     NavigationView {
-        DogDetailView(dog: Dog(
-            id: 1,
-            name: "Buddy",
-            breed: "Golden Retriever",
-            birthday: "2020-05-15",
-            age: 5,
-            weight: 65.5,
-            gender: "male",
-            sizeCategory: "large",
-            energyLevel: "high",
-            friendlinessDogs: 5,
-            friendlinessPeople: 4,
-            trainingLevel: "advanced",
-            favoriteActivities: ["fetch", "swimming", "hiking"],
-            isVaccinated: true,
-            isSpayedNeutered: true,
-            specialNeeds: nil,
-            bio: "Buddy is a friendly and energetic Golden Retriever who loves to play fetch and swim.",
-            profileImageUrl: nil,
-            galleryImages: [],
-            userId: 1,
-            createdAt: "2023-01-01T00:00:00.000Z",
-            updatedAt: "2023-01-01T00:00:00.000Z"
-        ))
+        DogDetailView(dog: PreviewData.sampleDog)
+            .environmentObject(DogProfileViewModel())
     }
 }

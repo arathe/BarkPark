@@ -198,4 +198,23 @@ class DogProfileViewModel: ObservableObject {
             return false
         }
     }
+    
+    func deleteDog(_ dog: Dog) async -> Bool {
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            try await apiService.deleteDog(id: dog.id)
+            
+            // Remove the dog from our local array
+            dogs.removeAll { $0.id == dog.id }
+            
+            isLoading = false
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            isLoading = false
+            return false
+        }
+    }
 }

@@ -41,6 +41,7 @@ struct EditDogView: View {
     @State private var selectedGalleryPhotos: [PhotosPickerItem] = []
     @State private var newGalleryImages: [Data] = []
     @State private var galleryImages: [String] = []
+    @State private var galleryImagesToRemove: Set<String> = []
     @State private var currentProfileImageUrl: String?
     @State private var selectedProfileImageFromGallery: String?
     
@@ -77,8 +78,11 @@ struct EditDogView: View {
                 GalleryManagementSection(
                     selectedGalleryPhotos: $selectedGalleryPhotos,
                     newGalleryImages: $newGalleryImages,
-                    galleryImages: $galleryImages
+                    galleryImages: $galleryImages,
+                    galleryImagesToRemove: $galleryImagesToRemove,
+                    dogId: dog.id
                 )
+                .environmentObject(dogProfileViewModel)
                 
                 // Basic Information
                 Section("Basic Information") {
@@ -351,7 +355,11 @@ struct EditDogView: View {
             }
             
             isSubmitting = false
-            dismiss()
+            
+            // Only dismiss if no alerts are shown
+            if !showingAlert {
+                dismiss()
+            }
         }
     }
     
@@ -497,6 +505,10 @@ struct GalleryManagementSection: View {
     @Binding var selectedGalleryPhotos: [PhotosPickerItem]
     @Binding var newGalleryImages: [Data]
     @Binding var galleryImages: [String]
+    @Binding var galleryImagesToRemove: Set<String>
+    let dogId: Int
+    @EnvironmentObject var dogProfileViewModel: DogProfileViewModel
+    @State private var isDeleting = false
     
     var body: some View {
         Section("Photo Gallery") {
@@ -507,33 +519,58 @@ struct GalleryManagementSection: View {
                         .font(BarkParkDesign.Typography.headline)
                         .foregroundColor(BarkParkDesign.Colors.primaryText)
                     
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: BarkParkDesign.Spacing.sm) {
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: BarkParkDesign.Spacing.md), count: 3), spacing: BarkParkDesign.Spacing.md) {
                         ForEach(Array(galleryImages.enumerated()), id: \.offset) { index, imageUrl in
                             ZStack(alignment: .topTrailing) {
                                 AsyncImage(url: URL(string: imageUrl)) { image in
                                     image
                                         .resizable()
                                         .aspectRatio(contentMode: .fill)
+                                        .frame(width: 100, height: 100)
+                                        .clipped()
                                 } placeholder: {
                                     Rectangle()
                                         .foregroundColor(BarkParkDesign.Colors.tertiaryBackground)
+                                        .frame(width: 100, height: 100)
                                         .overlay(
                                             ProgressView()
                                                 .progressViewStyle(CircularProgressViewStyle(tint: BarkParkDesign.Colors.dogPrimary))
                                         )
                                 }
-                                .frame(height: 100)
                                 .clipShape(RoundedRectangle(cornerRadius: BarkParkDesign.CornerRadius.small))
+                                .allowsHitTesting(!galleryImagesToRemove.contains(imageUrl))
                                 
-                                Button {
-                                    removeGalleryImage(at: index)
-                                } label: {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .foregroundColor(.white)
-                                        .background(Circle().fill(Color.red))
-                                        .font(.system(size: 20))
+                                // Show overlay if marked for removal
+                                if galleryImagesToRemove.contains(imageUrl) {
+                                    RoundedRectangle(cornerRadius: BarkParkDesign.CornerRadius.small)
+                                        .fill(Color.red.opacity(0.7))
+                                        .overlay(
+                                            VStack(spacing: 4) {
+                                                Image(systemName: "trash")
+                                                    .foregroundColor(.white)
+                                                    .font(.system(size: 24))
+                                                Text("Tap to delete")
+                                                    .font(BarkParkDesign.Typography.caption2)
+                                                    .foregroundColor(.white)
+                                            }
+                                        )
+                                        .onTapGesture {
+                                            deleteGalleryImage(imageUrl)
+                                        }
                                 }
-                                .offset(x: 8, y: -8)
+                                
+                                if !galleryImagesToRemove.contains(imageUrl) {
+                                    Button {
+                                        markImageForRemoval(imageUrl)
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundColor(.white)
+                                            .background(Circle().fill(Color.red))
+                                            .font(.system(size: 20))
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                    .offset(x: -5, y: 5)
+                                }
                             }
                         }
                     }
@@ -545,14 +582,15 @@ struct GalleryManagementSection: View {
                         .font(BarkParkDesign.Typography.headline)
                         .foregroundColor(BarkParkDesign.Colors.primaryText)
                     
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: BarkParkDesign.Spacing.sm) {
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: BarkParkDesign.Spacing.md), count: 3), spacing: BarkParkDesign.Spacing.md) {
                         ForEach(Array(newGalleryImages.enumerated()), id: \.offset) { index, imageData in
                             ZStack(alignment: .topTrailing) {
                                 if let uiImage = UIImage(data: imageData) {
                                     Image(uiImage: uiImage)
                                         .resizable()
                                         .aspectRatio(contentMode: .fill)
-                                        .frame(height: 100)
+                                        .frame(width: 100, height: 100)
+                                        .clipped()
                                         .clipShape(RoundedRectangle(cornerRadius: BarkParkDesign.CornerRadius.small))
                                 }
                                 
@@ -564,7 +602,8 @@ struct GalleryManagementSection: View {
                                         .background(Circle().fill(Color.red))
                                         .font(.system(size: 20))
                                 }
-                                .offset(x: 8, y: -8)
+                                .buttonStyle(PlainButtonStyle())
+                                .offset(x: -5, y: 5)
                             }
                         }
                     }
@@ -604,12 +643,32 @@ struct GalleryManagementSection: View {
         }
     }
     
-    private func removeGalleryImage(at index: Int) {
-        galleryImages.remove(at: index)
+    private func markImageForRemoval(_ imageUrl: String) {
+        if galleryImagesToRemove.contains(imageUrl) {
+            galleryImagesToRemove.remove(imageUrl)
+        } else {
+            galleryImagesToRemove.insert(imageUrl)
+        }
     }
     
     private func removeNewImage(at index: Int) {
         newGalleryImages.remove(at: index)
+    }
+    
+    private func deleteGalleryImage(_ imageUrl: String) {
+        isDeleting = true
+        
+        Task {
+            let success = await dogProfileViewModel.removeGalleryImage(dogId: dogId, imageUrl: imageUrl)
+            
+            if success {
+                // Remove from local arrays
+                galleryImages.removeAll { $0 == imageUrl }
+                galleryImagesToRemove.remove(imageUrl)
+            }
+            
+            isDeleting = false
+        }
     }
 }
 
@@ -622,7 +681,7 @@ struct ProfilePhotoSelectorSheet: View {
     var body: some View {
         NavigationView {
             ScrollView {
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: BarkParkDesign.Spacing.md) {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: BarkParkDesign.Spacing.md), count: 2), spacing: BarkParkDesign.Spacing.md) {
                     ForEach(galleryImages, id: \.self) { imageUrl in
                         Button {
                             selectedProfileImageFromGallery = imageUrl
@@ -632,15 +691,17 @@ struct ProfilePhotoSelectorSheet: View {
                                 image
                                     .resizable()
                                     .aspectRatio(contentMode: .fill)
+                                    .frame(width: 150, height: 150)
+                                    .clipped()
                             } placeholder: {
                                 Rectangle()
                                     .foregroundColor(BarkParkDesign.Colors.tertiaryBackground)
+                                    .frame(width: 150, height: 150)
                                     .overlay(
                                         ProgressView()
                                             .progressViewStyle(CircularProgressViewStyle(tint: BarkParkDesign.Colors.dogPrimary))
                                     )
                             }
-                            .frame(height: 150)
                             .clipShape(RoundedRectangle(cornerRadius: BarkParkDesign.CornerRadius.medium))
                             .overlay(
                                 RoundedRectangle(cornerRadius: BarkParkDesign.CornerRadius.medium)
@@ -668,30 +729,41 @@ struct ProfilePhotoSelectorSheet: View {
     }
 }
 
+// MARK: - Preview Data
+struct EditPreviewData {
+    static let sampleDog: Dog = {
+        let jsonString = """
+        {
+            "id": 1,
+            "name": "Buddy",
+            "breed": "Golden Retriever",
+            "birthday": "2020-05-15",
+            "age": 5,
+            "weight": "65.5",
+            "gender": "male",
+            "sizeCategory": "large",
+            "energyLevel": "high",
+            "friendlinessDogs": 5,
+            "friendlinessPeople": 4,
+            "trainingLevel": "advanced",
+            "favoriteActivities": ["fetch", "swimming", "hiking"],
+            "isVaccinated": true,
+            "isSpayedNeutered": true,
+            "specialNeeds": null,
+            "bio": "Buddy is a friendly and energetic Golden Retriever who loves to play fetch and swim.",
+            "profileImageUrl": null,
+            "galleryImages": ["https://example.com/image1.jpg", "https://example.com/image2.jpg"],
+            "userId": 1,
+            "createdAt": "2023-01-01T00:00:00.000Z",
+            "updatedAt": "2023-01-01T00:00:00.000Z"
+        }
+        """
+        let data = jsonString.data(using: .utf8)!
+        return try! JSONDecoder().decode(Dog.self, from: data)
+    }()
+}
+
 #Preview {
-    EditDogView(dog: Dog(
-        id: 1,
-        name: "Buddy",
-        breed: "Golden Retriever",
-        birthday: "2020-05-15",
-        age: 5,
-        weight: 65.5,
-        gender: "male",
-        sizeCategory: "large",
-        energyLevel: "high",
-        friendlinessDogs: 5,
-        friendlinessPeople: 4,
-        trainingLevel: "advanced",
-        favoriteActivities: ["fetch", "swimming", "hiking"],
-        isVaccinated: true,
-        isSpayedNeutered: true,
-        specialNeeds: nil,
-        bio: "Buddy is a friendly and energetic Golden Retriever who loves to play fetch and swim.",
-        profileImageUrl: nil,
-        galleryImages: ["https://example.com/image1.jpg", "https://example.com/image2.jpg"],
-        userId: 1,
-        createdAt: "2023-01-01T00:00:00.000Z",
-        updatedAt: "2023-01-01T00:00:00.000Z"
-    ))
-    .environmentObject(DogProfileViewModel())
+    EditDogView(dog: EditPreviewData.sampleDog)
+        .environmentObject(DogProfileViewModel())
 }

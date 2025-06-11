@@ -353,7 +353,7 @@ class APIService {
         var httpBody = Data()
         
         for (index, imageData) in imageDataArray.enumerated() {
-            let fieldName = "galleryImages"
+            let fieldName = "images"
             let filename = "gallery_\(index).jpg"
             let mimeType = "image/jpeg"
             
@@ -427,6 +427,23 @@ class APIService {
         decoder.dateDecodingStrategy = .iso8601
         let dogResponse = try decoder.decode(DogResponse.self, from: data)
         return dogResponse.dog
+    }
+    
+    func deleteDog(id: Int) async throws {
+        let url = URL(string: "\(baseURL)/dogs/\(id)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let (_, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.invalidResponse
+        }
     }
     
     // MARK: - Helper Methods

@@ -19,8 +19,11 @@ struct MyPackView: View {
                         emptyStateView
                     } else {
                         ForEach(dogProfileViewModel.dogs) { dog in
-                            DogCard(dog: dog)
-                                .accessibility(identifier: "dogCard")
+                            NavigationLink(destination: DogDetailView(dog: dog).environmentObject(dogProfileViewModel)) {
+                                DogCard(dog: dog)
+                                    .accessibility(identifier: "dogCard")
+                            }
+                            .buttonStyle(PlainButtonStyle())
                         }
                     }
                 }
