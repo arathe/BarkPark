@@ -21,6 +21,7 @@ class DogParksViewModel: ObservableObject {
     
     private let apiService = APIService.shared
     private let locationManager = LocationManager.shared
+    private var regionLoadTask: Task<Void, Never>?
     
     // Search radius options
     let radiusOptions: [Double] = [1.0, 5.0, 10.0, 25.0]
@@ -54,29 +55,6 @@ class DogParksViewModel: ObservableObject {
             latitude: userLocation.coordinate.latitude,
             longitude: userLocation.coordinate.longitude
         )
-    }
-    
-    func loadParksAtLocation(latitude: Double, longitude: Double) async {
-        isLoading = true
-        errorMessage = nil
-        
-        do {
-            print("🌐 DogParksViewModel: Loading parks near \(latitude), \(longitude) within \(searchRadius)km")
-            let response = try await apiService.getNearbyParks(
-                latitude: latitude,
-                longitude: longitude,
-                radius: searchRadius
-            )
-            
-            parks = response.parks
-            print("🌐 DogParksViewModel: Loaded \(parks.count) parks")
-            
-        } catch {
-            print("🌐 DogParksViewModel: Error loading parks: \(error)")
-            errorMessage = "Failed to load nearby parks: \(error.localizedDescription)"
-        }
-        
-        isLoading = false
     }
     
     func loadParkDetails(parkId: Int) async -> ParkDetail? {
@@ -142,6 +120,65 @@ class DogParksViewModel: ObservableObject {
         Task {
             await loadNearbyParks()
         }
+    }
+    
+    func loadParksForRegion(_ region: MKCoordinateRegion) async {
+        // Cancel any pending region load task
+        regionLoadTask?.cancel()
+        
+        // Create a new task with a small delay for debouncing
+        regionLoadTask = Task {
+            // Add a small delay to debounce rapid map movements
+            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+            
+            // Check if task was cancelled during the delay
+            if Task.isCancelled { return }
+            
+            // Calculate the radius based on the visible map region
+            let latitudeDelta = region.span.latitudeDelta
+            let longitudeDelta = region.span.longitudeDelta
+            
+            // Convert the larger delta to kilometers (approximate)
+            let maxDelta = max(latitudeDelta, longitudeDelta)
+            let radiusInKm = maxDelta * 111.0 / 2.0 // 111km per degree latitude, divide by 2 for radius
+            
+            // Load parks at the center of the visible region with calculated radius
+            await loadParksAtLocation(
+                latitude: region.center.latitude,
+                longitude: region.center.longitude,
+                customRadius: radiusInKm
+            )
+        }
+    }
+    
+    func loadParksAtLocation(latitude: Double, longitude: Double, customRadius: Double? = nil) async {
+        isLoading = true
+        errorMessage = nil
+        
+        let radius = customRadius ?? searchRadius
+        
+        do {
+            print("🌐 DogParksViewModel: Loading parks near \(latitude), \(longitude) within \(radius)km")
+            let response = try await apiService.getNearbyParks(
+                latitude: latitude,
+                longitude: longitude,
+                radius: radius
+            )
+            
+            parks = response.parks
+            print("🌐 DogParksViewModel: Loaded \(parks.count) parks")
+            
+        } catch {
+            // Don't show error for cancelled tasks
+            if error is CancellationError {
+                print("🌐 DogParksViewModel: Park loading was cancelled")
+            } else {
+                print("🌐 DogParksViewModel: Error loading parks: \(error)")
+                errorMessage = "Failed to load nearby parks: \(error.localizedDescription)"
+            }
+        }
+        
+        isLoading = false
     }
     
     func selectPark(_ park: DogPark) {

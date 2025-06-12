@@ -13,23 +13,41 @@ struct DogParksView: View {
     @StateObject private var locationManager = LocationManager.shared
     @State private var showingLocationPrompt = false
     @State private var showingRadiusSheet = false
+    @State private var lastRegionChangeTime = Date()
+    @State private var mapRegion = MKCoordinateRegion(
+        center: CLLocationCoordinate2D(latitude: 41.0387, longitude: -73.9215),
+        span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+    )
+    @State private var mapViewID = UUID() // Use this to force recreate the map when needed
+    @State private var centerOnLocation: CLLocationCoordinate2D?
     
     var body: some View {
         NavigationView {
             ZStack {
                 MapView(
                     parks: viewModel.parks,
-                    region: $locationManager.region,
+                    initialRegion: mapRegion,
                     selectedPark: $viewModel.selectedPark,
                     onParkSelected: { park in
                         viewModel.selectPark(park)
-                    }
+                    },
+                    onRegionChanged: { newRegion in
+                        Task {
+                            await viewModel.loadParksForRegion(newRegion)
+                        }
+                    },
+                    centerOnLocation: $centerOnLocation
                 )
                 .onAppear {
                     requestLocationIfNeeded()
-                    Task {
-                        await viewModel.loadNearbyParks()
+                    // Initialize map region from location manager only once
+                    if let userLocation = locationManager.location {
+                        mapRegion = MKCoordinateRegion(
+                            center: userLocation.coordinate,
+                            span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+                        )
                     }
+                    // Parks will load automatically when the map region changes
                 }
                 
                 // Top controls overlay
@@ -57,7 +75,8 @@ struct DogParksView: View {
                         // Refresh button
                         Button(action: {
                             Task {
-                                await viewModel.refreshParks()
+                                await viewModel.loadParksForRegion(mapRegion)
+                                await viewModel.loadActiveCheckIns()
                             }
                         }) {
                             Image(systemName: "arrow.clockwise")
@@ -74,8 +93,9 @@ struct DogParksView: View {
                         Button(action: {
                             if locationManager.hasLocationPermission {
                                 locationManager.getCurrentLocation()
-                                Task {
-                                    await viewModel.loadNearbyParks()
+                                // Update map to user's location
+                                if let userLocation = locationManager.location {
+                                    centerOnLocation = userLocation.coordinate
                                 }
                             } else {
                                 showingLocationPrompt = true

@@ -37,7 +37,8 @@
       "Bash(npm install)",
       "Bash(node:*)",
       "Bash(npm test:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(psql:*)"
     ],
     "deny": []
   }

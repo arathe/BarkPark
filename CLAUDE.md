@@ -132,3 +132,36 @@ BarkPark is a dog social network application consisting of:
 4. **User Experience**: Add filters for surface type, ratings, amenities
 
 The app now provides users with a comprehensive database of 103 dog parks including all major NYC locations with rich metadata for enhanced discovery and decision-making.
+
+## ✅ Session Notes - June 12, 2025 (Session 4)
+
+### **🗺️ Fixed NYC Dog Parks Map Visibility:**
+
+**Issue Identified:**
+- **Problem**: NYC dog parks weren't showing on the map despite being in the database
+- **Root Cause**: Default 10km search radius from Piermont location excluded NYC parks (30+ km away)
+- **Impact**: Users couldn't discover the 91 newly imported NYC dog runs
+
+**Solution Implemented:**
+- **Dynamic Park Loading**: Parks now load based on visible map region as user scrolls/zooms
+- **Smart Radius Calculation**: Radius automatically adjusts based on map span (diagonal distance)
+- **Debounced API Calls**: 500ms debounce prevents excessive API requests during map movement
+- **One-Way Data Flow**: Fixed map snapping back by removing two-way region binding
+
+**Technical Details:**
+- **New Method**: `loadParksForRegion()` calculates appropriate radius from map span
+- **Region Monitoring**: `onMapCameraChange` modifier tracks map movement
+- **Performance**: Efficient loading only fetches parks within visible area
+- **Files Modified**: `DogParksView.swift`, `DogParksViewModel.swift`
+
+### **📍 Current Map Behavior:**
+- **Initial Load**: Centers on user location or defaults to Piermont
+- **Dynamic Loading**: All 103 parks load as users explore different areas
+- **Smooth Experience**: No more map snapping or jumping issues
+- **NYC Access**: Full access to all NYC dog runs by panning to Manhattan/Brooklyn
+
+### **🎯 Remaining Map Enhancements:**
+1. **Loading Indicator**: Show spinner during park fetches
+2. **Cache Layer**: Store recently viewed regions to reduce API calls
+3. **Clustering**: Group nearby parks at low zoom levels for performance
+4. **Search Integration**: Add "Search this area" button for explicit reloads

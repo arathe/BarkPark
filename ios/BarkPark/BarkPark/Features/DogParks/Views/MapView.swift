@@ -10,14 +10,16 @@ import MapKit
 
 struct MapView: UIViewRepresentable {
     let parks: [DogPark]
-    @Binding var region: MKCoordinateRegion
+    let initialRegion: MKCoordinateRegion
     @Binding var selectedPark: DogPark?
     let onParkSelected: (DogPark) -> Void
+    let onRegionChanged: ((MKCoordinateRegion) -> Void)?
+    @Binding var centerOnLocation: CLLocationCoordinate2D?
     
     func makeUIView(context: Context) -> MKMapView {
         let mapView = MKMapView()
         mapView.delegate = context.coordinator
-        mapView.region = region
+        mapView.region = initialRegion
         mapView.showsUserLocation = true
         mapView.userTrackingMode = .none
         
@@ -28,10 +30,18 @@ struct MapView: UIViewRepresentable {
     }
     
     func updateUIView(_ mapView: MKMapView, context: Context) {
-        // Update region if it changed
-        if !mapView.region.center.isEqual(to: region.center) ||
-           !mapView.region.span.isEqual(to: region.span) {
-            mapView.setRegion(region, animated: true)
+        // Only update region when explicitly requested via centerOnLocation
+        if let centerLocation = centerOnLocation {
+            let newRegion = MKCoordinateRegion(
+                center: centerLocation,
+                span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+            )
+            mapView.setRegion(newRegion, animated: true)
+            
+            // Clear the centerOnLocation after using it
+            DispatchQueue.main.async {
+                self.centerOnLocation = nil
+            }
         }
         
         // Update annotations
@@ -40,11 +50,17 @@ struct MapView: UIViewRepresentable {
             ParkAnnotation(park: park, isCheckedIn: false) // TODO: Pass check-in status
         }
         
-        // Remove old annotations
-        mapView.removeAnnotations(currentAnnotations)
+        // Only update annotations if they actually changed
+        let currentParkIds = Set(currentAnnotations.map { $0.park.id })
+        let newParkIds = Set(parks.map { $0.id })
         
-        // Add new annotations
-        mapView.addAnnotations(newAnnotations)
+        if currentParkIds != newParkIds {
+            // Remove old annotations
+            mapView.removeAnnotations(currentAnnotations)
+            
+            // Add new annotations
+            mapView.addAnnotations(newAnnotations)
+        }
         
         // Update coordinator with latest parks data
         context.coordinator.parks = parks
@@ -57,6 +73,7 @@ struct MapView: UIViewRepresentable {
     class Coordinator: NSObject, MKMapViewDelegate {
         var parent: MapView
         var parks: [DogPark] = []
+        var isUserInteracting = false
         
         init(_ parent: MapView) {
             self.parent = parent
@@ -89,10 +106,27 @@ struct MapView: UIViewRepresentable {
             }
         }
         
-        func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
-            DispatchQueue.main.async {
-                self.parent.region = mapView.region
+        func mapView(_ mapView: MKMapView, regionWillChangeAnimated animated: Bool) {
+            // Detect if the change is due to user interaction
+            if let gestureRecognizers = mapView.subviews.first?.gestureRecognizers {
+                for recognizer in gestureRecognizers {
+                    if recognizer.state == .began || recognizer.state == .changed {
+                        isUserInteracting = true
+                        break
+                    }
+                }
             }
+        }
+        
+        func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
+            // DON'T update the parent region binding to prevent snap-back
+            // Only notify about region changes for loading parks
+            DispatchQueue.main.async {
+                self.parent.onRegionChanged?(mapView.region)
+            }
+            
+            // Reset interaction flag
+            isUserInteracting = false
         }
     }
 }
