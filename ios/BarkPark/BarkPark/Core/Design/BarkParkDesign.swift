@@ -23,6 +23,10 @@ struct BarkParkDesign {
         // Text colors
         static let primaryText = Color.primary
         static let secondaryText = Color.secondary
+        static let tertiaryText = Color(.tertiaryLabel)
+        
+        // Background colors
+        static let cardBackground = Color(.secondarySystemBackground)
         
         // Semantic colors
         static let success = Color.green

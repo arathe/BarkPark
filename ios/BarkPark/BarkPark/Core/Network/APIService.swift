@@ -446,6 +446,184 @@ class APIService {
         }
     }
     
+    // MARK: - Dog Park Methods
+    
+    func getNearbyParks(latitude: Double, longitude: Double, radius: Double = 10.0) async throws -> ParksSearchResponse {
+        let url = URL(string: "\(baseURL)/parks?latitude=\(latitude)&longitude=\(longitude)&radius=\(radius)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.invalidResponse
+        }
+        
+        return try JSONDecoder().decode(ParksSearchResponse.self, from: data)
+    }
+    
+    func getAllParks() async throws -> [DogPark] {
+        let url = URL(string: "\(baseURL)/parks/all")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.invalidResponse
+        }
+        
+        let parkResponse = try JSONDecoder().decode(ParksResponse.self, from: data)
+        return parkResponse.parks
+    }
+    
+    func getParkDetails(parkId: Int) async throws -> ParkDetailResponse {
+        let url = URL(string: "\(baseURL)/parks/\(parkId)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.invalidResponse
+        }
+        
+        return try JSONDecoder().decode(ParkDetailResponse.self, from: data)
+    }
+    
+    func getParkActivity(parkId: Int) async throws -> ParkActivityResponse {
+        let url = URL(string: "\(baseURL)/parks/\(parkId)/activity")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.invalidResponse
+        }
+        
+        return try JSONDecoder().decode(ParkActivityResponse.self, from: data)
+    }
+    
+    func getFriendsAtPark(parkId: Int) async throws -> FriendsAtParkResponse {
+        let url = URL(string: "\(baseURL)/parks/\(parkId)/friends")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.invalidResponse
+        }
+        
+        return try JSONDecoder().decode(FriendsAtParkResponse.self, from: data)
+    }
+    
+    func checkInToPark(parkId: Int, dogsPresent: [Int] = []) async throws -> CheckInResponse {
+        let url = URL(string: "\(baseURL)/parks/\(parkId)/checkin")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let checkInRequest = CheckInRequest(dogsPresent: dogsPresent)
+        request.httpBody = try JSONEncoder().encode(checkInRequest)
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 201 else {
+            throw APIError.invalidResponse
+        }
+        
+        return try JSONDecoder().decode(CheckInResponse.self, from: data)
+    }
+    
+    func checkOutOfPark(parkId: Int) async throws -> CheckOutResponse {
+        let url = URL(string: "\(baseURL)/parks/\(parkId)/checkout")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.invalidResponse
+        }
+        
+        return try JSONDecoder().decode(CheckOutResponse.self, from: data)
+    }
+    
+    func getCheckInHistory(limit: Int = 10) async throws -> CheckInHistoryResponse {
+        let url = URL(string: "\(baseURL)/parks/user/history?limit=\(limit)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.invalidResponse
+        }
+        
+        return try JSONDecoder().decode(CheckInHistoryResponse.self, from: data)
+    }
+    
+    func getActiveCheckIns() async throws -> ActiveCheckInsResponse {
+        let url = URL(string: "\(baseURL)/parks/user/active")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.invalidResponse
+        }
+        
+        return try JSONDecoder().decode(ActiveCheckInsResponse.self, from: data)
+    }
+    
     // MARK: - Helper Methods
     
     func createMultipartFormData(
