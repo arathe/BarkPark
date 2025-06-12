@@ -58,9 +58,7 @@ struct CheckInSheetView: View {
                 }
             }
             .onAppear {
-                Task {
-                    await dogProfileViewModel.loadDogs()
-                }
+                dogProfileViewModel.loadDogs()
             }
             .alert("Check-in Error", isPresented: $showingError) {
                 Button("OK") { }

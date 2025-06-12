@@ -91,14 +91,13 @@ struct ParkDetailView: View {
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: BarkParkDesign.Spacing.sm) {
             // Mini map
-            Map {
+            Map(initialPosition: .region(MKCoordinateRegion(
+                center: park.coordinate,
+                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+            ))) {
                 Marker(park.name, coordinate: park.coordinate)
                     .tint(Color(park.activityColor))
             }
-            .mapCameraPosition(.constant(.region(MKCoordinateRegion(
-                center: park.coordinate,
-                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-            ))))
             .frame(height: 120)
             .cornerRadius(12)
             .allowsHitTesting(false)
