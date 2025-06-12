@@ -171,19 +171,25 @@ class APIService {
         let url = URL(string: "\(baseURL)/auth/me")!
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
-        
+
         if let token = UserDefaults.standard.string(forKey: "auth_token") {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
-        
+
         let (data, response) = try await session.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
+
+        guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
-        
-        return try JSONDecoder().decode(User.self, from: data)
+
+        switch httpResponse.statusCode {
+        case 200:
+            return try JSONDecoder().decode(User.self, from: data)
+        case 401:
+            throw APIError.authenticationFailed("Unauthorized")
+        default:
+            throw APIError.invalidResponse
+        }
     }
     
     // MARK: - Dog Profile Methods

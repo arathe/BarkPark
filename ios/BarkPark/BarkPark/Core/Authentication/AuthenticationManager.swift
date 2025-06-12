@@ -80,26 +80,33 @@ class AuthenticationManager: ObservableObject {
         currentUser = nil
         errorMessage = nil
     }
-    
+
     func checkAuthenticationStatus() {
         let token = UserDefaults.standard.string(forKey: "auth_token")
         if token != nil {
+            isAuthenticated = true
             Task {
                 await fetchCurrentUser()
             }
         }
     }
-    
+
     private func fetchCurrentUser() async {
         do {
             let user = try await apiService.getCurrentUser()
             currentUser = user
             isAuthenticated = true
         } catch {
-            // Token might be expired, remove it
-            UserDefaults.standard.removeObject(forKey: "auth_token")
-            isAuthenticated = false
-            currentUser = nil
+            if let apiError = error as? APIError,
+               case .authenticationFailed = apiError {
+                // Token invalid or expired
+                UserDefaults.standard.removeObject(forKey: "auth_token")
+                isAuthenticated = false
+                currentUser = nil
+            } else {
+                // Keep user logged in for other errors (e.g., network issues)
+                print("⚠️ fetchCurrentUser error: \(error)")
+            }
         }
     }
 }
