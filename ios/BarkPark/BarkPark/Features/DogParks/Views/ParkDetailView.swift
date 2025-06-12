@@ -11,8 +11,8 @@ import MapKit
 struct ParkDetailView: View {
     let park: DogPark
     let isCheckedIn: Bool
-    let onCheckIn: ([Int]) -> Void
-    let onCheckOut: () -> Void
+    let onCheckIn: ([Int]) async -> Bool
+    let onCheckOut: () async -> Bool
     
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel = ParkDetailViewModel()
@@ -74,8 +74,12 @@ struct ParkDetailView: View {
             }
             .alert("Check Out", isPresented: $showingCheckOutConfirmation) {
                 Button("Check Out", role: .destructive) {
-                    onCheckOut()
-                    dismiss()
+                    Task {
+                        let success = await onCheckOut()
+                        if success {
+                            dismiss()
+                        }
+                    }
                 }
                 Button("Cancel", role: .cancel) { }
             } message: {
@@ -87,12 +91,14 @@ struct ParkDetailView: View {
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: BarkParkDesign.Spacing.sm) {
             // Mini map
-            Map(coordinateRegion: .constant(MKCoordinateRegion(
+            Map {
+                Marker(park.name, coordinate: park.coordinate)
+                    .tint(Color(park.activityColor))
+            }
+            .mapCameraPosition(.constant(.region(MKCoordinateRegion(
                 center: park.coordinate,
                 span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-            )), annotationItems: [park]) { park in
-                MapPin(coordinate: park.coordinate, tint: Color(park.activityColor))
-            }
+            ))))
             .frame(height: 120)
             .cornerRadius(12)
             .allowsHitTesting(false)

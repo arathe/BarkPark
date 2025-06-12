@@ -9,12 +9,15 @@ import SwiftUI
 
 struct CheckInSheetView: View {
     let park: DogPark
-    let onCheckIn: ([Int]) -> Void
+    let onCheckIn: ([Int]) async -> Bool
     let onCancel: () -> Void
     
+    @Environment(\.dismiss) private var dismiss
     @StateObject private var dogProfileViewModel = DogProfileViewModel()
     @State private var selectedDogIds: Set<Int> = []
     @State private var isCheckingIn = false
+    @State private var showingError = false
+    @State private var errorMessage = ""
     
     var body: some View {
         NavigationView {
@@ -54,8 +57,15 @@ struct CheckInSheetView: View {
                     .disabled(isCheckingIn)
                 }
             }
-            .task {
-                await dogProfileViewModel.loadDogs()
+            .onAppear {
+                Task {
+                    await dogProfileViewModel.loadDogs()
+                }
+            }
+            .alert("Check-in Error", isPresented: $showingError) {
+                Button("OK") { }
+            } message: {
+                Text(errorMessage)
             }
         }
     }
@@ -138,12 +148,20 @@ struct CheckInSheetView: View {
     private func performCheckIn() {
         isCheckingIn = true
         
-        let dogIds = Array(selectedDogIds)
-        onCheckIn(dogIds)
-        
-        // Add a small delay for better UX
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            isCheckingIn = false
+        Task {
+            let dogIds = Array(selectedDogIds)
+            let success = await onCheckIn(dogIds)
+            
+            await MainActor.run {
+                isCheckingIn = false
+                
+                if success {
+                    dismiss()
+                } else {
+                    errorMessage = "Failed to check in. Please try again."
+                    showingError = true
+                }
+            }
         }
     }
 }
@@ -239,7 +257,7 @@ struct DogCheckInCard: View {
             currentVisitors: 5,
             distanceKm: 1.2
         ),
-        onCheckIn: { _ in },
+        onCheckIn: { _ in return true },
         onCancel: { }
     )
 }

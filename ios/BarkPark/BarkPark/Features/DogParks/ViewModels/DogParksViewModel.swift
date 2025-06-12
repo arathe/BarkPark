@@ -102,7 +102,7 @@ class DogParksViewModel: ObservableObject {
     
     func checkInToPark(_ park: DogPark, dogsPresent: [Int] = []) async -> Bool {
         do {
-            let response = try await apiService.checkInToPark(parkId: park.id, dogsPresent: dogsPresent)
+            _ = try await apiService.checkInToPark(parkId: park.id, dogsPresent: dogsPresent)
             print("🌐 DogParksViewModel: Checked in to \(park.name)")
             
             // Reload active check-ins
@@ -118,7 +118,7 @@ class DogParksViewModel: ObservableObject {
     
     func checkOutOfPark(_ park: DogPark) async -> Bool {
         do {
-            let response = try await apiService.checkOutOfPark(parkId: park.id)
+            _ = try await apiService.checkOutOfPark(parkId: park.id)
             print("🌐 DogParksViewModel: Checked out of \(park.name)")
             
             // Reload active check-ins

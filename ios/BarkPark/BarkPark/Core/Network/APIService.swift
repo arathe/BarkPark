@@ -561,10 +561,22 @@ class APIService {
         
         guard let httpResponse = response as? HTTPURLResponse,
               httpResponse.statusCode == 201 else {
+            let responseString = String(data: data, encoding: .utf8) ?? "No response body"
+            print("🌐 APIService: Check-in failed with status \((response as? HTTPURLResponse)?.statusCode ?? -1)")
+            print("🌐 APIService: Response: \(responseString)")
             throw APIError.invalidResponse
         }
         
-        return try JSONDecoder().decode(CheckInResponse.self, from: data)
+        let responseString = String(data: data, encoding: .utf8) ?? "No response body"
+        print("🌐 APIService: Check-in response: \(responseString)")
+        
+        do {
+            return try JSONDecoder().decode(CheckInResponse.self, from: data)
+        } catch {
+            print("🌐 APIService: Failed to decode CheckInResponse: \(error)")
+            print("🌐 APIService: Response was: \(responseString)")
+            throw APIError.decodingError
+        }
     }
     
     func checkOutOfPark(parkId: Int) async throws -> CheckOutResponse {
@@ -580,10 +592,22 @@ class APIService {
         
         guard let httpResponse = response as? HTTPURLResponse,
               httpResponse.statusCode == 200 else {
+            let responseString = String(data: data, encoding: .utf8) ?? "No response body"
+            print("🌐 APIService: Check-out failed with status \((response as? HTTPURLResponse)?.statusCode ?? -1)")
+            print("🌐 APIService: Response: \(responseString)")
             throw APIError.invalidResponse
         }
         
-        return try JSONDecoder().decode(CheckOutResponse.self, from: data)
+        let responseString = String(data: data, encoding: .utf8) ?? "No response body"
+        print("🌐 APIService: Check-out response: \(responseString)")
+        
+        do {
+            return try JSONDecoder().decode(CheckOutResponse.self, from: data)
+        } catch {
+            print("🌐 APIService: Failed to decode CheckOutResponse: \(error)")
+            print("🌐 APIService: Response was: \(responseString)")
+            throw APIError.decodingError
+        }
     }
     
     func getCheckInHistory(limit: Int = 10) async throws -> CheckInHistoryResponse {

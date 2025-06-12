@@ -153,14 +153,10 @@ struct DogParksView: View {
                     park: selectedPark,
                     isCheckedIn: viewModel.isCheckedIn(to: selectedPark),
                     onCheckIn: { dogsPresent in
-                        Task {
-                            await viewModel.checkInToPark(selectedPark, dogsPresent: dogsPresent)
-                        }
+                        await viewModel.checkInToPark(selectedPark, dogsPresent: dogsPresent)
                     },
                     onCheckOut: {
-                        Task {
-                            await viewModel.checkOutOfPark(selectedPark)
-                        }
+                        await viewModel.checkOutOfPark(selectedPark)
                     }
                 )
             }

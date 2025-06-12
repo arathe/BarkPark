@@ -14,8 +14,8 @@ struct CheckIn: Codable, Identifiable {
     let checkedInAt: String
     let checkedOutAt: String?
     let dogsPresent: [Int]
-    let createdAt: String
-    let updatedAt: String
+    let createdAt: String?
+    let updatedAt: String?
     
     // Park information (included in some API responses)
     let park: CheckInPark?
