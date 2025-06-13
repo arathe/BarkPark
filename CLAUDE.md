@@ -16,6 +16,8 @@ BarkPark is a dog social network application consisting of:
   2. Perform a full git commit and push
   3. Include adding any new files that have been created
 
+- Unless asked, don't build xcode/ios apps. Assume I will do that
+
 ## ✅ Session Notes - June 11, 2025 (Session 2)
 
 ### **🔧 Bug Fixes and Polish Applied:**
@@ -133,6 +135,39 @@ BarkPark is a dog social network application consisting of:
 
 The app now provides users with a comprehensive database of 103 dog parks including all major NYC locations with rich metadata for enhanced discovery and decision-making.
 
+## ✅ Session Notes - June 12, 2025 (Session 4)
+
+### **🗺️ Fixed NYC Dog Parks Map Visibility:**
+
+**Issue Identified:**
+- **Problem**: NYC dog parks weren't showing on the map despite being in the database
+- **Root Cause**: Default 10km search radius from Piermont location excluded NYC parks (30+ km away)
+- **Impact**: Users couldn't discover the 91 newly imported NYC dog runs
+
+**Solution Implemented:**
+- **Dynamic Park Loading**: Parks now load based on visible map region as user scrolls/zooms
+- **Smart Radius Calculation**: Radius automatically adjusts based on map span (diagonal distance)
+- **Debounced API Calls**: 500ms debounce prevents excessive API requests during map movement
+- **One-Way Data Flow**: Fixed map snapping back by removing two-way region binding
+
+**Technical Details:**
+- **New Method**: `loadParksForRegion()` calculates appropriate radius from map span
+- **Region Monitoring**: `onMapCameraChange` modifier tracks map movement
+- **Performance**: Efficient loading only fetches parks within visible area
+- **Files Modified**: `DogParksView.swift`, `DogParksViewModel.swift`
+
+### **📍 Current Map Behavior:**
+- **Initial Load**: Centers on user location or defaults to Piermont
+- **Dynamic Loading**: All 103 parks load as users explore different areas
+- **Smooth Experience**: No more map snapping or jumping issues
+- **NYC Access**: Full access to all NYC dog runs by panning to Manhattan/Brooklyn
+
+### **🎯 Remaining Map Enhancements:**
+1. **Loading Indicator**: Show spinner during park fetches
+2. **Cache Layer**: Store recently viewed regions to reduce API calls
+3. **Clustering**: Group nearby parks at low zoom levels for performance
+4. **Search Integration**: Add "Search this area" button for explicit reloads
+
 ## ✅ Session Notes - June 12, 2025 (Session 5)
 
 ### **🔍 Redesigned Dog Park Search Functionality:**
@@ -186,35 +221,35 @@ The app now provides users with a comprehensive database of 103 dog parks includ
 3. **Voice Search**: Integrate Siri for hands-free park discovery
 4. **Advanced Matching**: Fuzzy search for typo tolerance
 
-## ✅ Session Notes - June 12, 2025 (Session 4)
+## ✅ Session Notes - June 12, 2025 (Session 6)
 
-### **🗺️ Fixed NYC Dog Parks Map Visibility:**
+### **🗺️ Enhanced Park Navigation Features:**
 
-**Issue Identified:**
-- **Problem**: NYC dog parks weren't showing on the map despite being in the database
-- **Root Cause**: Default 10km search radius from Piermont location excluded NYC parks (30+ km away)
-- **Impact**: Users couldn't discover the 91 newly imported NYC dog runs
+**Clickable Address with Maps Integration:**
+- **Added**: Park addresses in `ParkDetailView` are now clickable buttons
+- **Functionality**: Tapping address launches Apple Maps with driving directions from user's current location
+- **UI Design**: Blue accent color with location icon to indicate interactivity
+- **Implementation**: Uses `MKMapItem.openInMaps()` with driving directions mode
 
-**Solution Implemented:**
-- **Dynamic Park Loading**: Parks now load based on visible map region as user scrolls/zooms
-- **Smart Radius Calculation**: Radius automatically adjusts based on map span (diagonal distance)
-- **Debounced API Calls**: 500ms debounce prevents excessive API requests during map movement
-- **One-Way Data Flow**: Fixed map snapping back by removing two-way region binding
+**Scrollable Search Results:**
+- **Previous Limitation**: Search results were limited to showing only top 5 parks
+- **Enhancement**: All search results now displayed in a scrollable list
+- **UI Constraint**: Maintained compact overlay design with max height of 300 points
+- **User Experience**: Users can now scroll through all matching parks while map remains visible
 
-**Technical Details:**
-- **New Method**: `loadParksForRegion()` calculates appropriate radius from map span
-- **Region Monitoring**: `onMapCameraChange` modifier tracks map movement
-- **Performance**: Efficient loading only fetches parks within visible area
-- **Files Modified**: `DogParksView.swift`, `DogParksViewModel.swift`
+### **📍 Technical Changes:**
+- **ParkDetailView.swift**:
+  - Replaced static address text with interactive button
+  - Added `openInMaps()` function using MapKit's `MKMapItem`
+  - Styled with location icon and accent color for better affordance
 
-### **📍 Current Map Behavior:**
-- **Initial Load**: Centers on user location or defaults to Piermont
-- **Dynamic Loading**: All 103 parks load as users explore different areas
-- **Smooth Experience**: No more map snapping or jumping issues
-- **NYC Access**: Full access to all NYC dog runs by panning to Manhattan/Brooklyn
+- **SearchResultsList.swift**:
+  - Removed `.prefix(5)` limitation on search results
+  - Wrapped results in `ScrollView` with `maxHeight: 300`
+  - Removed "Showing top 5 results" footer text
 
-### **🎯 Remaining Map Enhancements:**
-1. **Loading Indicator**: Show spinner during park fetches
-2. **Cache Layer**: Store recently viewed regions to reduce API calls
-3. **Clustering**: Group nearby parks at low zoom levels for performance
-4. **Search Integration**: Add "Search this area" button for explicit reloads
+### **🎯 Next Steps for Park Discovery:**
+1. **Transit Options**: Add option to choose between driving/walking/transit directions
+2. **Share Location**: Add share button to send park location to friends
+3. **Save Favorites**: Allow users to bookmark frequently visited parks
+4. **Offline Maps**: Cache map tiles for visited park areas

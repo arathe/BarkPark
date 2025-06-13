@@ -103,10 +103,18 @@ struct ParkDetailView: View {
             .allowsHitTesting(false)
             
             // Address
-            Text(park.address)
+            Button(action: {
+                openInMaps()
+            }) {
+                HStack(spacing: 4) {
+                    Image(systemName: "location.circle.fill")
+                        .font(.system(size: 16))
+                    Text(park.address)
+                        .multilineTextAlignment(.leading)
+                }
                 .font(BarkParkDesign.Typography.body)
-                .foregroundColor(BarkParkDesign.Colors.secondaryText)
-                .multilineTextAlignment(.leading)
+                .foregroundColor(BarkParkDesign.Colors.accent)
+            }
         }
     }
     
@@ -312,6 +320,15 @@ struct ParkDetailView: View {
         } else {
             return "star.fill"
         }
+    }
+    
+    private func openInMaps() {
+        let coordinate = park.coordinate
+        let mapItem = MKMapItem(placemark: MKPlacemark(coordinate: coordinate))
+        mapItem.name = park.name
+        mapItem.openInMaps(launchOptions: [
+            MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving
+        ])
     }
 }
 

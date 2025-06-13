@@ -43,34 +43,25 @@ struct SearchResultsList: View {
                 Divider()
                     .padding(.horizontal, 16)
                 
-                // Results list
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(sortedResults.prefix(5), id: \.id) { park in
-                        SearchResultRow(
-                            park: park,
-                            userLocation: userLocation,
-                            onTap: { onParkSelected(park) }
-                        )
-                        
-                        if park.id != sortedResults.prefix(5).last?.id {
-                            Divider()
-                                .padding(.leading, 16)
+                // Results list in ScrollView
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(sortedResults, id: \.id) { park in
+                            SearchResultRow(
+                                park: park,
+                                userLocation: userLocation,
+                                onTap: { onParkSelected(park) }
+                            )
+                            
+                            if park.id != sortedResults.last?.id {
+                                Divider()
+                                    .padding(.leading, 16)
+                            }
                         }
                     }
                 }
+                .frame(maxHeight: 300) // Limit height to maintain overlay appearance
                 .padding(.bottom, 8)
-                
-                if searchResults.count > 5 {
-                    HStack {
-                        Spacer()
-                        Text("Showing top 5 results")
-                            .font(BarkParkDesign.Typography.caption)
-                            .foregroundColor(BarkParkDesign.Colors.secondaryText)
-                        Spacer()
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 12)
-                }
             }
         }
     }
