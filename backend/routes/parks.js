@@ -58,6 +58,58 @@ router.get('/', [
   }
 });
 
+// Search parks by name or other fields
+router.get('/search', [
+  query('q').trim().isLength({ min: 1 }).withMessage('Search query is required'),
+  query('latitude').optional().isFloat({ min: -90, max: 90 }),
+  query('longitude').optional().isFloat({ min: -180, max: 180 })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { q: query, latitude, longitude } = req.query;
+    
+    let parks;
+    if (latitude && longitude) {
+      // Search with location for distance sorting
+      parks = await DogPark.searchWithLocation(
+        query, 
+        parseFloat(latitude), 
+        parseFloat(longitude)
+      );
+    } else {
+      // Search without location
+      parks = await DogPark.search(query);
+    }
+
+    // Add activity levels to each park
+    const parksWithActivity = await Promise.all(
+      parks.map(async (park) => {
+        const activityLevel = await DogPark.getActivityLevel(park.id);
+        const stats = await CheckIn.getParkActivityStats(park.id);
+        return {
+          ...park,
+          activityLevel,
+          currentVisitors: stats.currentCheckIns
+        };
+      })
+    );
+
+    res.json({
+      parks: parksWithActivity,
+      total: parksWithActivity.length,
+      query
+    });
+
+  } catch (error) {
+    console.error('Search parks error:', error);
+    res.status(500).json({ error: 'Failed to search parks' });
+  }
+});
+
 // Get all parks (for admin or full listing)
 router.get('/all', async (req, res) => {
   try {

@@ -131,6 +131,69 @@ class DogPark {
     return result.rows[0] ? this.formatPark(result.rows[0]) : null;
   }
 
+  static async search(searchQuery) {
+    const query = `
+      SELECT 
+        id, name, description, address, latitude, longitude,
+        amenities, rules, hours_open, hours_close,
+        created_at, updated_at, website, phone, rating, 
+        review_count, surface_type, has_seating, zipcode, borough
+      FROM dog_parks 
+      WHERE 
+        name ILIKE $1 OR 
+        description ILIKE $1 OR 
+        address ILIKE $1 OR
+        borough ILIKE $1
+      ORDER BY 
+        CASE 
+          WHEN name ILIKE $1 THEN 1
+          WHEN description ILIKE $1 THEN 2
+          WHEN address ILIKE $1 THEN 3
+          ELSE 4
+        END,
+        name
+      LIMIT 50
+    `;
+    const searchTerm = `%${searchQuery}%`;
+    const result = await pool.query(query, [searchTerm]);
+    return result.rows.map(park => this.formatPark(park));
+  }
+
+  static async searchWithLocation(searchQuery, latitude, longitude) {
+    const query = `
+      SELECT 
+        id, name, description, address, latitude, longitude,
+        amenities, rules, hours_open, hours_close,
+        (
+          6371 * acos(
+            cos(radians($2)) * cos(radians(latitude)) * 
+            cos(radians(longitude) - radians($3)) + 
+            sin(radians($2)) * sin(radians(latitude))
+          )
+        ) as distance_km,
+        created_at, updated_at, website, phone, rating, 
+        review_count, surface_type, has_seating, zipcode, borough
+      FROM dog_parks 
+      WHERE 
+        name ILIKE $1 OR 
+        description ILIKE $1 OR 
+        address ILIKE $1 OR
+        borough ILIKE $1
+      ORDER BY 
+        CASE 
+          WHEN name ILIKE $1 THEN 1
+          WHEN description ILIKE $1 THEN 2
+          WHEN address ILIKE $1 THEN 3
+          ELSE 4
+        END,
+        distance_km
+      LIMIT 50
+    `;
+    const searchTerm = `%${searchQuery}%`;
+    const result = await pool.query(query, [searchTerm, latitude, longitude]);
+    return result.rows.map(park => this.formatPark(park));
+  }
+
   // Get current activity level based on active check-ins
   static async getActivityLevel(parkId) {
     const query = `
@@ -165,7 +228,15 @@ class DogPark {
       hoursClose: park.hours_close,
       distanceKm: park.distance_km ? parseFloat(park.distance_km) : undefined,
       createdAt: park.created_at,
-      updatedAt: park.updated_at
+      updatedAt: park.updated_at,
+      website: park.website,
+      phone: park.phone,
+      rating: park.rating ? parseFloat(park.rating) : undefined,
+      reviewCount: park.review_count,
+      surfaceType: park.surface_type,
+      hasSeating: park.has_seating,
+      zipcode: park.zipcode,
+      borough: park.borough
     };
   }
 }

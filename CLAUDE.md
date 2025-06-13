@@ -133,6 +133,59 @@ BarkPark is a dog social network application consisting of:
 
 The app now provides users with a comprehensive database of 103 dog parks including all major NYC locations with rich metadata for enhanced discovery and decision-making.
 
+## ✅ Session Notes - June 12, 2025 (Session 5)
+
+### **🔍 Redesigned Dog Park Search Functionality:**
+
+**Search UI/UX Overhaul:**
+- **Removed**: Radius slider and reload button (redundant controls)
+- **Added**: Text search box at top of screen for park name/location search
+- **Default Radius**: Changed from 10km to 2km for more focused initial view
+- **Dynamic Loading**: Parks load automatically based on visible map area during scroll/zoom
+- **Search Results**: Dropdown list shows up to 5 results sorted by distance from user
+
+**Technical Implementation:**
+- **Frontend Changes**:
+  - Created `SearchResultsList.swift` component with distance-based sorting
+  - Added real-time search with debouncing in `DogParksViewModel`
+  - Integrated search UI into `DogParksView` with clean animations
+  - Results show park name, distance, activity level, and visitor count
+
+- **Backend API**:
+  - Added `/api/parks/search` endpoint supporting text queries
+  - Implemented `DogPark.search()` and `DogPark.searchWithLocation()` methods
+  - Search matches against name, description, address, and borough fields
+  - Results prioritized by relevance (name matches first)
+
+### **🐛 Bug Fixes Applied:**
+
+**Asset Color Warning Fix:**
+- **Issue**: "No color named 'green' found in asset catalog" runtime warnings
+- **Solution**: Added `activityColorSwiftUI` computed property returning SwiftUI Colors
+- **Files**: Updated `DogPark.swift`, `SearchResultsList.swift`, `ParkDetailView.swift`
+
+**Search API Decoding Error:**
+- **Issue**: "Failed to search parks: The data couldn't be read because it is missing"
+- **Root Cause**: Backend returning NYC fields not in iOS model
+- **Solution**: Added all NYC dog run fields as optional properties to DogPark model
+- **New Fields**: website, phone, rating, reviewCount, surfaceType, hasSeating, zipcode, borough
+
+**Date Field Handling:**
+- Made `createdAt` and `updatedAt` optional in decoding to handle missing data
+- Fixed preview data in `SearchResultsList` to use ISO 8601 date strings
+
+### **📊 Current Implementation Status:**
+- **Search Feature**: ✅ Fully functional with location-based sorting
+- **Map Interaction**: ✅ Dynamic park loading based on visible region
+- **Error Handling**: ✅ Comprehensive decoding error logging
+- **UI Polish**: ✅ Clean, intuitive search interface following Apple HIG
+
+### **🎯 Future Enhancements:**
+1. **Search Filters**: Add options to filter by amenities, ratings, surface type
+2. **Recent Searches**: Store and display user's search history
+3. **Voice Search**: Integrate Siri for hands-free park discovery
+4. **Advanced Matching**: Fuzzy search for typo tolerance
+
 ## ✅ Session Notes - June 12, 2025 (Session 4)
 
 ### **🗺️ Fixed NYC Dog Parks Map Visibility:**

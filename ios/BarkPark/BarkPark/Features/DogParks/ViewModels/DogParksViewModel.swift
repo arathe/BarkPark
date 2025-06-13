@@ -15,7 +15,7 @@ class DogParksViewModel: ObservableObject {
     @Published var selectedPark: DogPark?
     @Published var isLoading = false
     @Published var errorMessage: String?
-    @Published var searchRadius: Double = 10.0 // km
+    @Published var searchRadius: Double = 2.0 // km
     @Published var activeCheckIns: [CheckIn] = []
     @Published var showingParkDetail = false
     
@@ -23,16 +23,10 @@ class DogParksViewModel: ObservableObject {
     private let locationManager = LocationManager.shared
     private var regionLoadTask: Task<Void, Never>?
     
-    // Search radius options
-    let radiusOptions: [Double] = [1.0, 5.0, 10.0, 25.0]
+    @Published var searchText: String = ""
+    @Published var searchResults: [DogPark] = []
+    @Published var isSearching = false
     
-    var radiusText: String {
-        if searchRadius < 1 {
-            return "\(Int(searchRadius * 1000))m"
-        } else {
-            return "\(Int(searchRadius))km"
-        }
-    }
     
     init() {
         // Load initial data
@@ -115,12 +109,6 @@ class DogParksViewModel: ObservableObject {
         await loadActiveCheckIns()
     }
     
-    func updateSearchRadius(_ newRadius: Double) {
-        searchRadius = newRadius
-        Task {
-            await loadNearbyParks()
-        }
-    }
     
     func loadParksForRegion(_ region: MKCoordinateRegion) async {
         // Cancel any pending region load task
@@ -192,6 +180,53 @@ class DogParksViewModel: ObservableObject {
     
     func getActiveCheckIn(for park: DogPark) -> CheckIn? {
         return activeCheckIns.first { $0.dogParkId == park.id && $0.isActive }
+    }
+    
+    func searchParks(_ searchText: String) async {
+        guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            searchResults = []
+            isSearching = false
+            return
+        }
+        
+        isSearching = true
+        
+        do {
+            let response = try await apiService.searchParks(
+                query: searchText,
+                latitude: locationManager.location?.coordinate.latitude,
+                longitude: locationManager.location?.coordinate.longitude
+            )
+            
+            searchResults = response.parks
+            print("🔍 DogParksViewModel: Found \(searchResults.count) parks for '\(searchText)'")
+        } catch {
+            print("🔍 DogParksViewModel: Error searching parks: \(error)")
+            if let decodingError = error as? DecodingError {
+                switch decodingError {
+                case .keyNotFound(let key, let context):
+                    print("🔍 DogParksViewModel: Missing key '\(key.stringValue)' - \(context.debugDescription)")
+                case .typeMismatch(let type, let context):
+                    print("🔍 DogParksViewModel: Type mismatch for type '\(type)' - \(context.debugDescription)")
+                case .valueNotFound(let type, let context):
+                    print("🔍 DogParksViewModel: Value not found for type '\(type)' - \(context.debugDescription)")
+                case .dataCorrupted(let context):
+                    print("🔍 DogParksViewModel: Data corrupted - \(context.debugDescription)")
+                @unknown default:
+                    print("🔍 DogParksViewModel: Unknown decoding error")
+                }
+            }
+            errorMessage = "Failed to search parks: \(error.localizedDescription)"
+            searchResults = []
+        }
+        
+        isSearching = false
+    }
+    
+    func clearSearch() {
+        searchText = ""
+        searchResults = []
+        isSearching = false
     }
     
     // Get annotation color based on activity level

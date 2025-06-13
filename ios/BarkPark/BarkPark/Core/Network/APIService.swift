@@ -654,6 +654,42 @@ class APIService {
         return try JSONDecoder().decode(ActiveCheckInsResponse.self, from: data)
     }
     
+    func searchParks(query: String, latitude: Double? = nil, longitude: Double? = nil) async throws -> ParksSearchResponse {
+        var urlComponents = URLComponents(string: "\(baseURL)/parks/search")!
+        var queryItems: [URLQueryItem] = [URLQueryItem(name: "q", value: query)]
+        
+        if let latitude = latitude, let longitude = longitude {
+            queryItems.append(URLQueryItem(name: "latitude", value: String(latitude)))
+            queryItems.append(URLQueryItem(name: "longitude", value: String(longitude)))
+        }
+        
+        urlComponents.queryItems = queryItems
+        
+        guard let url = urlComponents.url else {
+            throw APIError.invalidResponse
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.invalidResponse
+        }
+        
+        // Debug logging
+        let responseString = String(data: data, encoding: .utf8) ?? "No response"
+        print("🔍 APIService: Search response: \(responseString)")
+        
+        return try JSONDecoder().decode(ParksSearchResponse.self, from: data)
+    }
+    
     // MARK: - Helper Methods
     
     func createMultipartFormData(

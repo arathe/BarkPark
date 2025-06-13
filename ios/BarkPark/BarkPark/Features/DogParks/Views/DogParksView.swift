@@ -12,11 +12,11 @@ struct DogParksView: View {
     @StateObject private var viewModel = DogParksViewModel()
     @StateObject private var locationManager = LocationManager.shared
     @State private var showingLocationPrompt = false
-    @State private var showingRadiusSheet = false
+    @State private var showingSearchResults = false
     @State private var lastRegionChangeTime = Date()
     @State private var mapRegion = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 41.0387, longitude: -73.9215),
-        span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+        span: MKCoordinateSpan(latitudeDelta: 0.036, longitudeDelta: 0.036)
     )
     @State private var mapViewID = UUID() // Use this to force recreate the map when needed
     @State private var centerOnLocation: CLLocationCoordinate2D?
@@ -44,50 +44,58 @@ struct DogParksView: View {
                     if let userLocation = locationManager.location {
                         mapRegion = MKCoordinateRegion(
                             center: userLocation.coordinate,
-                            span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+                            span: MKCoordinateSpan(latitudeDelta: 0.036, longitudeDelta: 0.036)
                         )
                     }
                     // Parks will load automatically when the map region changes
                 }
                 
-                // Top controls overlay
+                // Top search and controls overlay
                 VStack {
                     HStack {
-                        // Radius control
-                        Button(action: {
-                            showingRadiusSheet = true
-                        }) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "location.circle")
-                                Text(viewModel.radiusText)
-                            }
-                            .font(BarkParkDesign.Typography.caption)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(Color.white)
-                            .foregroundColor(BarkParkDesign.Colors.primaryText)
-                            .clipShape(Capsule())
-                            .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-                        }
-                        
-                        Spacer()
-                        
-                        // Refresh button
-                        Button(action: {
-                            Task {
-                                await viewModel.loadParksForRegion(mapRegion)
-                                await viewModel.loadActiveCheckIns()
-                            }
-                        }) {
-                            Image(systemName: "arrow.clockwise")
-                                .font(.system(size: 16, weight: .medium))
-                                .padding(10)
-                                .background(Color.white)
+                        // Search bar
+                        HStack {
+                            Image(systemName: "magnifyingglass")
+                                .foregroundColor(BarkParkDesign.Colors.secondaryText)
+                                .font(.system(size: 16))
+                            
+                            TextField("Search dog parks...", text: $viewModel.searchText)
+                                .font(BarkParkDesign.Typography.body)
                                 .foregroundColor(BarkParkDesign.Colors.primaryText)
-                                .clipShape(Circle())
-                                .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                                .onSubmit {
+                                    Task {
+                                        await viewModel.searchParks(viewModel.searchText)
+                                        showingSearchResults = !viewModel.searchResults.isEmpty
+                                    }
+                                }
+                                .onChange(of: viewModel.searchText) { newValue in
+                                    if newValue.isEmpty {
+                                        viewModel.clearSearch()
+                                        showingSearchResults = false
+                                    } else {
+                                        Task {
+                                            await viewModel.searchParks(newValue)
+                                            showingSearchResults = !viewModel.searchResults.isEmpty
+                                        }
+                                    }
+                                }
+                            
+                            if !viewModel.searchText.isEmpty {
+                                Button(action: {
+                                    viewModel.clearSearch()
+                                    showingSearchResults = false
+                                }) {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundColor(BarkParkDesign.Colors.secondaryText)
+                                        .font(.system(size: 16))
+                                }
+                            }
                         }
-                        .disabled(viewModel.isLoading)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(Color.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                         
                         // Location button
                         Button(action: {
@@ -112,14 +120,35 @@ struct DogParksView: View {
                     }
                     .padding(.horizontal, BarkParkDesign.Spacing.md)
                     
+                    // Search results dropdown
+                    if showingSearchResults && !viewModel.searchResults.isEmpty {
+                        SearchResultsList(
+                            searchResults: viewModel.searchResults,
+                            userLocation: locationManager.location?.coordinate,
+                            onParkSelected: { park in
+                                viewModel.selectPark(park)
+                                showingSearchResults = false
+                                viewModel.clearSearch()
+                                
+                                // Center map on selected park
+                                centerOnLocation = park.coordinate
+                            }
+                        )
+                        .background(Color.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
+                        .padding(.horizontal, BarkParkDesign.Spacing.md)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+                    
                     Spacer()
                     
                     // Loading indicator
-                    if viewModel.isLoading {
+                    if viewModel.isLoading || viewModel.isSearching {
                         HStack {
                             ProgressView()
                                 .scaleEffect(0.8)
-                            Text("Loading parks...")
+                            Text(viewModel.isSearching ? "Searching..." : "Loading parks...")
                                 .font(BarkParkDesign.Typography.caption)
                                 .foregroundColor(BarkParkDesign.Colors.secondaryText)
                         }
@@ -144,17 +173,6 @@ struct DogParksView: View {
                 Button("Cancel", role: .cancel) { }
             } message: {
                 Text("Enable location access to find nearby dog parks. You can change this in Settings.")
-            }
-            .actionSheet(isPresented: $showingRadiusSheet) {
-                ActionSheet(
-                    title: Text("Search Radius"),
-                    message: Text("How far should we search for dog parks?"),
-                    buttons: viewModel.radiusOptions.map { radius in
-                        .default(Text(radius < 1 ? "\(Int(radius * 1000))m" : "\(Int(radius))km")) {
-                            viewModel.updateSearchRadius(radius)
-                        }
-                    } + [.cancel()]
-                )
             }
             .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
                 Button("OK") {

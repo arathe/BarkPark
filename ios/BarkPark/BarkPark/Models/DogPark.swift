@@ -7,6 +7,7 @@
 
 import Foundation
 import MapKit
+import SwiftUI
 
 struct DogPark: Codable, Identifiable {
     let id: Int
@@ -26,6 +27,16 @@ struct DogPark: Codable, Identifiable {
     let activityLevel: String?
     let currentVisitors: Int?
     let distanceKm: Double?
+    
+    // NYC dog runs additional fields
+    let website: String?
+    let phone: String?
+    let rating: Double?
+    let reviewCount: Int?
+    let surfaceType: String?
+    let hasSeating: Bool?
+    let zipcode: String?
+    let borough: String?
     
     // Computed properties
     var coordinate: CLLocationCoordinate2D {
@@ -50,6 +61,22 @@ struct DogPark: Codable, Identifiable {
             return "red"
         default:
             return "gray"
+        }
+    }
+    
+    var activityColorSwiftUI: Color {
+        guard let level = activityLevel else { return .gray }
+        switch level.lowercased() {
+        case "quiet":
+            return .green
+        case "low":
+            return .blue
+        case "moderate":
+            return .orange
+        case "busy":
+            return .red
+        default:
+            return .gray
         }
     }
     
@@ -107,13 +134,23 @@ struct DogPark: Codable, Identifiable {
         rules = try container.decodeIfPresent(String.self, forKey: .rules)
         hoursOpen = try container.decodeIfPresent(String.self, forKey: .hoursOpen)
         hoursClose = try container.decodeIfPresent(String.self, forKey: .hoursClose) 
-        createdAt = try container.decode(String.self, forKey: .createdAt)
-        updatedAt = try container.decode(String.self, forKey: .updatedAt)
+        createdAt = try container.decodeIfPresent(String.self, forKey: .createdAt) ?? ""
+        updatedAt = try container.decodeIfPresent(String.self, forKey: .updatedAt) ?? ""
         
         // Optional activity properties
         activityLevel = try container.decodeIfPresent(String.self, forKey: .activityLevel)
         currentVisitors = try container.decodeIfPresent(Int.self, forKey: .currentVisitors)
         distanceKm = try container.decodeIfPresent(Double.self, forKey: .distanceKm)
+        
+        // NYC dog runs additional fields
+        website = try container.decodeIfPresent(String.self, forKey: .website)
+        phone = try container.decodeIfPresent(String.self, forKey: .phone)
+        rating = try container.decodeIfPresent(Double.self, forKey: .rating)
+        reviewCount = try container.decodeIfPresent(Int.self, forKey: .reviewCount)
+        surfaceType = try container.decodeIfPresent(String.self, forKey: .surfaceType)
+        hasSeating = try container.decodeIfPresent(Bool.self, forKey: .hasSeating)
+        zipcode = try container.decodeIfPresent(String.self, forKey: .zipcode)
+        borough = try container.decodeIfPresent(String.self, forKey: .borough)
     }
     
     // Convenience initializer for testing and previews
@@ -132,7 +169,15 @@ struct DogPark: Codable, Identifiable {
         updatedAt: String,
         activityLevel: String? = nil,
         currentVisitors: Int? = nil,
-        distanceKm: Double? = nil
+        distanceKm: Double? = nil,
+        website: String? = nil,
+        phone: String? = nil,
+        rating: Double? = nil,
+        reviewCount: Int? = nil,
+        surfaceType: String? = nil,
+        hasSeating: Bool? = nil,
+        zipcode: String? = nil,
+        borough: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -149,6 +194,14 @@ struct DogPark: Codable, Identifiable {
         self.activityLevel = activityLevel
         self.currentVisitors = currentVisitors
         self.distanceKm = distanceKm
+        self.website = website
+        self.phone = phone
+        self.rating = rating
+        self.reviewCount = reviewCount
+        self.surfaceType = surfaceType
+        self.hasSeating = hasSeating
+        self.zipcode = zipcode
+        self.borough = borough
     }
     
     // Default Encodable implementation
@@ -170,6 +223,14 @@ struct DogPark: Codable, Identifiable {
         try container.encodeIfPresent(activityLevel, forKey: .activityLevel)
         try container.encodeIfPresent(currentVisitors, forKey: .currentVisitors)
         try container.encodeIfPresent(distanceKm, forKey: .distanceKm)
+        try container.encodeIfPresent(website, forKey: .website)
+        try container.encodeIfPresent(phone, forKey: .phone)
+        try container.encodeIfPresent(rating, forKey: .rating)
+        try container.encodeIfPresent(reviewCount, forKey: .reviewCount)
+        try container.encodeIfPresent(surfaceType, forKey: .surfaceType)
+        try container.encodeIfPresent(hasSeating, forKey: .hasSeating)
+        try container.encodeIfPresent(zipcode, forKey: .zipcode)
+        try container.encodeIfPresent(borough, forKey: .borough)
     }
     
     private enum CodingKeys: String, CodingKey {
@@ -178,6 +239,8 @@ struct DogPark: Codable, Identifiable {
         case hoursOpen, hoursClose  // Backend returns camelCase
         case activityLevel, currentVisitors
         case distanceKm = "distance_km"
+        case website, phone, rating, reviewCount, surfaceType
+        case hasSeating, zipcode, borough
     }
 }
 
@@ -185,8 +248,9 @@ struct DogPark: Codable, Identifiable {
 struct ParksSearchResponse: Codable {
     let parks: [DogPark]
     let total: Int
-    let radius: Double
-    let center: SearchCenter
+    let radius: Double?
+    let center: SearchCenter?
+    let query: String?
 }
 
 struct ParksResponse: Codable {

@@ -96,7 +96,7 @@ struct ParkDetailView: View {
                 span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
             ))) {
                 Marker(park.name, coordinate: park.coordinate)
-                    .tint(Color(park.activityColor))
+                    .tint(park.activityColorSwiftUI)
             }
             .frame(height: 120)
             .cornerRadius(12)
@@ -134,7 +134,7 @@ struct ParkDetailView: View {
                     
                     HStack(spacing: 6) {
                         Circle()
-                            .fill(Color(park.activityColor))
+                            .fill(park.activityColorSwiftUI)
                             .frame(width: 12, height: 12)
                         
                         Text(park.activityLevelText)

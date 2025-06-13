@@ -149,17 +149,20 @@ class ParkAnnotationView: MKMarkerAnnotationView {
     
     func configure(with park: DogPark) {
         // Set marker color based on activity level
-        switch park.activityColor {
-        case "green":
+        guard let level = park.activityLevel else {
+            markerTintColor = .systemGray
+            return
+        }
+        
+        switch level.lowercased() {
+        case "quiet":
             markerTintColor = .systemGreen
-        case "blue":
+        case "low":
             markerTintColor = .systemBlue
-        case "orange":
+        case "moderate":
             markerTintColor = .systemOrange
-        case "red":
+        case "busy":
             markerTintColor = .systemRed
-        case "purple":
-            markerTintColor = .systemPurple
         default:
             markerTintColor = .systemGray
         }
