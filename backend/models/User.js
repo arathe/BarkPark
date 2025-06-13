@@ -8,7 +8,7 @@ class User {
     const query = `
       INSERT INTO users (email, password_hash, first_name, last_name, phone)
       VALUES ($1, $2, $3, $4, $5)
-      RETURNING id, email, first_name, last_name, phone, profile_image_url, created_at
+      RETURNING id, email, first_name, last_name, phone, profile_image_url, is_searchable, created_at
     `;
     
     const values = [email, hashedPassword, firstName, lastName, phone];
@@ -24,7 +24,7 @@ class User {
 
   static async findById(id) {
     const query = `
-      SELECT id, email, first_name, last_name, phone, profile_image_url, created_at
+      SELECT id, email, first_name, last_name, phone, profile_image_url, is_searchable, created_at
       FROM users WHERE id = $1
     `;
     const result = await pool.query(query, [id]);
@@ -36,7 +36,7 @@ class User {
   }
 
   static async updateProfile(id, updates) {
-    const allowedFields = ['first_name', 'last_name', 'phone', 'profile_image_url'];
+    const allowedFields = ['first_name', 'last_name', 'phone', 'profile_image_url', 'is_searchable'];
     const fields = [];
     const values = [];
     let paramCount = 1;
@@ -60,7 +60,7 @@ class User {
       UPDATE users 
       SET ${fields.join(', ')}
       WHERE id = $${paramCount}
-      RETURNING id, email, first_name, last_name, phone, profile_image_url, updated_at
+      RETURNING id, email, first_name, last_name, phone, profile_image_url, is_searchable, updated_at
     `;
 
     const result = await pool.query(query, values);

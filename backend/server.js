@@ -5,6 +5,7 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const dogRoutes = require('./routes/dogs');
 const parkRoutes = require('./routes/parks');
+const friendRoutes = require('./routes/friends');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -23,6 +24,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/dogs', dogRoutes);
 app.use('/api/parks', parkRoutes);
+app.use('/api/friends', friendRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
@@ -33,6 +35,7 @@ app.get('/', (req, res) => {
       auth: '/api/auth',
       dogs: '/api/dogs',
       parks: '/api/parks',
+      friends: '/api/friends',
       health: '/health'
     }
   });

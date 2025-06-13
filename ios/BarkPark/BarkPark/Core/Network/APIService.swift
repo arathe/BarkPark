@@ -184,11 +184,56 @@ class APIService {
 
         switch httpResponse.statusCode {
         case 200:
-            return try JSONDecoder().decode(User.self, from: data)
+            let response = try JSONDecoder().decode(CurrentUserResponse.self, from: data)
+            return response.user
         case 401:
             throw APIError.authenticationFailed("Unauthorized")
         default:
             throw APIError.invalidResponse
+        }
+    }
+    
+    func updateUserProfile(firstName: String, lastName: String, phone: String?, isSearchable: Bool) async throws -> UserUpdateResponse {
+        let url = URL(string: "\(baseURL)/auth/me")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        var body: [String: Any] = [
+            "firstName": firstName,
+            "lastName": lastName,
+            "isSearchable": isSearchable
+        ]
+        
+        if let phone = phone {
+            body["phone"] = phone
+        }
+        
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 200:
+            return try JSONDecoder().decode(UserUpdateResponse.self, from: data)
+        case 400:
+            if let errorResponse = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let errorMessage = errorResponse["error"] as? String {
+                throw APIError.validationFailed(errorMessage)
+            }
+            throw APIError.validationFailed("Invalid profile data")
+        case 401:
+            throw APIError.authenticationFailed("Authentication required")
+        default:
+            throw APIError.serverError
         }
     }
     
@@ -728,6 +773,291 @@ class APIService {
         data.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
         
         return data
+    }
+    
+    // MARK: - Friendship Methods
+    
+    func searchUsers(query: String) async throws -> UserSearchResponse {
+        let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
+        let url = URL(string: "\(baseURL)/auth/search?q=\(encodedQuery)")!
+        var request = URLRequest(url: url)
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 200:
+            return try JSONDecoder().decode(UserSearchResponse.self, from: data)
+        case 401:
+            throw APIError.authenticationFailed("Authentication required")
+        case 400:
+            if let errorResponse = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let errorMessage = errorResponse["error"] as? String {
+                throw APIError.validationFailed(errorMessage)
+            }
+            throw APIError.validationFailed("Invalid search query")
+        default:
+            throw APIError.serverError
+        }
+    }
+    
+    func sendFriendRequest(to userId: Int) async throws -> SendFriendRequestResponse {
+        let url = URL(string: "\(baseURL)/friends/request")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let body = ["userId": userId]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 201:
+            return try JSONDecoder().decode(SendFriendRequestResponse.self, from: data)
+        case 400:
+            if let errorResponse = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let errorMessage = errorResponse["error"] as? String {
+                throw APIError.validationFailed(errorMessage)
+            }
+            throw APIError.validationFailed("Unable to send friend request")
+        case 401:
+            throw APIError.authenticationFailed("Authentication required")
+        default:
+            throw APIError.serverError
+        }
+    }
+    
+    func acceptFriendRequest(friendshipId: Int) async throws -> FriendRequestActionResponse {
+        let url = URL(string: "\(baseURL)/friends/\(friendshipId)/accept")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 200:
+            return try JSONDecoder().decode(FriendRequestActionResponse.self, from: data)
+        case 404:
+            throw APIError.validationFailed("Friend request not found")
+        case 401:
+            throw APIError.authenticationFailed("Authentication required")
+        default:
+            throw APIError.serverError
+        }
+    }
+    
+    func declineFriendRequest(friendshipId: Int) async throws -> FriendRequestActionResponse {
+        let url = URL(string: "\(baseURL)/friends/\(friendshipId)/decline")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 200:
+            return try JSONDecoder().decode(FriendRequestActionResponse.self, from: data)
+        case 404:
+            throw APIError.validationFailed("Friend request not found")
+        case 401:
+            throw APIError.authenticationFailed("Authentication required")
+        default:
+            throw APIError.serverError
+        }
+    }
+    
+    func cancelFriendRequest(friendshipId: Int) async throws -> RemoveFriendResponse {
+        let url = URL(string: "\(baseURL)/friends/\(friendshipId)/cancel")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 200:
+            return try JSONDecoder().decode(RemoveFriendResponse.self, from: data)
+        case 404:
+            throw APIError.validationFailed("Friend request not found")
+        case 401:
+            throw APIError.authenticationFailed("Authentication required")
+        default:
+            throw APIError.serverError
+        }
+    }
+    
+    func getFriends() async throws -> FriendsListResponse {
+        let url = URL(string: "\(baseURL)/friends")!
+        var request = URLRequest(url: url)
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 200:
+            return try JSONDecoder().decode(FriendsListResponse.self, from: data)
+        case 401:
+            throw APIError.authenticationFailed("Authentication required")
+        default:
+            throw APIError.serverError
+        }
+    }
+    
+    func getFriendRequests() async throws -> FriendRequestsResponse {
+        let url = URL(string: "\(baseURL)/friends/requests")!
+        var request = URLRequest(url: url)
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 200:
+            return try JSONDecoder().decode(FriendRequestsResponse.self, from: data)
+        case 401:
+            throw APIError.authenticationFailed("Authentication required")
+        default:
+            throw APIError.serverError
+        }
+    }
+    
+    func removeFriend(friendId: Int) async throws -> RemoveFriendResponse {
+        let url = URL(string: "\(baseURL)/friends/\(friendId)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 200:
+            return try JSONDecoder().decode(RemoveFriendResponse.self, from: data)
+        case 404:
+            throw APIError.validationFailed("Friendship not found")
+        case 401:
+            throw APIError.authenticationFailed("Authentication required")
+        default:
+            throw APIError.serverError
+        }
+    }
+    
+    func getFriendshipStatus(with userId: Int) async throws -> FriendshipStatusResponse {
+        let url = URL(string: "\(baseURL)/friends/status/\(userId)")!
+        var request = URLRequest(url: url)
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 200:
+            return try JSONDecoder().decode(FriendshipStatusResponse.self, from: data)
+        case 401:
+            throw APIError.authenticationFailed("Authentication required")
+        default:
+            throw APIError.serverError
+        }
+    }
+    
+    func connectViaQRCode(qrData: String) async throws -> QRConnectResponse {
+        let url = URL(string: "\(baseURL)/friends/qr-connect")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let body = ["qrData": qrData]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 201:
+            return try JSONDecoder().decode(QRConnectResponse.self, from: data)
+        case 400:
+            if let errorResponse = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let errorMessage = errorResponse["error"] as? String {
+                throw APIError.validationFailed(errorMessage)
+            }
+            throw APIError.validationFailed("Invalid QR code")
+        case 404:
+            throw APIError.validationFailed("User not found")
+        case 401:
+            throw APIError.authenticationFailed("Authentication required")
+        default:
+            throw APIError.serverError
+        }
     }
 }
 

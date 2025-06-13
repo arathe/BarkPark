@@ -14,6 +14,7 @@ struct User: Codable, Identifiable {
     let lastName: String
     let phone: String?
     let profileImageUrl: String?
+    let isSearchable: Bool?
     
     var fullName: String {
         "\(firstName) \(lastName)"
@@ -30,5 +31,14 @@ struct LoginResponse: Codable {
 struct RegisterResponse: Codable {
     let message: String
     let token: String
+    let user: User
+}
+
+struct UserUpdateResponse: Codable {
+    let message: String
+    let user: User
+}
+
+struct CurrentUserResponse: Codable {
     let user: User
 }

@@ -109,4 +109,8 @@ class AuthenticationManager: ObservableObject {
             }
         }
     }
+    
+    func updateCurrentUser(_ user: User) {
+        currentUser = user
+    }
 }

@@ -38,7 +38,8 @@
       "Bash(node:*)",
       "Bash(npm test:*)",
       "Bash(python3:*)",
-      "Bash(psql:*)"
+      "Bash(psql:*)",
+      "Bash(plutil:*)"
     ],
     "deny": []
   }

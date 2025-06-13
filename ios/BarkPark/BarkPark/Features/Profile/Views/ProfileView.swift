@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ProfileView: View {
     @EnvironmentObject var authManager: AuthenticationManager
+    @State private var showingPrivacySettings = false
     
     var body: some View {
         NavigationView {
@@ -40,7 +41,14 @@ struct ProfileView: View {
                 // Settings Section
                 Section("Settings") {
                     SettingsRow(icon: "bell", title: "Notifications", subtitle: "Manage your notifications")
-                    SettingsRow(icon: "lock", title: "Privacy", subtitle: "Privacy settings")
+                    
+                    Button(action: {
+                        showingPrivacySettings = true
+                    }) {
+                        SettingsRow(icon: "lock", title: "Privacy", subtitle: "Control your search visibility")
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    
                     SettingsRow(icon: "questionmark.circle", title: "Help & Support", subtitle: "Get help")
                     SettingsRow(icon: "info.circle", title: "About", subtitle: "App information")
                 }
@@ -60,6 +68,10 @@ struct ProfileView: View {
                 }
             }
             .navigationTitle("Profile")
+            .sheet(isPresented: $showingPrivacySettings) {
+                PrivacySettingsView()
+                    .environmentObject(authManager)
+            }
         }
     }
 }

@@ -19,6 +19,7 @@ struct BarkParkDesign {
         static let background = Color(.systemBackground)
         static let secondaryBackground = Color(.secondarySystemBackground)
         static let tertiaryBackground = Color(.tertiarySystemBackground)
+        static let surface = Color(.secondarySystemBackground)
         
         // Text colors
         static let primaryText = Color.primary

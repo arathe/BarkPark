@@ -1,5 +1,5 @@
 const express = require('express');
-const { body, validationResult } = require('express-validator');
+const { body, query, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { generateToken, verifyToken } = require('../middleware/auth');
 
@@ -47,7 +47,8 @@ router.post('/register', [
         firstName: user.first_name,
         lastName: user.last_name,
         phone: user.phone,
-        profileImageUrl: user.profile_image_url
+        profileImageUrl: user.profile_image_url,
+        isSearchable: user.is_searchable
       },
       token
     });
@@ -94,7 +95,8 @@ router.post('/login', [
         firstName: user.first_name,
         lastName: user.last_name,
         phone: user.phone,
-        profileImageUrl: user.profile_image_url
+        profileImageUrl: user.profile_image_url,
+        isSearchable: user.is_searchable
       },
       token
     });
@@ -115,7 +117,8 @@ router.get('/me', verifyToken, async (req, res) => {
         firstName: req.user.first_name,
         lastName: req.user.last_name,
         phone: req.user.phone,
-        profileImageUrl: req.user.profile_image_url
+        profileImageUrl: req.user.profile_image_url,
+        isSearchable: req.user.is_searchable
       }
     });
   } catch (error) {
@@ -128,7 +131,8 @@ router.get('/me', verifyToken, async (req, res) => {
 router.put('/me', verifyToken, [
   body('firstName').optional().trim().isLength({ min: 1 }),
   body('lastName').optional().trim().isLength({ min: 1 }),
-  body('phone').optional().isMobilePhone()
+  body('phone').optional().isMobilePhone(),
+  body('isSearchable').optional().isBoolean().withMessage('isSearchable must be a boolean')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -141,6 +145,7 @@ router.put('/me', verifyToken, [
     if (req.body.lastName) updates.last_name = req.body.lastName;
     if (req.body.phone) updates.phone = req.body.phone;
     if (req.body.profileImageUrl) updates.profile_image_url = req.body.profileImageUrl;
+    if (req.body.isSearchable !== undefined) updates.is_searchable = req.body.isSearchable;
 
     const updatedUser = await User.updateProfile(req.user.id, updates);
 
@@ -152,13 +157,78 @@ router.put('/me', verifyToken, [
         firstName: updatedUser.first_name,
         lastName: updatedUser.last_name,
         phone: updatedUser.phone,
-        profileImageUrl: updatedUser.profile_image_url
+        profileImageUrl: updatedUser.profile_image_url,
+        isSearchable: updatedUser.is_searchable
       }
     });
 
   } catch (error) {
     console.error('Update profile error:', error);
     res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
+// Search users by name or email
+router.get('/search', verifyToken, [
+  query('q').isLength({ min: 2 }).withMessage('Search query must be at least 2 characters')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const searchQuery = req.query.q.trim();
+    const currentUserId = req.user.id;
+
+    const query = `
+      SELECT id, email, first_name, last_name, phone, profile_image_url, is_searchable
+      FROM users
+      WHERE id != $1 
+        AND is_searchable = true
+        AND (
+          LOWER(first_name) LIKE LOWER($2) OR
+          LOWER(last_name) LIKE LOWER($2) OR
+          LOWER(CONCAT(first_name, ' ', last_name)) LIKE LOWER($2) OR
+          LOWER(email) LIKE LOWER($2)
+        )
+      ORDER BY 
+        CASE 
+          WHEN LOWER(CONCAT(first_name, ' ', last_name)) LIKE LOWER($3) THEN 1
+          WHEN LOWER(first_name) LIKE LOWER($3) OR LOWER(last_name) LIKE LOWER($3) THEN 2
+          ELSE 3
+        END,
+        first_name, last_name
+      LIMIT 20
+    `;
+
+    const searchPattern = `%${searchQuery}%`;
+    const exactPattern = `${searchQuery}%`;
+    const values = [currentUserId, searchPattern, exactPattern];
+
+    const pool = require('../config/database');
+    const result = await pool.query(query, values);
+
+    const users = result.rows.map(user => ({
+      id: user.id,
+      email: user.email,
+      firstName: user.first_name,
+      lastName: user.last_name,
+      phone: user.phone,
+      profileImageUrl: user.profile_image_url,
+      isSearchable: user.is_searchable,
+      fullName: `${user.first_name} ${user.last_name}`
+    }));
+
+    res.json({
+      message: 'Users found successfully',
+      users,
+      count: users.length
+    });
+
+  } catch (error) {
+    console.error('Search users error:', error);
+    res.status(500).json({ error: 'Failed to search users' });
   }
 });
 
