@@ -11,7 +11,8 @@
     "test:watch": "jest --watch",
     "migrate": "node scripts/railway-migrate.js",
     "migrate:seed": "node scripts/railway-migrate.js --seed",
-    "migrate:force": "node scripts/railway-migrate.js --force"
+    "migrate:force": "node scripts/railway-migrate.js --force",
+    "generate-test-token": "node scripts/generate-test-token.js"
   },
   "keywords": [
     "dogs",
