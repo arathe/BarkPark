@@ -49,6 +49,32 @@ This file provides comprehensive guidance for AI assistants working with the Bar
 4. **Error Handling**: Implement comprehensive error logging and user feedback
 5. **Documentation**: Update CLAUDE.md session notes after significant changes
 
+### Git Commit Message Standards
+
+Use this format for all commits:
+```
+<type>: <subject> (50 chars max)
+
+<body> (wrap at 72 chars)
+- Explain what changed and why
+- Include relevant context
+- Reference issue numbers if applicable
+
+<footer>
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+```
+
+**Commit Types:**
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `style`: Code style changes (formatting, etc)
+- `refactor`: Code refactoring
+- `test`: Test additions or changes
+- `chore`: Maintenance tasks
+
 ## 🚀 Custom Commands
 
 ### `/barkpark test`
@@ -95,13 +121,27 @@ This file provides comprehensive guidance for AI assistants working with the Bar
 - Column naming consistency (snake_case vs camelCase)
 - Foreign key relationships and constraints
 
+### Database Migration Best Practices
+
+**Local vs Production Migrations:**
+1. **Always verify environment**: Check DATABASE_URL to ensure you're connected to the correct database
+2. **Create diagnostic endpoints**: Add admin routes to check schema state in production
+3. **Run migrations via Railway CLI**: Use `railway run npm run migrate` for production migrations
+4. **Track migration status**: Use schema_migrations table to prevent duplicate runs
+
+**Migration Troubleshooting:**
+- If "column doesn't exist" errors occur in production but not locally, the migration likely ran on local database only
+- Use diagnostic endpoints to compare schemas between environments
+- Create safe, idempotent migrations that check for existing columns/constraints
+- Always backup production data before schema changes
+
 ## 🐛 Issue Resolution Framework
 
 ### Known Issues & Solutions
 
 | Issue | Status | Solution |
 |-------|--------|----------|
-| Dog Creation API 500 Error | 🔴 Open | Needs investigation (Session 10) |
+| Dog Creation API 500 Error | 🟢 Resolved | Fixed schema mismatch (Session 11) |
 | Intermittent Registration Failures | 🟡 Monitoring | Railway connection pooling |
 | Phone Validation Too Strict | 🟡 Low Priority | Accept more formats |
 | PostGIS Not Installed | 🟢 Resolved | Using lat/lng successfully |
@@ -111,11 +151,13 @@ This file provides comprehensive guidance for AI assistants working with the Bar
 When encountering errors or issues, follow this systematic approach:
 
 ### Production Issue Investigation
-1. **Gather Evidence First**: Check server logs, Railway deployment logs, actual API responses
-2. **Test with Real Data**: Use actual auth tokens, real requests, current database state
-3. **Avoid Assumptions**: Don't assume authentication/network issues without evidence
-4. **Isolate Components**: Test backend independently from frontend when possible
-5. **Check Schema Alignment**: Verify models match actual database structure
+1. **Create Diagnostic Tools First**: Build admin endpoints to check database state, connection info, and schema
+2. **Gather Evidence**: Check server logs, Railway deployment logs, actual API responses
+3. **Verify Environment Differences**: Always check if local and production databases have the same schema
+4. **Test with Real Data**: Use actual auth tokens, real requests, current database state
+5. **Avoid Assumptions**: Don't assume authentication/network issues without evidence
+6. **Isolate Components**: Test backend independently from frontend when possible
+7. **Check Schema Alignment**: Verify models match actual database structure
 
 ### Error Analysis Priority
 1. **Server Logs**: Check Railway/backend logs for exact error messages
@@ -123,6 +165,12 @@ When encountering errors or issues, follow this systematic approach:
 3. **Environment Config**: Confirm all required environment variables are set
 4. **API Response**: Examine actual HTTP status codes and response bodies
 5. **Frontend Handling**: Check if client-side error handling is appropriate
+
+### API Testing Protocol
+1. **Create Persistent Test Tokens**: Generate long-lived JWT tokens for testing to avoid repeated auth issues
+2. **Store Test Credentials**: Use .env.test or similar for consistent test user access
+3. **Build Test Helpers**: Create scripts that handle authentication automatically
+4. **Document Test Endpoints**: Keep a list of working test users and endpoints
 
 ### Environment-Specific Considerations
 
@@ -132,6 +180,8 @@ When encountering errors or issues, follow this systematic approach:
 - Test with production API endpoints directly using curl
 - Consider SSL certificate and CORS issues
 - Monitor resource limits and connection pooling
+- **Always verify production database schema matches local**
+- Use Railway CLI for production operations: `railway run <command>`
 
 **Local Development Issues:**
 - Check if local database is running and accessible
@@ -139,6 +189,7 @@ When encountering errors or issues, follow this systematic approach:
 - Test API endpoints on localhost:3000
 - Ensure migrations are up to date locally
 - Check for port conflicts or service availability
+- **Document which database you're connected to in logs**
 
 ## 🧠 AI Assistant Behavioral Guidelines
 
@@ -645,3 +696,37 @@ The social connections system is now fully operational, providing users with mul
 - Issue likely in Dog model's `formatDog()` method or route validation
 - All other CRUD operations (read, update, delete) work correctly
 - Authentication and authorization are solid throughout the system
+
+## ✅ Session Notes - June 14, 2025 (Session 11)
+
+### **🎯 Session Objectives**
+- Fix dog creation API error caused by database schema mismatch
+- Improve Claude's debugging methodology based on lessons learned
+
+### **🐛 Issues Resolved**
+- **Issue**: Dog creation API returning "column birthday does not exist" error
+- **Root Cause**: Production database had old schema while local database was migrated
+- **Solution**: Created admin endpoints for schema diagnostics, ran migration on production via admin API
+- **Files Modified**: 
+  - `routes/admin.js` - Added migration endpoints
+  - `routes/diagnostic.js` - Added schema checking endpoint
+  - `migrations/fix-dogs-columns.sql` - Simple column addition migration
+  - `scripts/generate-test-token.js` - Persistent token generation
+
+### **🔧 Technical Changes**
+- Added database connection debugging to identify which database is being used
+- Created admin migration endpoints protected by ADMIN_KEY
+- Implemented test token generation system to avoid auth bottlenecks
+- Added diagnostic endpoints to compare schemas between environments
+- Successfully migrated production database to match Dog model expectations
+
+### **📊 Current Status**
+- Dog creation API is now functional with all required columns present
+- Production database schema matches local development
+- Test token system in place for easier API debugging
+- Admin endpoints available for future database management
+
+### **🚀 Next Steps**
+- Set proper ADMIN_KEY environment variable in Railway for security
+- Consider adding automated schema validation on deployment
+- Implement better error messages for schema mismatches
