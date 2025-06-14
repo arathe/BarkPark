@@ -4,8 +4,10 @@ class DogPark {
   static async findAll() {
     const query = `
       SELECT 
-        id, name, description, address, latitude, longitude,
+        id, name, description, address,
+        ST_X(location) as longitude, ST_Y(location) as latitude,
         amenities, rules, hours_open, hours_close,
+        website, phone, rating, review_count, surface_type, has_seating, zipcode, borough,
         created_at, updated_at
       FROM dog_parks 
       ORDER BY name
@@ -17,8 +19,10 @@ class DogPark {
   static async findById(parkId) {
     const query = `
       SELECT 
-        id, name, description, address, latitude, longitude,
+        id, name, description, address,
+        ST_X(location) as longitude, ST_Y(location) as latitude,
         amenities, rules, hours_open, hours_close,
+        website, phone, rating, review_count, surface_type, has_seating, zipcode, borough,
         created_at, updated_at
       FROM dog_parks 
       WHERE id = $1
@@ -28,27 +32,23 @@ class DogPark {
   }
 
   static async findNearby(latitude, longitude, radiusKm = 10) {
-    // Using Haversine formula for distance calculation without PostGIS
+    // Using PostGIS for distance calculation
     const query = `
       SELECT 
-        id, name, description, address, latitude, longitude,
+        id, name, description, address,
+        ST_X(location) as longitude, ST_Y(location) as latitude,
         amenities, rules, hours_open, hours_close,
-        (
-          6371 * acos(
-            cos(radians($1)) * cos(radians(latitude)) * 
-            cos(radians(longitude) - radians($2)) + 
-            sin(radians($1)) * sin(radians(latitude))
-          )
-        ) as distance_km,
+        website, phone, rating, review_count, surface_type, has_seating, zipcode, borough,
+        ST_DistanceSphere(
+          location,
+          ST_SetSRID(ST_MakePoint($2, $1), 4326)
+        ) / 1000.0 as distance_km,
         created_at, updated_at
       FROM dog_parks 
-      WHERE (
-        6371 * acos(
-          cos(radians($1)) * cos(radians(latitude)) * 
-          cos(radians(longitude) - radians($2)) + 
-          sin(radians($1)) * sin(radians(latitude))
-        )
-      ) <= $3
+      WHERE ST_DistanceSphere(
+        location,
+        ST_SetSRID(ST_MakePoint($2, $1), 4326)
+      ) / 1000.0 <= $3
       ORDER BY distance_km
     `;
     const result = await pool.query(query, [latitude, longitude, radiusKm]);
@@ -134,7 +134,8 @@ class DogPark {
   static async search(searchQuery) {
     const query = `
       SELECT 
-        id, name, description, address, latitude, longitude,
+        id, name, description, address,
+        ST_X(location) as longitude, ST_Y(location) as latitude,
         amenities, rules, hours_open, hours_close,
         created_at, updated_at, website, phone, rating, 
         review_count, surface_type, has_seating, zipcode, borough
@@ -162,15 +163,13 @@ class DogPark {
   static async searchWithLocation(searchQuery, latitude, longitude) {
     const query = `
       SELECT 
-        id, name, description, address, latitude, longitude,
+        id, name, description, address,
+        ST_X(location) as longitude, ST_Y(location) as latitude,
         amenities, rules, hours_open, hours_close,
-        (
-          6371 * acos(
-            cos(radians($2)) * cos(radians(latitude)) * 
-            cos(radians(longitude) - radians($3)) + 
-            sin(radians($2)) * sin(radians(latitude))
-          )
-        ) as distance_km,
+        ST_DistanceSphere(
+          location,
+          ST_SetSRID(ST_MakePoint($3, $2), 4326)
+        ) / 1000.0 as distance_km,
         created_at, updated_at, website, phone, rating, 
         review_count, surface_type, has_seating, zipcode, borough
       FROM dog_parks 
