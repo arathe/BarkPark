@@ -39,7 +39,8 @@ const getDbConfig = () => {
 const migrations = [
   '001_create_schema.sql',
   '002_seed_data.sql',
-  '003_nyc_dog_runs.sql'
+  '003_nyc_dog_runs.sql',
+  'update-dogs-table-safe.sql'
 ];
 
 // Only include seed migrations if --seed flag is provided

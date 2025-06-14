@@ -12,6 +12,7 @@
     "migrate": "node scripts/railway-migrate.js",
     "migrate:seed": "node scripts/railway-migrate.js --seed",
     "migrate:force": "node scripts/railway-migrate.js --force",
+    "migrate:dogs": "node scripts/run-dogs-migration.js",
     "generate-test-token": "node scripts/generate-test-token.js"
   },
   "keywords": [
