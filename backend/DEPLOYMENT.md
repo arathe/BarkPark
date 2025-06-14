@@ -27,9 +27,60 @@ This guide walks through deploying the BarkPark backend to Railway, a modern pla
 
 ### Enable PostGIS Extension
 
-1. Click on your PostgreSQL service in Railway
-2. Go to the "Query" tab
-3. Run the following command:
+Railway doesn't provide a built-in query interface. Use one of these methods:
+
+#### Method 1: Using Railway CLI (Recommended)
+
+1. Install Railway CLI if not already installed:
+   ```bash
+   npm install -g @railway/cli
+   ```
+
+2. Login and link your project:
+   ```bash
+   railway login
+   railway link
+   ```
+
+3. Connect to the database:
+   ```bash
+   railway connect postgres
+   ```
+
+4. Once connected, run:
+   ```sql
+   CREATE EXTENSION IF NOT EXISTS postgis;
+   ```
+
+#### Method 2: Using psql with Connection String
+
+1. Copy the DATABASE_URL from your Railway PostgreSQL Variables tab
+2. Connect using psql:
+   ```bash
+   psql "$DATABASE_URL"
+   ```
+3. Run:
+   ```sql
+   CREATE EXTENSION IF NOT EXISTS postgis;
+   ```
+
+#### Method 3: Using a GUI Tool
+
+1. Use a PostgreSQL GUI tool like:
+   - TablePlus
+   - pgAdmin
+   - DBeaver
+   - Postico (Mac)
+
+2. Create a new connection using the credentials from Railway's Variables tab:
+   - Host: From PGHOST variable
+   - Port: From PGPORT variable (usually 5432)
+   - Database: From PGDATABASE variable
+   - Username: From PGUSER variable
+   - Password: From PGPASSWORD variable
+   - Enable SSL
+
+3. Once connected, run:
    ```sql
    CREATE EXTENSION IF NOT EXISTS postgis;
    ```
