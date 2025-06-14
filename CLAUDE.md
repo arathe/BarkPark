@@ -450,3 +450,27 @@ The social connections system is now fully operational, providing users with mul
 2. **Run Migrations**: Execute database setup with seed data once Railway PostgreSQL is provisioned
 3. **Update iOS App**: Point to production API URL once deployed
 4. **Monitor & Test**: Verify all endpoints working in production environment
+
+## ✅ Session Notes - June 14, 2025 (Session 9)
+
+### **🎯 Session Objectives**
+- Change the primary color of the iOS app from orange to hunter green
+
+### **🔧 Technical Changes**
+- **Color Asset Update**: Changed AccentColor.colorset from orange (RGB: 1.0, 0.647, 0.0) to hunter green (RGB: 0.176, 0.533, 0.294)
+- **Design System Update**: Modified BarkParkDesign.swift dogPrimary color to use the same hunter green color
+- **UI Component Updates**: Updated hardcoded orange color references in:
+  - QRCodeScannerView.swift - Changed clock icon color to use dogPrimary
+  - UserSearchView.swift - Changed "Request sent" status color to use dogPrimary
+  - QRCodeDisplayView.swift - Changed warning icon and timer colors to use warning/dogPrimary colors from design system
+
+### **📊 Current Status**
+- All primary brand colors successfully changed from orange to hunter green
+- Activity level colors (moderate = orange) intentionally left unchanged as they represent semantic meaning
+- Warning colors remain orange as appropriate for their semantic purpose
+- App now has a consistent hunter green theme throughout
+
+### **🚀 Next Steps**
+- Build and test the app in Xcode to see the new color scheme in action
+- Consider updating any app icons or launch screens that may use the old orange color
+- Update any marketing materials or screenshots to reflect the new branding

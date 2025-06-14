@@ -62,7 +62,7 @@ struct QRCodeDisplayView: View {
                             VStack(spacing: BarkParkDesign.Spacing.md) {
                                 Image(systemName: "exclamationmark.triangle")
                                     .font(.system(size: 40))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(BarkParkDesign.Colors.dogPrimary)
                                 Text("Failed to generate QR code")
                                     .font(BarkParkDesign.Typography.caption)
                                     .foregroundColor(BarkParkDesign.Colors.secondaryText)
@@ -74,12 +74,12 @@ struct QRCodeDisplayView: View {
                     if !isGenerating && qrCodeImage != nil {
                         HStack(spacing: BarkParkDesign.Spacing.sm) {
                             Image(systemName: "clock")
-                                .foregroundColor(timeRemaining < 60 ? .orange : BarkParkDesign.Colors.dogPrimary)
+                                .foregroundColor(timeRemaining < 60 ? BarkParkDesign.Colors.warning : BarkParkDesign.Colors.dogPrimary)
                             
                             Text("Expires in \(formatTime(timeRemaining))")
                                 .font(BarkParkDesign.Typography.callout)
                                 .fontWeight(.medium)
-                                .foregroundColor(timeRemaining < 60 ? .orange : BarkParkDesign.Colors.primaryText)
+                                .foregroundColor(timeRemaining < 60 ? BarkParkDesign.Colors.warning : BarkParkDesign.Colors.primaryText)
                         }
                         .padding(.horizontal, BarkParkDesign.Spacing.md)
                         .padding(.vertical, BarkParkDesign.Spacing.sm)

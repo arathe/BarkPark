@@ -125,7 +125,7 @@ struct QRCodeScannerView: View {
                         
                         HStack(spacing: BarkParkDesign.Spacing.sm) {
                             Image(systemName: "clock")
-                                .foregroundColor(.orange)
+                                .foregroundColor(BarkParkDesign.Colors.dogPrimary)
                             Text("QR codes expire after 5 minutes")
                                 .font(BarkParkDesign.Typography.caption)
                                 .foregroundColor(.white.opacity(0.9))

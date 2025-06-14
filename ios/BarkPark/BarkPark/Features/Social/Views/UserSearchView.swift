@@ -220,7 +220,7 @@ struct UserSearchRowView: View {
         case "Already friends":
             return .green
         case "Request sent":
-            return .orange
+            return BarkParkDesign.Colors.dogPrimary
         case "Request received":
             return .blue
         default:

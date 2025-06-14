@@ -35,7 +35,7 @@ struct BarkParkDesign {
         static let error = Color.red
         
         // Custom colors
-        static let dogPrimary = Color.orange
+        static let dogPrimary = Color(red: 0.176, green: 0.533, blue: 0.294)
         static let dogSecondary = Color.brown
     }
     
