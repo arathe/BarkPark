@@ -66,6 +66,54 @@ router.post('/migrate/dogs', requireAdminKey, async (req, res) => {
   }
 });
 
+// Cleanup old columns
+router.post('/migrate/cleanup', requireAdminKey, async (req, res) => {
+  try {
+    console.log('[Admin] Cleaning up old dogs table columns...');
+    
+    // Read the cleanup migration file
+    const migrationPath = path.join(__dirname, '../migrations/cleanup-dogs-columns.sql');
+    const migrationSQL = fs.readFileSync(migrationPath, 'utf8');
+    
+    // Start transaction
+    await pool.query('BEGIN');
+    
+    try {
+      // Run cleanup
+      await pool.query(migrationSQL);
+      
+      // Verify the schema
+      const schemaResult = await pool.query(`
+        SELECT column_name, data_type 
+        FROM information_schema.columns
+        WHERE table_name = 'dogs'
+        ORDER BY ordinal_position
+      `);
+      
+      await pool.query('COMMIT');
+      
+      res.json({
+        success: true,
+        message: 'Dogs table cleanup completed successfully',
+        columns: schemaResult.rows.length,
+        schema: schemaResult.rows
+      });
+      
+    } catch (err) {
+      await pool.query('ROLLBACK');
+      throw err;
+    }
+    
+  } catch (error) {
+    console.error('[Admin] Cleanup error:', error);
+    res.status(500).json({
+      error: 'Cleanup failed',
+      message: error.message,
+      code: error.code
+    });
+  }
+});
+
 // Check migration status
 router.get('/migrate/status', requireAdminKey, async (req, res) => {
   try {
