@@ -9,6 +9,29 @@ BarkPark is a dog social network application consisting of:
 - iOS SwiftUI app with cloud-first architecture
 - Features: user auth, dog profiles, park finder, social messaging, check-ins
 
+## Custom Commands
+
+### `/barkpark test`
+- Run full test suite for both backend and iOS
+- Check API connectivity between local and production
+- Verify database migrations are up to date
+
+### `/barkpark deploy`
+- Test locally first
+- Commit and push changes to trigger Railway redeploy
+- Verify deployment health endpoints
+- Update CLAUDE.md with deployment notes
+
+### `/barkpark debug [component]`
+- Add comprehensive logging to specified component
+- Common components: auth, parks, dogs, friends, checkins
+- Include both backend and iOS debugging
+
+### `/barkpark schema`
+- Show current database schema
+- Identify any mismatches between model and actual database
+- Suggest migrations if needed
+
 ## Memories
 
 - When giving the instruction "wrap this session" Claude should:

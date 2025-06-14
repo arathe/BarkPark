@@ -63,12 +63,28 @@ beforeAll(async () => {
     try {
       await testClient.connect();
       
-      // Initialize schema using the simple schema
+      // Initialize schema using the simple schema but add missing columns
       const fs = require('fs');
       const path = require('path');
       const schemaPath = path.join(__dirname, '..', 'scripts', 'init-db-simple.sql');
       const schema = fs.readFileSync(schemaPath, 'utf8');
       await testClient.query(schema);
+      
+      // Add missing columns that the production schema has
+      try {
+        await testClient.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_searchable BOOLEAN NOT NULL DEFAULT true');
+        await testClient.query('ALTER TABLE dog_parks ADD COLUMN IF NOT EXISTS website VARCHAR(500)');
+        await testClient.query('ALTER TABLE dog_parks ADD COLUMN IF NOT EXISTS phone VARCHAR(20)');
+        await testClient.query('ALTER TABLE dog_parks ADD COLUMN IF NOT EXISTS rating DECIMAL(2,1)');
+        await testClient.query('ALTER TABLE dog_parks ADD COLUMN IF NOT EXISTS review_count INTEGER');
+        await testClient.query('ALTER TABLE dog_parks ADD COLUMN IF NOT EXISTS surface_type VARCHAR(50)');
+        await testClient.query('ALTER TABLE dog_parks ADD COLUMN IF NOT EXISTS has_seating BOOLEAN');
+        await testClient.query('ALTER TABLE dog_parks ADD COLUMN IF NOT EXISTS zipcode VARCHAR(10)');
+        await testClient.query('ALTER TABLE dog_parks ADD COLUMN IF NOT EXISTS borough VARCHAR(20)');
+        console.log('Added missing columns to test schema');
+      } catch (error) {
+        console.warn('Warning adding missing columns:', error.message);
+      }
       
       // Seed with park data
       const seedPath = path.join(__dirname, '..', 'scripts', 'seed-parks.sql');
