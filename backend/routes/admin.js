@@ -24,7 +24,7 @@ router.post('/migrate/dogs', requireAdminKey, async (req, res) => {
     console.log('[Admin] Running dogs table migration...');
     
     // Read the migration file
-    const migrationPath = path.join(__dirname, '../migrations/update-dogs-table-safe.sql');
+    const migrationPath = path.join(__dirname, '../migrations/fix-dogs-columns.sql');
     const migrationSQL = fs.readFileSync(migrationPath, 'utf8');
     
     // Start transaction
