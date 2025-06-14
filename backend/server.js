@@ -6,6 +6,7 @@ const authRoutes = require('./routes/auth');
 const dogRoutes = require('./routes/dogs');
 const parkRoutes = require('./routes/parks');
 const friendRoutes = require('./routes/friends');
+const diagnosticRoutes = require('./routes/diagnostic');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -25,6 +26,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/dogs', dogRoutes);
 app.use('/api/parks', parkRoutes);
 app.use('/api/friends', friendRoutes);
+app.use('/api/diagnostic', diagnosticRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
@@ -36,7 +38,8 @@ app.get('/', (req, res) => {
       dogs: '/api/dogs',
       parks: '/api/parks',
       friends: '/api/friends',
-      health: '/health'
+      health: '/health',
+      diagnostic: '/api/diagnostic'
     }
   });
 });
