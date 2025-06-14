@@ -39,7 +39,10 @@
       "Bash(npm test:*)",
       "Bash(python3:*)",
       "Bash(psql:*)",
-      "Bash(plutil:*)"
+      "Bash(plutil:*)",
+      "Bash(npm install:*)",
+      "WebFetch(domain:barkpark-production.up.railway.app)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }

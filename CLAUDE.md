@@ -32,10 +32,83 @@ BarkPark is a dog social network application consisting of:
 - Identify any mismatches between model and actual database
 - Suggest migrations if needed
 
+## Schema Alignment Protocol
+
+**Before modifying database models or schema:**
+1. **Check Current Schema**: Query information_schema to see actual table structure
+2. **Compare with Models**: Verify backend models match database reality
+3. **Test Queries**: Run sample queries to ensure they work with actual schema
+4. **Update Both Sides**: Keep models and database in sync during changes
+
+**Key Areas to Monitor:**
+- PostGIS vs simple lat/lng columns in dog_parks table
+- Optional vs required fields (handle NULL values properly)
+- Column naming consistency (snake_case vs camelCase)
+- Foreign key relationships and constraints
+
+## Debugging Methodology
+
+When encountering errors or issues, follow this systematic approach:
+
+### Production Issue Investigation
+1. **Gather Evidence First**: Check server logs, Railway deployment logs, actual API responses
+2. **Test with Real Data**: Use actual auth tokens, real requests, current database state
+3. **Avoid Assumptions**: Don't assume authentication/network issues without evidence
+4. **Isolate Components**: Test backend independently from frontend when possible
+5. **Check Schema Alignment**: Verify models match actual database structure
+
+### Error Analysis Priority
+1. **Server Logs**: Check Railway/backend logs for exact error messages
+2. **Database State**: Verify schema matches model expectations
+3. **Environment Config**: Confirm all required environment variables are set
+4. **API Response**: Examine actual HTTP status codes and response bodies
+5. **Frontend Handling**: Check if client-side error handling is appropriate
+
+### Environment-Specific Considerations
+
+**Production (Railway) Issues:**
+- Check Railway dashboard logs and deployment status
+- Verify environment variables are set correctly (DATABASE_URL, JWT_SECRET, NODE_ENV)
+- Test with production API endpoints directly using curl
+- Consider SSL certificate and CORS issues
+- Monitor resource limits and connection pooling
+
+**Local Development Issues:**
+- Check if local database is running and accessible
+- Verify local environment variables in .env file
+- Test API endpoints on localhost:3000
+- Ensure migrations are up to date locally
+- Check for port conflicts or service availability
+
+## Session Documentation Standards
+
+**Required Format for Session Notes:**
+```
+## ✅ Session Notes - [Date] (Session #)
+
+### **🎯 Session Objectives**
+- [What was the main goal/task]
+
+### **🐛 Issues Resolved**
+- **Issue**: [Brief description]
+- **Root Cause**: [What actually caused it]  
+- **Solution**: [How it was fixed]
+- **Files Modified**: [List of changed files]
+
+### **🔧 Technical Changes**
+- [Specific implementations, new features, refactoring]
+
+### **📊 Current Status**
+- [What's working, what's completed]
+
+### **🚀 Next Steps**
+- [Immediate priorities, follow-up tasks]
+```
+
 ## Memories
 
 - When giving the instruction "wrap this session" Claude should:
-  1. Update CLAUDE.md with relevant notes on actions taken during the session
+  1. Update CLAUDE.md with relevant notes on actions taken during the session using the standardized format above
   2. Perform a full git commit and push
   3. Include adding any new files that have been created
 
