@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - API Configuration
 struct APIConfiguration {
-    static let baseURL = "http://127.0.0.1:3000/api"
+    static let baseURL = "https://barkpark-production.up.railway.app/api"
 }
 
 // MARK: - Network Errors
@@ -510,12 +510,21 @@ class APIService {
         
         let (data, response) = try await session.data(for: request)
         
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
+        guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
         
-        return try JSONDecoder().decode(ParksSearchResponse.self, from: data)
+        switch httpResponse.statusCode {
+        case 200:
+            return try JSONDecoder().decode(ParksSearchResponse.self, from: data)
+        case 401:
+            throw APIError.authenticationFailed("Authentication required")
+        default:
+            print("🌐 APIService: Parks request failed with status \(httpResponse.statusCode)")
+            let responseString = String(data: data, encoding: .utf8) ?? "No response body"
+            print("🌐 APIService: Response: \(responseString)")
+            throw APIError.invalidResponse
+        }
     }
     
     func getAllParks() async throws -> [DogPark] {
