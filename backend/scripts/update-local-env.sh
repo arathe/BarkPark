@@ -1,10 +1,11 @@
 #!/bin/bash
 
-# Script to update local JWT_SECRET
-echo "🔐 Updating local JWT_SECRET..."
+# Script to generate and update local JWT_SECRET
+echo "🔐 Generating new local JWT_SECRET..."
 
 ENV_FILE="../.env"
-NEW_SECRET="6cffb160bf50e93e8baeef5f57861174588b2c07dcd6941571ba5d9eb1adca090d0c7ab63449ccd1558c306aaf56136ef77fb3d958821ca6c9b719706e475fa7"
+# Generate a secure random secret (64 bytes = 128 hex chars)
+NEW_SECRET=$(openssl rand -hex 64)
 
 if [ -f "$ENV_FILE" ]; then
     # Backup existing .env
