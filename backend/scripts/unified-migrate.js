@@ -86,15 +86,35 @@ const getMigrationsToRun = () => {
 
 // Create or verify migration tracking table
 async function ensureMigrationTable(client) {
-  await client.query(`
-    CREATE TABLE IF NOT EXISTS schema_migrations (
-      id VARCHAR(255) PRIMARY KEY,
-      description TEXT,
-      executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      execution_time_ms INTEGER,
-      checksum VARCHAR(64)
-    )
-  `);
+  try {
+    console.log('📋 Ensuring schema_migrations table exists...');
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS schema_migrations (
+        id VARCHAR(255) PRIMARY KEY,
+        description TEXT,
+        executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        execution_time_ms INTEGER,
+        checksum VARCHAR(64)
+      )
+    `);
+    console.log('✅ schema_migrations table ready');
+    
+    // Verify the table was created with the id column
+    const result = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'schema_migrations' 
+      AND column_name = 'id'
+    `);
+    
+    if (result.rows.length === 0) {
+      throw new Error('schema_migrations table exists but is missing id column');
+    }
+  } catch (err) {
+    console.error('❌ Error creating schema_migrations table:', err.message);
+    console.error('   Full error:', err);
+    throw err;
+  }
 }
 
 // Calculate file checksum for change detection
@@ -105,11 +125,19 @@ async function calculateChecksum(content) {
 
 // Check if migration has been applied
 async function isMigrationApplied(client, migrationId) {
-  const result = await client.query(
-    'SELECT id, checksum FROM schema_migrations WHERE id = $1',
-    [migrationId]
-  );
-  return result.rows.length > 0 ? result.rows[0] : null;
+  try {
+    const result = await client.query(
+      'SELECT id, checksum FROM schema_migrations WHERE id = $1',
+      [migrationId]
+    );
+    return result.rows.length > 0 ? result.rows[0] : null;
+  } catch (err) {
+    console.error(`❌ Error checking migration ${migrationId}:`, err.message);
+    if (err.message.includes('does not exist')) {
+      console.error('   The schema_migrations table may not exist yet.');
+    }
+    throw err;
+  }
 }
 
 // Record successful migration
@@ -186,11 +214,12 @@ async function verifySchema(client) {
 async function showStatus(client) {
   console.log('\n📊 Migration Status\n');
   
-  const applied = await client.query(`
-    SELECT schema_migrations.id, description, executed_at, execution_time_ms 
-    FROM schema_migrations 
-    ORDER BY executed_at
-  `);
+  try {
+    const applied = await client.query(`
+      SELECT id, description, executed_at, execution_time_ms 
+      FROM schema_migrations 
+      ORDER BY executed_at
+    `);
   
   console.log('Applied Migrations:');
   if (applied.rows.length === 0) {
@@ -216,8 +245,14 @@ async function showStatus(client) {
     console.log('');
   }
   
-  // Also verify schema
-  await verifySchema(client);
+    // Also verify schema
+    await verifySchema(client);
+  } catch (err) {
+    console.error('❌ Error in showStatus:', err.message);
+    console.error('   Query error details:', err.detail || 'No additional details');
+    console.error('   This might indicate the schema_migrations table does not exist yet.');
+    throw err;
+  }
 }
 
 // Run migrations
@@ -230,7 +265,14 @@ async function runMigrations() {
     console.log('✅ Connected successfully\n');
     
     // Ensure migration tracking table exists
-    await ensureMigrationTable(client);
+    try {
+      console.log('[DEBUG] About to call ensureMigrationTable...');
+      await ensureMigrationTable(client);
+      console.log('[DEBUG] ensureMigrationTable completed successfully');
+    } catch (err) {
+      console.error('[DEBUG] Error in ensureMigrationTable:', err.message);
+      throw err;
+    }
     
     const migrationsToRun = getMigrationsToRun();
     let appliedCount = 0;
@@ -252,7 +294,9 @@ async function runMigrations() {
       const checksum = await calculateChecksum(content);
       
       // Check if already applied
+      console.log(`[DEBUG] Checking if migration ${migration.id} is already applied...`);
       const existing = await isMigrationApplied(client, migration.id);
+      console.log(`[DEBUG] Migration ${migration.id} check complete`);
       
       if (existing && !flags.force) {
         if (existing.checksum === checksum) {
