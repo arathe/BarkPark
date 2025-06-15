@@ -187,7 +187,7 @@ async function showStatus(client) {
   console.log('\n📊 Migration Status\n');
   
   const applied = await client.query(`
-    SELECT id, description, executed_at, execution_time_ms 
+    SELECT schema_migrations.id, description, executed_at, execution_time_ms 
     FROM schema_migrations 
     ORDER BY executed_at
   `);
