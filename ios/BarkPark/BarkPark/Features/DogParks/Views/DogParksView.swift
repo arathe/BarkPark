@@ -143,6 +143,22 @@ struct DogParksView: View {
                     
                     Spacer()
                     
+                    // Active check-in card
+                    if let activeCheckIn = viewModel.currentActiveCheckIn {
+                        ActiveCheckInCard(
+                            checkIn: activeCheckIn,
+                            parkName: viewModel.activeCheckInPark?.name ?? "Loading...",
+                            onCheckOut: {
+                                Task {
+                                    await viewModel.checkOutOfParkById(activeCheckIn.dogParkId)
+                                }
+                            }
+                        )
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .animation(.spring(), value: activeCheckIn)
+                        .padding(.bottom, 8)
+                    }
+                    
                     // Loading indicator
                     if viewModel.isLoading || viewModel.isSearching {
                         HStack {

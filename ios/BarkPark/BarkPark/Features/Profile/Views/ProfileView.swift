@@ -10,12 +10,30 @@ import SwiftUI
 struct ProfileView: View {
     @EnvironmentObject var authManager: AuthenticationManager
     @EnvironmentObject var dogProfileViewModel: DogProfileViewModel
+    @StateObject private var parksViewModel = DogParksViewModel()
     @State private var showingPrivacySettings = false
     @State private var navigateToMyDogs = false
     
     var body: some View {
         NavigationView {
-            List {
+            VStack(spacing: 0) {
+                // Active check-in card at the top
+                if let activeCheckIn = parksViewModel.currentActiveCheckIn {
+                    ActiveCheckInCard(
+                        checkIn: activeCheckIn,
+                        parkName: parksViewModel.activeCheckInPark?.name ?? "Loading...",
+                        onCheckOut: {
+                            Task {
+                                await parksViewModel.checkOutOfParkById(activeCheckIn.dogParkId)
+                            }
+                        }
+                    )
+                    .padding(.vertical, 8)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .animation(.spring(), value: activeCheckIn)
+                }
+                
+                List {
                 // User Info Section
                 Section {
                     HStack(spacing: BarkParkDesign.Spacing.md) {
@@ -101,6 +119,7 @@ struct ProfileView: View {
                         }
                     }
                 }
+                }
             }
             .navigationTitle("Profile")
             .sheet(isPresented: $showingPrivacySettings) {
@@ -110,6 +129,11 @@ struct ProfileView: View {
             .onAppear {
                 // Load dogs when profile appears
                 dogProfileViewModel.loadDogs()
+                
+                // Load active check-ins
+                Task {
+                    await parksViewModel.loadActiveCheckIns()
+                }
                 
                 // For new users, automatically navigate to My Dogs
                 if authManager.isNewUser {

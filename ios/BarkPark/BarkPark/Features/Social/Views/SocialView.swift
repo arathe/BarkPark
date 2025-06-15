@@ -9,6 +9,7 @@ import SwiftUI
 
 struct SocialView: View {
     @StateObject private var viewModel = SocialViewModel()
+    @StateObject private var parksViewModel = DogParksViewModel()
     @State private var selectedTab = 0
     @State private var showingUserSearch = false
     @State private var showingQRDisplay = false
@@ -19,6 +20,22 @@ struct SocialView: View {
             VStack(spacing: 0) {
                 // Custom Tab Picker
                 customTabPicker
+                
+                // Active check-in card
+                if let activeCheckIn = parksViewModel.currentActiveCheckIn {
+                    ActiveCheckInCard(
+                        checkIn: activeCheckIn,
+                        parkName: parksViewModel.activeCheckInPark?.name ?? "Loading...",
+                        onCheckOut: {
+                            Task {
+                                await parksViewModel.checkOutOfParkById(activeCheckIn.dogParkId)
+                            }
+                        }
+                    )
+                    .padding(.vertical, 8)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .animation(.spring(), value: activeCheckIn)
+                }
                 
                 // Content based on selected tab
                 Group {
@@ -78,6 +95,11 @@ struct SocialView: View {
             }
             .fullScreenCover(isPresented: $showingQRScanner) {
                 QRCodeScannerView(socialViewModel: viewModel)
+            }
+            .onAppear {
+                Task {
+                    await parksViewModel.loadActiveCheckIns()
+                }
             }
         }
     }

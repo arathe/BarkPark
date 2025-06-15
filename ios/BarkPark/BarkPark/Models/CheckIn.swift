@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct CheckIn: Codable, Identifiable {
+struct CheckIn: Codable, Identifiable, Equatable {
     let id: Int
     let userId: Int
     let dogParkId: Int
@@ -69,7 +69,7 @@ struct CheckIn: Codable, Identifiable {
     }
 }
 
-struct CheckInPark: Codable {
+struct CheckInPark: Codable, Equatable {
     let id: Int
     let name: String
     let address: String

@@ -27,6 +27,47 @@ class DogParksViewModel: ObservableObject {
     @Published var searchResults: [DogPark] = []
     @Published var isSearching = false
     
+    // Computed property for the current active check-in
+    var currentActiveCheckIn: CheckIn? {
+        activeCheckIns.first { $0.isActive }
+    }
+    
+    // Get the park for the current active check-in
+    @Published var activeCheckInPark: DogPark?
+    
+    func loadActiveCheckInPark() async {
+        guard let checkIn = currentActiveCheckIn else {
+            activeCheckInPark = nil
+            return
+        }
+        
+        // First check if park is already in loaded parks
+        if let park = parks.first(where: { $0.id == checkIn.dogParkId }) {
+            activeCheckInPark = park
+            return
+        }
+        
+        // If not, load the park details
+        if let parkDetail = await loadParkDetails(parkId: checkIn.dogParkId) {
+            activeCheckInPark = DogPark(
+                id: parkDetail.id,
+                name: parkDetail.name,
+                description: parkDetail.description,
+                address: parkDetail.address,
+                latitude: parkDetail.latitude,
+                longitude: parkDetail.longitude,
+                amenities: parkDetail.amenities,
+                rules: parkDetail.rules,
+                hoursOpen: parkDetail.hoursOpen,
+                hoursClose: parkDetail.hoursClose,
+                createdAt: "",  // Not available in ParkDetail
+                updatedAt: "",  // Not available in ParkDetail
+                activityLevel: parkDetail.activityLevel,
+                currentVisitors: parkDetail.activeVisitors,
+                distanceKm: nil
+            )
+        }
+    }
     
     init() {
         // Load initial data
@@ -67,6 +108,9 @@ class DogParksViewModel: ObservableObject {
             let response = try await apiService.getActiveCheckIns()
             activeCheckIns = response.activeCheckIns
             print("🌐 DogParksViewModel: Loaded \(activeCheckIns.count) active check-ins")
+            
+            // Load park details for active check-in
+            await loadActiveCheckInPark()
         } catch {
             print("🌐 DogParksViewModel: Error loading active check-ins: \(error)")
         }
@@ -92,6 +136,22 @@ class DogParksViewModel: ObservableObject {
         do {
             _ = try await apiService.checkOutOfPark(parkId: park.id)
             print("🌐 DogParksViewModel: Checked out of \(park.name)")
+            
+            // Reload active check-ins
+            await loadActiveCheckIns()
+            
+            return true
+        } catch {
+            print("🌐 DogParksViewModel: Error checking out: \(error)")
+            errorMessage = "Failed to check out: \(error.localizedDescription)"
+            return false
+        }
+    }
+    
+    func checkOutOfParkById(_ parkId: Int) async -> Bool {
+        do {
+            _ = try await apiService.checkOutOfPark(parkId: parkId)
+            print("🌐 DogParksViewModel: Checked out of park ID \(parkId)")
             
             // Reload active check-ins
             await loadActiveCheckIns()
