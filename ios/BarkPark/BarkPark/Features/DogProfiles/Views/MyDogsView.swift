@@ -1,5 +1,5 @@
 //
-//  MyPackView.swift
+//  MyDogsView.swift
 //  BarkPark
 //
 //  Created by Austin Rathe on 6/4/25.
@@ -7,8 +7,9 @@
 
 import SwiftUI
 
-struct MyPackView: View {
+struct MyDogsView: View {
     @EnvironmentObject var dogProfileViewModel: DogProfileViewModel
+    @EnvironmentObject var authManager: AuthenticationManager
     @State private var showingAddDog = false
     
     var body: some View {
@@ -19,7 +20,9 @@ struct MyPackView: View {
                         emptyStateView
                     } else {
                         ForEach(dogProfileViewModel.dogs) { dog in
-                            NavigationLink(destination: DogDetailView(dog: dog).environmentObject(dogProfileViewModel)) {
+                            NavigationLink(destination: DogDetailView(dog: dog)
+                                .environmentObject(dogProfileViewModel)
+                                .environmentObject(authManager)) {
                                 DogCard(dog: dog)
                                     .accessibility(identifier: "dogCard")
                             }
@@ -29,7 +32,7 @@ struct MyPackView: View {
                 }
                 .padding(BarkParkDesign.Spacing.md)
             }
-            .navigationTitle("My Pack")
+            .navigationTitle("My Dogs")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
@@ -47,12 +50,19 @@ struct MyPackView: View {
         .sheet(isPresented: $showingAddDog) {
             AddDogView()
                 .environmentObject(dogProfileViewModel)
+                .environmentObject(authManager)
+                .onDisappear {
+                    // If this was a new user adding their first dog, clear the flag
+                    if authManager.isNewUser && !dogProfileViewModel.dogs.isEmpty {
+                        authManager.clearNewUserFlag()
+                    }
+                }
         }
         .onAppear {
-            print("📱 MyPackView: onAppear called")
-            print("📱 MyPackView: Current dogs count: \(dogProfileViewModel.dogs.count)")
-            print("📱 MyPackView: Is loading: \(dogProfileViewModel.isLoading)")
-            print("📱 MyPackView: Error message: \(dogProfileViewModel.errorMessage ?? "none")")
+            print("📱 MyDogsView: onAppear called")
+            print("📱 MyDogsView: Current dogs count: \(dogProfileViewModel.dogs.count)")
+            print("📱 MyDogsView: Is loading: \(dogProfileViewModel.isLoading)")
+            print("📱 MyDogsView: Error message: \(dogProfileViewModel.errorMessage ?? "none")")
             // Load dogs when view appears
             dogProfileViewModel.loadDogs()
         }
@@ -67,11 +77,11 @@ struct MyPackView: View {
                 .foregroundColor(BarkParkDesign.Colors.dogPrimary.opacity(0.5))
             
             VStack(spacing: BarkParkDesign.Spacing.sm) {
-                Text("No Dogs Yet")
+                Text(authManager.isNewUser ? "Welcome to BarkPark!" : "No Dogs Yet")
                     .font(BarkParkDesign.Typography.title)
                     .foregroundColor(BarkParkDesign.Colors.primaryText)
                 
-                Text("Add your first furry friend to get started!")
+                Text(authManager.isNewUser ? "Let's add your first furry friend to get started!" : "Add your first furry friend to get started!")
                     .font(BarkParkDesign.Typography.body)
                     .foregroundColor(BarkParkDesign.Colors.secondaryText)
                     .multilineTextAlignment(.center)
@@ -188,6 +198,7 @@ struct StatItem: View {
 }
 
 #Preview {
-    MyPackView()
+    MyDogsView()
         .environmentObject(DogProfileViewModel())
+        .environmentObject(AuthenticationManager())
 }

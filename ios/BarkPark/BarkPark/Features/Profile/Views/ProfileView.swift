@@ -9,7 +9,9 @@ import SwiftUI
 
 struct ProfileView: View {
     @EnvironmentObject var authManager: AuthenticationManager
+    @EnvironmentObject var dogProfileViewModel: DogProfileViewModel
     @State private var showingPrivacySettings = false
+    @State private var showingMyDogs = false
     
     var body: some View {
         NavigationView {
@@ -36,6 +38,38 @@ struct ProfileView: View {
                         Spacer()
                     }
                     .padding(.vertical, BarkParkDesign.Spacing.sm)
+                }
+                
+                // My Dogs Section
+                Section("My Dogs") {
+                    Button(action: {
+                        showingMyDogs = true
+                    }) {
+                        HStack(spacing: BarkParkDesign.Spacing.md) {
+                            Image(systemName: "pawprint.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(BarkParkDesign.Colors.dogPrimary)
+                                .frame(width: 24)
+                            
+                            VStack(alignment: .leading, spacing: BarkParkDesign.Spacing.xs) {
+                                Text("Manage Your Dogs")
+                                    .font(BarkParkDesign.Typography.callout)
+                                    .foregroundColor(BarkParkDesign.Colors.primaryText)
+                                
+                                Text("\(dogProfileViewModel.dogs.count) \(dogProfileViewModel.dogs.count == 1 ? "dog" : "dogs") in your pack")
+                                    .font(BarkParkDesign.Typography.caption)
+                                    .foregroundColor(BarkParkDesign.Colors.secondaryText)
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12))
+                                .foregroundColor(BarkParkDesign.Colors.secondaryText)
+                        }
+                        .padding(.vertical, BarkParkDesign.Spacing.xs)
+                    }
+                    .buttonStyle(PlainButtonStyle())
                 }
                 
                 // Settings Section
@@ -71,6 +105,16 @@ struct ProfileView: View {
             .sheet(isPresented: $showingPrivacySettings) {
                 PrivacySettingsView()
                     .environmentObject(authManager)
+            }
+            .sheet(isPresented: $showingMyDogs) {
+                NavigationView {
+                    MyDogsView()
+                        .environmentObject(dogProfileViewModel)
+                }
+            }
+            .onAppear {
+                // Load dogs when profile appears
+                dogProfileViewModel.loadDogs()
             }
         }
     }
@@ -111,4 +155,5 @@ struct SettingsRow: View {
 #Preview {
     ProfileView()
         .environmentObject(AuthenticationManager())
+        .environmentObject(DogProfileViewModel())
 }

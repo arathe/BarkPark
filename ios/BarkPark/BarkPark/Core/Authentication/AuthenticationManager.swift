@@ -14,6 +14,7 @@ class AuthenticationManager: ObservableObject {
     @Published var currentUser: User?
     @Published var errorMessage: String?
     @Published var isLoading = false
+    @Published var isNewUser = false
     
     private let apiService = APIService.shared
     private var cancellables = Set<AnyCancellable>()
@@ -67,6 +68,7 @@ class AuthenticationManager: ObservableObject {
             // Set current user
             currentUser = registerResponse.user
             isAuthenticated = true
+            isNewUser = true // Flag to show dog creation prompt
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -112,5 +114,9 @@ class AuthenticationManager: ObservableObject {
     
     func updateCurrentUser(_ user: User) {
         currentUser = user
+    }
+    
+    func clearNewUserFlag() {
+        isNewUser = false
     }
 }
