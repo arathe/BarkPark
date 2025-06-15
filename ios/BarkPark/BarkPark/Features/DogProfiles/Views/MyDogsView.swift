@@ -13,39 +13,48 @@ struct MyDogsView: View {
     @State private var showingAddDog = false
     
     var body: some View {
-        NavigationView {
-            ScrollView {
-                LazyVStack(spacing: BarkParkDesign.Spacing.md) {
-                    if dogProfileViewModel.dogs.isEmpty {
-                        emptyStateView
-                    } else {
-                        ForEach(dogProfileViewModel.dogs) { dog in
-                            NavigationLink(destination: DogDetailView(dog: dog)
-                                .environmentObject(dogProfileViewModel)
-                                .environmentObject(authManager)) {
-                                DogCard(dog: dog)
-                                    .accessibility(identifier: "dogCard")
-                            }
-                            .buttonStyle(PlainButtonStyle())
+        ScrollView {
+            LazyVStack(spacing: BarkParkDesign.Spacing.md) {
+                if dogProfileViewModel.dogs.isEmpty {
+                    emptyStateView
+                } else {
+                    ForEach(dogProfileViewModel.dogs) { dog in
+                        NavigationLink(destination: DogDetailView(dog: dog)
+                            .environmentObject(dogProfileViewModel)
+                            .environmentObject(authManager)) {
+                            DogCard(dog: dog)
+                                .accessibility(identifier: "dogCard")
                         }
-                    }
-                }
-                .padding(BarkParkDesign.Spacing.md)
-            }
-            .navigationTitle("My Dogs")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        showingAddDog = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .foregroundColor(BarkParkDesign.Colors.dogPrimary)
+                        .buttonStyle(PlainButtonStyle())
                     }
                 }
             }
-            .refreshable {
-                dogProfileViewModel.loadDogs()
+            .padding(BarkParkDesign.Spacing.md)
+        }
+        .navigationTitle("My Dogs")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    showingAddDog = true
+                } label: {
+                    Image(systemName: "plus")
+                        .foregroundColor(BarkParkDesign.Colors.dogPrimary)
+                }
             }
+            
+            // Add Skip button for new users who haven't added any dogs yet
+            if authManager.isNewUser && dogProfileViewModel.dogs.isEmpty {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Skip") {
+                        authManager.clearNewUserFlag()
+                    }
+                    .foregroundColor(BarkParkDesign.Colors.dogPrimary)
+                }
+            }
+        }
+        .refreshable {
+            dogProfileViewModel.loadDogs()
         }
         .sheet(isPresented: $showingAddDog) {
             AddDogView()

@@ -37,6 +37,12 @@ struct MainTabView: View {
                 .tag(2)
         }
         .accentColor(BarkParkDesign.Colors.dogPrimary)
+        .onAppear {
+            // For new users, automatically navigate to Profile tab
+            if authManager.isNewUser {
+                selectedTab = 2
+            }
+        }
     }
 }
 

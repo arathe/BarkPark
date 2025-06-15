@@ -11,7 +11,7 @@ struct ProfileView: View {
     @EnvironmentObject var authManager: AuthenticationManager
     @EnvironmentObject var dogProfileViewModel: DogProfileViewModel
     @State private var showingPrivacySettings = false
-    @State private var showingMyDogs = false
+    @State private var navigateToMyDogs = false
     
     var body: some View {
         NavigationView {
@@ -42,9 +42,11 @@ struct ProfileView: View {
                 
                 // My Dogs Section
                 Section("My Dogs") {
-                    Button(action: {
-                        showingMyDogs = true
-                    }) {
+                    NavigationLink(
+                        destination: MyDogsView()
+                            .environmentObject(dogProfileViewModel),
+                        isActive: $navigateToMyDogs
+                    ) {
                         HStack(spacing: BarkParkDesign.Spacing.md) {
                             Image(systemName: "pawprint.fill")
                                 .font(.system(size: 20))
@@ -69,7 +71,6 @@ struct ProfileView: View {
                         }
                         .padding(.vertical, BarkParkDesign.Spacing.xs)
                     }
-                    .buttonStyle(PlainButtonStyle())
                 }
                 
                 // Settings Section
@@ -106,15 +107,17 @@ struct ProfileView: View {
                 PrivacySettingsView()
                     .environmentObject(authManager)
             }
-            .sheet(isPresented: $showingMyDogs) {
-                NavigationView {
-                    MyDogsView()
-                        .environmentObject(dogProfileViewModel)
-                }
-            }
             .onAppear {
                 // Load dogs when profile appears
                 dogProfileViewModel.loadDogs()
+                
+                // For new users, automatically navigate to My Dogs
+                if authManager.isNewUser {
+                    // Use a small delay to ensure the navigation view is ready
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        navigateToMyDogs = true
+                    }
+                }
             }
         }
     }
