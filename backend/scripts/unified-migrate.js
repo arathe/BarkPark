@@ -310,6 +310,35 @@ async function runMigrations() {
       throw err;
     }
     
+    // Check existing tables before running migrations
+    console.log('\n📊 Checking existing database tables...');
+    const existingTables = await client.query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_type = 'BASE TABLE'
+      ORDER BY table_name
+    `);
+    
+    if (existingTables.rows.length > 0) {
+      console.log('   Existing tables:', existingTables.rows.map(t => t.table_name).join(', '));
+      
+      // Check dog_parks table structure if it exists
+      const hasDogParks = existingTables.rows.some(t => t.table_name === 'dog_parks');
+      if (hasDogParks) {
+        const dogParksColumns = await client.query(`
+          SELECT column_name, data_type 
+          FROM information_schema.columns 
+          WHERE table_name = 'dog_parks'
+          ORDER BY ordinal_position
+        `);
+        console.log('\n   dog_parks columns:', dogParksColumns.rows.map(c => c.column_name).join(', '));
+      }
+    } else {
+      console.log('   No existing tables found (fresh database)');
+    }
+    console.log('');
+    
     const migrationsToRun = getMigrationsToRun();
     let appliedCount = 0;
     let skippedCount = 0;

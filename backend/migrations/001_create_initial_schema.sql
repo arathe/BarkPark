@@ -45,6 +45,17 @@ CREATE TABLE IF NOT EXISTS dog_parks (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Add missing columns if table already exists
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'dog_parks' AND column_name = 'latitude') THEN
+        ALTER TABLE dog_parks ADD COLUMN latitude DECIMAL(10, 8) NOT NULL DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'dog_parks' AND column_name = 'longitude') THEN
+        ALTER TABLE dog_parks ADD COLUMN longitude DECIMAL(11, 8) NOT NULL DEFAULT 0;
+    END IF;
+END $$;
+
 -- Friendships table
 CREATE TABLE IF NOT EXISTS friendships (
     id SERIAL PRIMARY KEY,
@@ -91,7 +102,23 @@ CREATE TABLE IF NOT EXISTS park_notices (
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_dogs_user_id ON dogs(user_id);
-CREATE INDEX IF NOT EXISTS idx_dog_parks_location ON dog_parks(latitude, longitude);
+
+-- Only create location index if the columns exist
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'dog_parks' 
+        AND column_name = 'latitude'
+    ) AND EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'dog_parks' 
+        AND column_name = 'longitude'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS idx_dog_parks_location ON dog_parks(latitude, longitude);
+    END IF;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_friendships_users ON friendships(requester_id, addressee_id);
 CREATE INDEX IF NOT EXISTS idx_checkins_user_park ON checkins(user_id, dog_park_id);
 CREATE INDEX IF NOT EXISTS idx_checkins_active ON checkins(dog_park_id) WHERE checked_out_at IS NULL;
