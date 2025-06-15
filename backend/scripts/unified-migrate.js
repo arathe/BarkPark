@@ -348,6 +348,9 @@ async function main() {
   try {
     await client.connect();
     
+    // Always ensure migration table exists for consistency
+    await ensureMigrationTable(client);
+    
     if (flags.status) {
       await showStatus(client);
     } else if (flags.verify) {
