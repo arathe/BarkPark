@@ -88,30 +88,66 @@ const getMigrationsToRun = () => {
 async function ensureMigrationTable(client) {
   try {
     console.log('📋 Ensuring schema_migrations table exists...');
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS schema_migrations (
-        id VARCHAR(255) PRIMARY KEY,
-        description TEXT,
-        executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        execution_time_ms INTEGER,
-        checksum VARCHAR(64)
+    
+    // First check if table exists
+    const tableExists = await client.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = 'schema_migrations'
       )
     `);
-    console.log('✅ schema_migrations table ready');
     
-    // Verify the table was created with the id column
-    const result = await client.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'schema_migrations' 
-      AND column_name = 'id'
-    `);
-    
-    if (result.rows.length === 0) {
-      throw new Error('schema_migrations table exists but is missing id column');
+    if (tableExists.rows[0].exists) {
+      console.log('⚠️  schema_migrations table already exists, checking structure...');
+      
+      // Get current columns
+      const columns = await client.query(`
+        SELECT column_name, data_type 
+        FROM information_schema.columns 
+        WHERE table_name = 'schema_migrations'
+        ORDER BY ordinal_position
+      `);
+      
+      console.log('   Current columns:', columns.rows.map(c => c.column_name).join(', '));
+      
+      // Check if we need to migrate from old schema
+      const hasIdColumn = columns.rows.some(c => c.column_name === 'id');
+      
+      if (!hasIdColumn) {
+        console.log('🔄 Migrating schema_migrations table to new format...');
+        
+        // Drop the old table and recreate with new schema
+        await client.query('DROP TABLE schema_migrations');
+        console.log('   Dropped old schema_migrations table');
+        
+        await client.query(`
+          CREATE TABLE schema_migrations (
+            id VARCHAR(255) PRIMARY KEY,
+            description TEXT,
+            executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            execution_time_ms INTEGER,
+            checksum VARCHAR(64)
+          )
+        `);
+        console.log('   Created new schema_migrations table with id column');
+      }
+    } else {
+      // Create new table
+      await client.query(`
+        CREATE TABLE schema_migrations (
+          id VARCHAR(255) PRIMARY KEY,
+          description TEXT,
+          executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          execution_time_ms INTEGER,
+          checksum VARCHAR(64)
+        )
+      `);
+      console.log('✅ Created new schema_migrations table');
     }
+    
+    console.log('✅ schema_migrations table ready');
   } catch (err) {
-    console.error('❌ Error creating schema_migrations table:', err.message);
+    console.error('❌ Error managing schema_migrations table:', err.message);
     console.error('   Full error:', err);
     throw err;
   }
