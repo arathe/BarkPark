@@ -1,6 +1,6 @@
 -- BarkPark Initial Database Schema
 -- Creates base tables and relationships
--- Note: This uses simple lat/lng columns instead of PostGIS for Railway compatibility
+-- Uses PostGIS for all location data
 
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
@@ -28,14 +28,16 @@ CREATE TABLE IF NOT EXISTS dogs (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Enable PostGIS extension if not already enabled
+CREATE EXTENSION IF NOT EXISTS postgis;
+
 -- Dog parks table (basic structure - NYC fields added in migration 003)
 CREATE TABLE IF NOT EXISTS dog_parks (
     id SERIAL PRIMARY KEY,
     name VARCHAR(200) NOT NULL,
     description TEXT,
     address VARCHAR(500) NOT NULL,
-    latitude DECIMAL(10, 8) NOT NULL,
-    longitude DECIMAL(11, 8) NOT NULL,
+    location GEOGRAPHY(POINT, 4326) NOT NULL,
     amenities TEXT[],
     rules TEXT,
     hours_open TIME,
@@ -44,17 +46,6 @@ CREATE TABLE IF NOT EXISTS dog_parks (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
--- Add missing columns if table already exists
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'dog_parks' AND column_name = 'latitude') THEN
-        ALTER TABLE dog_parks ADD COLUMN latitude DECIMAL(10, 8) NOT NULL DEFAULT 0;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'dog_parks' AND column_name = 'longitude') THEN
-        ALTER TABLE dog_parks ADD COLUMN longitude DECIMAL(11, 8) NOT NULL DEFAULT 0;
-    END IF;
-END $$;
 
 -- Friendships table
 CREATE TABLE IF NOT EXISTS friendships (
@@ -103,21 +94,8 @@ CREATE TABLE IF NOT EXISTS park_notices (
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_dogs_user_id ON dogs(user_id);
 
--- Only create location index if the columns exist
-DO $$
-BEGIN
-    IF EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = 'dog_parks' 
-        AND column_name = 'latitude'
-    ) AND EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = 'dog_parks' 
-        AND column_name = 'longitude'
-    ) THEN
-        CREATE INDEX IF NOT EXISTS idx_dog_parks_location ON dog_parks(latitude, longitude);
-    END IF;
-END $$;
+-- Create spatial index for location queries
+CREATE INDEX IF NOT EXISTS idx_dog_parks_location ON dog_parks USING GIST(location);
 
 CREATE INDEX IF NOT EXISTS idx_friendships_users ON friendships(requester_id, addressee_id);
 CREATE INDEX IF NOT EXISTS idx_checkins_user_park ON checkins(user_id, dog_park_id);

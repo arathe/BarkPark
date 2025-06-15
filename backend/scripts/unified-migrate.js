@@ -327,12 +327,22 @@ async function runMigrations() {
       const hasDogParks = existingTables.rows.some(t => t.table_name === 'dog_parks');
       if (hasDogParks) {
         const dogParksColumns = await client.query(`
-          SELECT column_name, data_type 
+          SELECT column_name, data_type, udt_name
           FROM information_schema.columns 
           WHERE table_name = 'dog_parks'
           ORDER BY ordinal_position
         `);
-        console.log('\n   dog_parks columns:', dogParksColumns.rows.map(c => c.column_name).join(', '));
+        console.log('\n   dog_parks columns:');
+        dogParksColumns.rows.forEach(col => {
+          console.log(`     - ${col.column_name}: ${col.data_type} (${col.udt_name})`);
+        });
+        
+        // Check if we have PostGIS location column
+        const hasLocationColumn = dogParksColumns.rows.some(c => c.column_name === 'location' && c.udt_name === 'geometry');
+        if (hasLocationColumn) {
+          console.log('\n   ⚠️  WARNING: dog_parks table has PostGIS geometry column, but app expects lat/lng columns');
+          console.log('   Migration will need to convert or add lat/lng columns');
+        }
       }
     } else {
       console.log('   No existing tables found (fresh database)');
