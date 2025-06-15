@@ -1,0 +1,116 @@
+name: Database Migration Validation
+
+on:
+  pull_request:
+    paths:
+      - 'backend/migrations/**'
+      - 'backend/scripts/**migrate**'
+      - 'backend/models/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/migrations/**'
+
+jobs:
+  validate-migrations:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: barkpark_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.17.0'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm ci
+      
+      - name: Check migration file naming
+        working-directory: ./backend
+        run: |
+          # Ensure all migration files follow the pattern XXX_name.sql
+          for file in migrations/*.sql; do
+            if [[ ! $(basename "$file") =~ ^[0-9]{3}_[a-z_]+\.sql$ ]]; then
+              echo "Invalid migration filename: $file"
+              echo "Expected format: XXX_descriptive_name.sql (e.g., 001_create_users.sql)"
+              exit 1
+            fi
+          done
+      
+      - name: Check for duplicate migration numbers
+        working-directory: ./backend
+        run: |
+          # Check for duplicate migration numbers
+          numbers=$(ls migrations/*.sql | grep -o '^[0-9]\{3\}' | sort | uniq -d)
+          if [ -n "$numbers" ]; then
+            echo "Duplicate migration numbers found: $numbers"
+            exit 1
+          fi
+      
+      - name: Run migrations on test database
+        working-directory: ./backend
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: barkpark_test
+          DB_USER: testuser
+          DB_PASSWORD: testpass
+          NODE_ENV: test
+        run: |
+          # Run all migrations
+          npm run db:migrate
+          
+          # Verify migration status
+          npm run db:migrate:status
+      
+      - name: Test rollback scripts
+        working-directory: ./backend
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: barkpark_test
+          DB_USER: testuser
+          DB_PASSWORD: testpass
+          NODE_ENV: test
+        run: |
+          # Check if rollback scripts exist for each migration
+          for migration in migrations/[0-9]*.sql; do
+            filename=$(basename "$migration")
+            rollback_file="migrations/rollback/${filename}"
+            if [ ! -f "$rollback_file" ]; then
+              echo "Warning: No rollback script for $filename"
+            fi
+          done
+      
+      - name: Validate schema against models
+        working-directory: ./backend
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: barkpark_test
+          DB_USER: testuser
+          DB_PASSWORD: testpass
+          NODE_ENV: test
+        run: |
+          # Run schema validation
+          npm run db:migrate:verify

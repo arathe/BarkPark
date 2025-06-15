@@ -6,6 +6,9 @@ This file provides comprehensive guidance for AI assistants working with the Bar
 
 **BarkPark** is a comprehensive dog social network application with the following architecture:
 
+### 🆕 Important Update (Session 12)
+**Unified Migration System**: The database migration system has been completely overhauled to prevent schema drift between environments. Always use `npm run db:migrate` commands instead of old migration scripts. See Database Management section for details.
+
 ### Core Technology Stack
 - **Backend**: Node.js/Express REST API with JWT authentication
 - **Database**: PostgreSQL with geospatial data (lat/lng coordinates)
@@ -104,8 +107,35 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 - **Environment**: Railway PostgreSQL (Production)
 - **Total Parks**: 103 (12 original + 91 NYC dog runs)
 - **Users**: Active with privacy controls
-- **Migrations**: All applied (privacy settings, extended schema)
+- **Migrations**: Unified migration system (6 migrations total)
 - **PostGIS**: Not installed (using lat/lng with Haversine formula)
+
+### Unified Migration System (NEW)
+- **Migration Runner**: `scripts/unified-migrate.js`
+- **Migration Files**: `migrations/00X_*.sql` (numbered sequence)
+- **Tracking**: `schema_migrations` table with checksums
+- **Auto-deploy**: Migrations run automatically on Railway deployment
+
+**Migration Commands:**
+```bash
+npm run db:migrate          # Run pending migrations
+npm run db:migrate:seed     # Include seed data
+npm run db:migrate:status   # Check status
+npm run db:migrate:verify   # Verify schema
+npm run db:migrate:force    # Force re-run
+npm run db:migrate:rollback # Manual rollback (see migrations/rollback/)
+npm run db:schema:monitor   # Compare schemas between environments
+npm run db:schema:compare   # Quick production vs local comparison
+```
+
+**Schema Validation Endpoints:**
+```bash
+# Compare full schema
+GET /api/schema/compare
+
+# Validate required columns
+GET /api/schema/validate
+```
 
 ### Schema Alignment Protocol
 
@@ -134,6 +164,27 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 - Use diagnostic endpoints to compare schemas between environments
 - Create safe, idempotent migrations that check for existing columns/constraints
 - Always backup production data before schema changes
+
+### Schema Mismatch Prevention (NEW - Session 12)
+
+**Implemented Safeguards:**
+1. **Rollback Scripts**: Every migration has a corresponding rollback in `migrations/rollback/`
+2. **CI/CD Validation**: GitHub Actions workflow validates migrations on PRs
+3. **Schema Monitoring**: `npm run db:schema:monitor` for automated drift detection
+4. **Deployment Checklist**: `DEPLOYMENT_CHECKLIST.md` with pre/post deployment steps
+
+**Best Practices to Follow:**
+- Always run `npm run db:migrate:status` before pushing code
+- Never modify existing migrations - create new ones instead
+- Test migrations against production-like data volumes
+- Use `npm run db:schema:compare` before and after deployment
+- Document any manual database interventions immediately
+
+**New Tools Available:**
+- **Staging Config**: `.env.staging.example` for testing migrations
+- **Schema Monitor**: `scripts/monitor-schema-drift.js` for periodic checks
+- **Admin Endpoints**: Protected routes for production schema management
+- **Test Token Generator**: Persistent tokens to avoid auth bottlenecks
 
 ## 🐛 Issue Resolution Framework
 
@@ -730,3 +781,76 @@ The social connections system is now fully operational, providing users with mul
 - Set proper ADMIN_KEY environment variable in Railway for security
 - Consider adding automated schema validation on deployment
 - Implement better error messages for schema mismatches
+
+## ✅ Session Notes - June 15, 2025 (Session 12)
+
+### **🎯 Session Objectives**
+- Research and understand the current database migration setup
+- Identify gaps that led to production/local schema mismatch
+- Implement comprehensive solution to prevent future schema drift
+
+### **🐛 Issues Resolved**
+- **Issue**: Multiple conflicting migration systems causing schema drift
+- **Root Cause**: Two different migration runners with different tracking formats
+- **Solution**: Created unified migration system with comprehensive tracking and validation
+- **Files Modified**: 
+  - `scripts/unified-migrate.js` - New unified migration runner
+  - `migrations/001-006_*.sql` - Reorganized migrations into numbered sequence
+  - `routes/schema-validation.js` - Schema comparison and validation endpoints
+  - `backend/MIGRATION_CHECKLIST.md` - Comprehensive migration procedures
+  - `railway.json` - Added automatic migration on deployment
+- **Files Created**:
+  - `migrations/rollback/*.sql` - Rollback scripts for all migrations
+  - `.github/workflows/database-migrations.yml` - CI/CD validation
+  - `scripts/monitor-schema-drift.js` - Schema drift detection tool
+  - `backend/DEPLOYMENT_CHECKLIST.md` - Step-by-step deployment guide
+  - `backend/.env.staging.example` - Staging environment template
+
+### **🔧 Technical Changes**
+- **Unified Migration System**: Single migration runner replacing both old systems
+  - Consistent migration ID format (001_name, 002_name, etc.)
+  - Checksum-based change detection
+  - Comprehensive status reporting
+  - Schema validation built-in
+- **Schema Validation API**: New endpoints for comparing schemas
+  - `/api/schema/compare` - Full schema dump with all details
+  - `/api/schema/validate` - Quick validation of required columns
+- **Automated Deployment Migrations**: Railway now runs migrations on deploy
+- **Migration Commands**: New npm scripts for migration management
+  - `npm run db:migrate` - Run pending migrations
+  - `npm run db:migrate:status` - Check migration status
+  - `npm run db:migrate:verify` - Verify schema integrity
+  - `npm run db:schema:monitor` - Compare schemas between environments
+  - `npm run db:schema:compare` - Quick production vs local check
+- **Rollback Scripts**: Created corresponding rollback for each migration
+  - Located in `migrations/rollback/` directory
+  - Enables safe rollback if deployment issues occur
+- **CI/CD Integration**: GitHub Actions workflow for migration validation
+  - Validates migration file naming on PRs
+  - Tests migrations on fresh database
+  - Checks for duplicate migration numbers
+- **Monitoring Tools**: Schema drift detection script
+  - `scripts/monitor-schema-drift.js` for periodic checks
+  - Can be run manually or scheduled
+  - Email alerts for schema differences (optional)
+- **Deployment Documentation**: 
+  - `DEPLOYMENT_CHECKLIST.md` with step-by-step procedures
+  - Pre-deployment, deployment, and post-deployment checks
+  - Rollback procedures and emergency contacts
+
+### **📊 Current Status**
+- ✅ Unified migration system implemented and ready
+- ✅ All migrations reorganized into numbered sequence (001-006)
+- ✅ Schema validation endpoints available for monitoring
+- ✅ Rollback scripts created for all migrations
+- ✅ CI/CD workflow ready for GitHub Actions
+- ✅ Comprehensive documentation and checklists in place
+- ✅ Schema drift monitoring tool available
+
+### **🚀 Next Steps**
+1. **Immediate**: Test `npm run db:migrate:status` locally
+2. **Before Next Deploy**: Review `DEPLOYMENT_CHECKLIST.md`
+3. **Production Deploy**: Unified migration system will auto-run
+4. **Post-Deploy**: Run `npm run db:schema:compare` to verify
+5. **Ongoing**: Set up periodic schema monitoring (daily/weekly)
+6. **Team Process**: Share new migration procedures with team

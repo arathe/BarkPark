@@ -9,11 +9,17 @@
     "dev": "nodemon server.js",
     "test": "jest",
     "test:watch": "jest --watch",
-    "migrate": "node scripts/railway-migrate.js",
-    "migrate:seed": "node scripts/railway-migrate.js --seed",
-    "migrate:force": "node scripts/railway-migrate.js --force",
-    "migrate:dogs": "node scripts/run-dogs-migration.js",
-    "generate-test-token": "node scripts/generate-test-token.js"
+    "db:migrate": "node scripts/unified-migrate.js",
+    "db:migrate:seed": "node scripts/unified-migrate.js --seed",
+    "db:migrate:status": "node scripts/unified-migrate.js --status",
+    "db:migrate:verify": "node scripts/unified-migrate.js --verify",
+    "db:migrate:force": "node scripts/unified-migrate.js --force",
+    "db:migrate:rollback": "echo 'Use with caution: psql $DATABASE_URL -f migrations/rollback/XXX_*.sql'",
+    "db:schema:monitor": "node scripts/monitor-schema-drift.js",
+    "db:schema:compare": "node scripts/unified-migrate.js --status && curl -s ${PRODUCTION_API_URL:-https://barkpark-production.up.railway.app}/api/schema/compare",
+    "generate-test-token": "node scripts/generate-test-token.js",
+    "migrate": "node scripts/unified-migrate.js",
+    "migrate:seed": "node scripts/unified-migrate.js --seed"
   },
   "keywords": [
     "dogs",
