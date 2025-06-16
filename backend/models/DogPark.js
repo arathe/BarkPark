@@ -53,7 +53,7 @@ class DogPark {
       WHERE ST_DWithin(
         location::geography,
         ST_MakePoint($2, $1)::geography,
-        $3 * 1000  -- Convert km to meters
+        $3::numeric * 1000  -- Convert km to meters
       )
       ORDER BY distance_km
     `;
