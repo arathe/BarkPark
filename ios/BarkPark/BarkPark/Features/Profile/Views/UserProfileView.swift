@@ -64,7 +64,7 @@ struct UserProfileView: View {
                                     .padding(.horizontal)
                                 
                                 ForEach(profile.dogs) { dog in
-                                    DogCard(dog: dog)
+                                    UserProfileDogCard(dog: dog)
                                         .padding(.horizontal)
                                 }
                             }
@@ -127,7 +127,7 @@ struct UserProfileView: View {
 }
 
 // MARK: - Dog Card Component
-struct DogCard: View {
+struct UserProfileDogCard: View {
     let dog: UserProfileDog
     
     var body: some View {
