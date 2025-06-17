@@ -212,7 +212,16 @@ When user says **"wrap this session"**:
 
 ## 📋 Session Notes
 
-### Recent Changes (Session 15)
+### Recent Changes (Session 16)
+- Fixed UserProfileView blank screen issue:
+  - Changed initial `isLoading` state from false to true in UserProfileViewModel (ios/BarkPark/BarkPark/Features/Profile/ViewModels/UserProfileViewModel.swift:53)
+  - Added comprehensive debug logging throughout UserProfileView and UserProfileViewModel
+  - Added fallback "No data loaded" state for edge cases (ios/BarkPark/BarkPark/Features/Profile/Views/UserProfileView.swift:119-125)
+  - Root cause: View was starting with all states false/nil, causing no UI to render
+
+**Next Steps**: Remove debug logs once profile viewing is confirmed working
+
+### Session 15
 - Implemented user profile viewing for friends and friend requests:
   - Added `/api/users/:userId/profile` endpoint with permission checks (backend/routes/users.js)
   - Created UserProfileView and UserProfileViewModel (ios/BarkPark/BarkPark/Features/Profile/*)
@@ -226,8 +235,6 @@ When user says **"wrap this session"**:
   - Added proper date/time formatting for visit durations
 - Fixed multiple iOS build errors related to networking patterns
 - Updated CLAUDE.md with iOS architecture documentation
-
-**Next Steps**: Monitor user profile screen blank issue, ensure proper data loading
 
 ### Session 14
 - Fixed iOS navigation from sheet to push presentation (RootView.swift, ProfileView.swift, MainTabView.swift)

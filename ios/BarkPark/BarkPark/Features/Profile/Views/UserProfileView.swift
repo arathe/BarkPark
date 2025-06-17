@@ -13,6 +13,8 @@ struct UserProfileView: View {
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
+        let _ = print("🔍 UserProfileView: body called - isLoading: \(viewModel.isLoading), hasProfile: \(viewModel.userProfile != nil), error: \(viewModel.errorMessage ?? "none")")
+        
         Group {
             if viewModel.isLoading {
                 ProgressView("Loading...")
@@ -114,12 +116,19 @@ struct UserProfileView: View {
                         .padding(.horizontal)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                // No loading, no profile, no error - this is the blank state
+                Text("No data loaded")
+                    .onAppear {
+                        print("🔍 UserProfileView: Blank state - no loading, no profile, no error")
+                    }
             }
         }
         .navigationTitle("Profile")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(false)
         .onAppear {
+            print("🔍 UserProfileView: onAppear called with userId: \(userId)")
             Task {
                 await viewModel.fetchUserProfile(userId: userId)
             }
@@ -311,5 +320,8 @@ struct CheckInCard: View {
 #Preview {
     NavigationView {
         UserProfileView(userId: 1)
+            .onAppear {
+                print("🔍 Preview: UserProfileView appeared")
+            }
     }
 }

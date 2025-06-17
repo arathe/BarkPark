@@ -50,24 +50,35 @@ struct UserProfileCheckIn: Codable, Identifiable {
 @MainActor
 class UserProfileViewModel: ObservableObject {
     @Published var userProfile: UserProfileResponse?
-    @Published var isLoading = false
+    @Published var isLoading = true  // Start with loading state
     @Published var errorMessage: String?
     
     private let apiService = APIService.shared
     
+    init() {
+        print("🔍 UserProfileViewModel: init called")
+    }
+    
     func fetchUserProfile(userId: Int) async {
+        print("🔍 UserProfileViewModel: fetchUserProfile called for userId: \(userId)")
+        print("🔍 UserProfileViewModel: Current state - isLoading: \(isLoading), hasProfile: \(userProfile != nil)")
+        
         isLoading = true
         errorMessage = nil
         
         do {
+            print("🔍 UserProfileViewModel: Making API call...")
             let response = try await apiService.getUserProfile(userId: userId)
+            print("🔍 UserProfileViewModel: API response received")
             self.userProfile = response
             print("✅ UserProfileViewModel: Loaded profile for user \(userId)")
+            print("🔍 UserProfileViewModel: Profile data - user: \(response.user.fullName), dogs: \(response.dogs.count), checkIns: \(response.recentCheckIns.count)")
         } catch {
             print("❌ UserProfileViewModel: Failed to fetch profile - \(error)")
             errorMessage = error.localizedDescription
         }
         
         isLoading = false
+        print("🔍 UserProfileViewModel: Final state - isLoading: \(isLoading), hasProfile: \(userProfile != nil), error: \(errorMessage ?? "none")")
     }
 }
