@@ -25,6 +25,33 @@ This file provides guidance for AI assistants working with the BarkPark codebase
 - ✅ Database: Fully migrated with unified system
 - ✅ Social Features: Privacy settings, QR codes, friend management
 
+## 📱 iOS App Architecture
+
+### Key Components
+- **APIService**: Singleton pattern (`APIService.shared`) for all network requests
+  - Base URL: `https://barkpark-production.up.railway.app/api`
+  - Uses native URLSession, no third-party networking libraries
+  - JWT token stored in UserDefaults with key "auth_token"
+- **ViewModels**: Follow `@MainActor` pattern with `ObservableObject`
+  - Always use `@Published` for UI state properties
+  - Error handling via `error.localizedDescription`
+  - Standard properties: `isLoading`, `errorMessage`
+- **Error Types**: Use `APIError` enum (not NetworkError)
+  - `.invalidResponse`, `.decodingError`, `.authenticationFailed(String)`, `.validationFailed(String)`, `.serverError`
+
+### UI Component Patterns
+- **Naming**: Avoid generic names that may conflict (e.g., use `UserProfileDogCard` instead of `DogCard`)
+- **Design System**: Always use `BarkParkDesign` values
+  - Colors: `.dogPrimary`, `.dogSecondary`, `.primaryText`, `.secondaryText`
+  - Typography: `.title`, `.headline`, `.body`, `.caption`
+  - Spacing: `.xs` (4), `.sm` (8), `.md` (16), `.lg` (24), `.xl` (32)
+  - CornerRadius: `.small` (6), `.medium` (8), `.large` (12), `.extraLarge` (16)
+
+### Navigation Patterns
+- Use `NavigationLink` for push navigation
+- Use `.sheet()` for modal presentations
+- Navigation is already wrapped in `NavigationView` at root level
+
 ## 🛠️ Development Protocols
 
 ### Core Principles
@@ -52,6 +79,8 @@ Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
 - 📝 Review with `git status` before staging
 - 🎯 Stage specific files rather than using `git add -A` when possible
 - 🔍 Use `git diff --staged` to verify changes
+- 🧹 Remove debug logs (console.log, print statements) unless specifically needed
+- ✅ Ensure no test data or mock values remain in production code
 
 ## 🗄️ Database Management
 
@@ -67,11 +96,20 @@ npm run db:migrate          # Run pending migrations
 npm run db:migrate:status   # Check migration status
 npm run db:migrate:verify   # Verify schema integrity
 npm run db:schema:compare   # Compare production vs local
+npm run db:schema:sync      # Compare & generate migration SQL
+npm run db:schema:sync:verbose  # Detailed schema comparison
 ```
 
 ### Schema Validation Endpoints
-- `GET /api/schema/compare` - Full schema comparison
+- `GET /api/schema/compare` - PostGIS-aware schema comparison
+- `GET /api/schema/compare/raw` - Raw schema information
+- `POST /api/schema/compare/environments` - Compare specific environments
 - `GET /api/schema/validate` - Quick validation check
+
+### PostGIS Schema Management
+- **Comparison Tool**: `utils/schema-compare.js` - Handles PostGIS type normalization
+- **Sync Script**: `scripts/schema-sync.js` - Generates migration SQL
+- **Documentation**: `docs/POSTGIS_MIGRATION_GUIDE.md` - Complete migration guide
 
 ### Migration Best Practices
 - Never modify existing migrations
@@ -116,6 +154,22 @@ npm run db:schema:compare   # Compare production vs local
 - **Auth failures**: Verify JWT_SECRET matches
 - **Connection issues**: Check Railway logs and limits
 
+### Common iOS Issues
+- **Blank Screen Debugging**:
+  1. Add temporary debug logs to check view states: `isLoading`, `errorMessage`, data presence
+  2. Verify `onAppear` is being called with correct parameters
+  3. Check Xcode console for API errors or decoding failures
+  4. Ensure navigation is properly set up (NavigationLink/NavigationView)
+  5. Verify ViewModel is properly initialized with `@StateObject`
+- **Build Errors**:
+  1. Clean Build Folder (Cmd+Shift+K) for cached errors
+  2. Check for naming conflicts between files
+  3. Verify all models conform to required protocols (Codable, Identifiable)
+- **API Integration**:
+  1. Check if new endpoints are added to APIService
+  2. Verify response models match backend exactly (case-sensitive)
+  3. Ensure proper error handling in ViewModels
+
 ## 🧠 AI Assistant Guidelines
 
 ### Do's
@@ -124,6 +178,8 @@ npm run db:schema:compare   # Compare production vs local
 - ✅ Update documentation after changes
 - ✅ Use migration system for schema changes
 - ✅ Check production logs before assuming issues
+- ✅ When implementing new features, first study existing similar implementations
+- ✅ Use Task tool to explore codebase when uncertain about patterns
 
 ### Don'ts
 - ❌ Modify production data directly
@@ -156,7 +212,24 @@ When user says **"wrap this session"**:
 
 ## 📋 Session Notes
 
-### Recent Changes (Session 14)
+### Recent Changes (Session 15)
+- Implemented user profile viewing for friends and friend requests:
+  - Added `/api/users/:userId/profile` endpoint with permission checks (backend/routes/users.js)
+  - Created UserProfileView and UserProfileViewModel (ios/BarkPark/BarkPark/Features/Profile/*)
+  - Added navigation from friend lists to user profiles
+  - Fixed naming conflicts (DogCard → UserProfileDogCard)
+  - Fixed CornerRadius API usage (.md → .medium)
+- Extended user profiles with recent check-ins feature:
+  - Added `getUserHistory` method to CheckIn model (backend/models/CheckIn.js)
+  - Updated profile endpoint to include last 3 check-ins
+  - Created CheckInCard component showing park visits with duration
+  - Added proper date/time formatting for visit durations
+- Fixed multiple iOS build errors related to networking patterns
+- Updated CLAUDE.md with iOS architecture documentation
+
+**Next Steps**: Monitor user profile screen blank issue, ensure proper data loading
+
+### Session 14
 - Fixed iOS navigation from sheet to push presentation (RootView.swift, ProfileView.swift, MainTabView.swift)
 - Resolved security issue with hardcoded JWT secret (backend/scripts/update-local-env.sh:7)
 - Migrated entire codebase to PostGIS from lat/lng columns:
@@ -167,9 +240,7 @@ When user says **"wrap this session"**:
 - Enhanced migration system with better error handling (backend/scripts/unified-migrate.js)
 - Improved CLAUDE.md with technical decision guidance and PostGIS reference
 
-**Next Steps**: Test all location-based features with new PostGIS implementation
-
-### Previous Sessions
+### Session 13 & Earlier
 - Session 13: Persistent check-in UI across all views
 - Session 12: Unified migration system implementation
 
