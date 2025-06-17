@@ -12,6 +12,7 @@ import SwiftUI
 struct UserProfileResponse: Codable {
     let user: UserProfileUser
     let dogs: [UserProfileDog]
+    let recentCheckIns: [UserProfileCheckIn]
 }
 
 struct UserProfileUser: Codable {
@@ -34,6 +35,15 @@ struct UserProfileDog: Codable, Identifiable {
     let description: String?
     let profileImageUrl: String?
     let createdAt: String?
+}
+
+struct UserProfileCheckIn: Codable, Identifiable {
+    let id: Int
+    let parkName: String
+    let parkAddress: String
+    let checkedInAt: String
+    let checkedOutAt: String?
+    let dogsPresent: [Int]
 }
 
 // MARK: - View Model

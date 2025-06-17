@@ -115,6 +115,20 @@ class CheckIn {
     };
   }
 
+  // Get user's check-in history
+  static async getUserHistory(userId, limit = 10) {
+    const query = `
+      SELECT c.*, dp.name as park_name, dp.address as park_address
+      FROM checkins c
+      LEFT JOIN dog_parks dp ON c.dog_park_id = dp.id
+      WHERE c.user_id = $1
+      ORDER BY c.checked_in_at DESC
+      LIMIT $2
+    `;
+    const result = await pool.query(query, [userId, limit]);
+    return result.rows.map(checkIn => this.formatCheckIn(checkIn));
+  }
+
   // Get friends currently at a specific park (requires friendship data)
   static async getFriendsAtPark(userId, dogParkId) {
     const query = `

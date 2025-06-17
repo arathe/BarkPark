@@ -18,8 +18,6 @@ struct UserProfileView: View {
                 ProgressView("Loading...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let profile = viewModel.userProfile {
-                // Debug log
-                let _ = print("👤 UserProfileView: Displaying profile for \(profile.user.fullName)")
                 ScrollView {
                     VStack(spacing: BarkParkDesign.Spacing.lg) {
                         // User Header Section
@@ -82,6 +80,21 @@ struct UserProfileView: View {
                             }
                             .padding(.vertical, BarkParkDesign.Spacing.xl)
                         }
+                        
+                        // Recent Check-ins Section
+                        if !profile.recentCheckIns.isEmpty {
+                            VStack(alignment: .leading, spacing: BarkParkDesign.Spacing.md) {
+                                Text("Recent Visits")
+                                    .font(BarkParkDesign.Typography.headline)
+                                    .foregroundColor(BarkParkDesign.Colors.primaryText)
+                                    .padding(.horizontal)
+                                
+                                ForEach(profile.recentCheckIns) { checkIn in
+                                    CheckInCard(checkIn: checkIn)
+                                        .padding(.horizontal)
+                                }
+                            }
+                        }
                     }
                     .padding(.bottom, BarkParkDesign.Spacing.xl)
                 }
@@ -101,18 +114,12 @@ struct UserProfileView: View {
                         .padding(.horizontal)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                // Neither loading nor has profile
-                let _ = print("👤 UserProfileView: No profile and not loading. Error: \(viewModel.errorMessage ?? "nil")")
-                Text("No content")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .navigationTitle("Profile")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(false)
         .onAppear {
-            print("👤 UserProfileView: onAppear called with userId: \(userId)")
             Task {
                 await viewModel.fetchUserProfile(userId: userId)
             }
@@ -208,6 +215,96 @@ struct UserProfileDogCard: View {
         .background(BarkParkDesign.Colors.cardBackground)
         .cornerRadius(BarkParkDesign.CornerRadius.medium)
         .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
+    }
+}
+
+// MARK: - Check-in Card Component
+struct CheckInCard: View {
+    let checkIn: UserProfileCheckIn
+    
+    var body: some View {
+        HStack(spacing: BarkParkDesign.Spacing.md) {
+            // Park Icon
+            Circle()
+                .fill(BarkParkDesign.Colors.dogPrimary.opacity(0.1))
+                .frame(width: 50, height: 50)
+                .overlay(
+                    Image(systemName: "tree.fill")
+                        .foregroundColor(BarkParkDesign.Colors.dogPrimary)
+                )
+            
+            // Check-in Info
+            VStack(alignment: .leading, spacing: BarkParkDesign.Spacing.xs) {
+                Text(checkIn.parkName)
+                    .font(BarkParkDesign.Typography.headline)
+                    .foregroundColor(BarkParkDesign.Colors.primaryText)
+                
+                Text(checkIn.parkAddress)
+                    .font(BarkParkDesign.Typography.caption)
+                    .foregroundColor(BarkParkDesign.Colors.secondaryText)
+                    .lineLimit(1)
+                
+                HStack(spacing: BarkParkDesign.Spacing.xs) {
+                    Image(systemName: "clock")
+                        .font(.system(size: 12))
+                    Text(formatVisitTime(checkIn))
+                        .font(BarkParkDesign.Typography.caption)
+                }
+                .foregroundColor(BarkParkDesign.Colors.accent)
+            }
+            
+            Spacer()
+            
+            // Dogs count if any
+            if !checkIn.dogsPresent.isEmpty {
+                VStack {
+                    Image(systemName: "pawprint.fill")
+                        .font(.system(size: 16))
+                        .foregroundColor(BarkParkDesign.Colors.dogSecondary)
+                    Text("\(checkIn.dogsPresent.count)")
+                        .font(BarkParkDesign.Typography.caption)
+                        .foregroundColor(BarkParkDesign.Colors.secondaryText)
+                }
+            }
+        }
+        .padding(BarkParkDesign.Spacing.md)
+        .background(BarkParkDesign.Colors.cardBackground)
+        .cornerRadius(BarkParkDesign.CornerRadius.medium)
+        .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
+    }
+    
+    private func formatVisitTime(_ checkIn: UserProfileCheckIn) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        
+        guard let checkInDate = formatter.date(from: checkIn.checkedInAt) else {
+            return "Unknown time"
+        }
+        
+        let displayFormatter = DateFormatter()
+        
+        if checkIn.checkedOutAt != nil {
+            // Visit completed
+            if let checkOutDate = formatter.date(from: checkIn.checkedOutAt!) {
+                let duration = checkOutDate.timeIntervalSince(checkInDate)
+                let hours = Int(duration) / 3600
+                let minutes = (Int(duration) % 3600) / 60
+                
+                if hours > 0 {
+                    return "\(hours)h \(minutes)m visit"
+                } else {
+                    return "\(minutes)m visit"
+                }
+            }
+        } else {
+            // Still checked in
+            return "Currently there"
+        }
+        
+        // Fallback
+        displayFormatter.dateStyle = .short
+        displayFormatter.timeStyle = .short
+        return displayFormatter.string(from: checkInDate)
     }
 }
 

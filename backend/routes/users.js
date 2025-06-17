@@ -2,6 +2,7 @@ const express = require('express');
 const { param, validationResult } = require('express-validator');
 const User = require('../models/User');
 const Dog = require('../models/Dog');
+const CheckIn = require('../models/CheckIn');
 const Friendship = require('../models/Friendship');
 const { verifyToken } = require('../middleware/auth');
 
@@ -48,6 +49,9 @@ router.get('/:userId/profile', [
     // Get user's dogs
     const dogs = await Dog.findByUserId(targetUserId);
 
+    // Get user's recent check-ins (last 3)
+    const recentCheckIns = await CheckIn.getUserHistory(targetUserId, 3);
+
     // Format the response
     const profileData = {
       user: {
@@ -69,6 +73,14 @@ router.get('/:userId/profile', [
         description: dog.description,
         profileImageUrl: dog.profile_image_url,
         createdAt: dog.created_at
+      })),
+      recentCheckIns: recentCheckIns.map(checkIn => ({
+        id: checkIn.id,
+        parkName: checkIn.parkName,
+        parkAddress: checkIn.parkAddress,
+        checkedInAt: checkIn.checkedInAt,
+        checkedOutAt: checkIn.checkedOutAt,
+        dogsPresent: checkIn.dogsPresent
       }))
     };
 
