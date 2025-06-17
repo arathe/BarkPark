@@ -43,33 +43,19 @@ class UserProfileViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     
-    private let networkManager = NetworkManager.shared
+    private let apiService = APIService.shared
     
     func fetchUserProfile(userId: Int) async {
         isLoading = true
         errorMessage = nil
         
         do {
-            let response: UserProfileResponse = try await networkManager.request(
-                endpoint: "/users/\(userId)/profile",
-                method: .get
-            )
-            
+            let response = try await apiService.getUserProfile(userId: userId)
             self.userProfile = response
+            print("✅ UserProfileViewModel: Loaded profile for user \(userId)")
         } catch {
-            if let networkError = error as? NetworkError {
-                switch networkError {
-                case .forbidden:
-                    errorMessage = "You must be friends or have a pending friend request to view this profile"
-                case .notFound:
-                    errorMessage = "User not found"
-                default:
-                    errorMessage = "Failed to load profile"
-                }
-            } else {
-                errorMessage = "An unexpected error occurred"
-            }
-            print("UserProfileViewModel: Failed to fetch profile - \(error)")
+            print("❌ UserProfileViewModel: Failed to fetch profile - \(error)")
+            errorMessage = error.localizedDescription
         }
         
         isLoading = false

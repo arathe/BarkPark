@@ -1068,6 +1068,37 @@ class APIService {
             throw APIError.serverError
         }
     }
+    
+    // MARK: - User Profile Methods
+    
+    func getUserProfile(userId: Int) async throws -> UserProfileResponse {
+        let url = URL(string: "\(baseURL)/users/\(userId)/profile")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 200:
+            return try JSONDecoder().decode(UserProfileResponse.self, from: data)
+        case 401:
+            throw APIError.authenticationFailed("Authentication required")
+        case 403:
+            throw APIError.validationFailed("You must be friends or have a pending friend request to view this profile")
+        case 404:
+            throw APIError.validationFailed("User not found")
+        default:
+            throw APIError.serverError
+        }
+    }
 }
 
 // MARK: - API Errors
