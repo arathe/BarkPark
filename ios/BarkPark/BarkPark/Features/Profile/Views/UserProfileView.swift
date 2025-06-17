@@ -141,7 +141,7 @@ struct UserProfileDogCard: View {
                         .frame(width: 60, height: 60)
                         .clipShape(RoundedRectangle(cornerRadius: BarkParkDesign.CornerRadius.medium))
                 } placeholder: {
-                    RoundedRectangle(cornerRadius: BarkParkDesign.CornerRadius.md)
+                    RoundedRectangle(cornerRadius: BarkParkDesign.CornerRadius.medium)
                         .fill(BarkParkDesign.Colors.dogSecondary.opacity(0.3))
                         .frame(width: 60, height: 60)
                         .overlay(
@@ -150,7 +150,7 @@ struct UserProfileDogCard: View {
                         )
                 }
             } else {
-                RoundedRectangle(cornerRadius: BarkParkDesign.CornerRadius.md)
+                RoundedRectangle(cornerRadius: BarkParkDesign.CornerRadius.medium)
                     .fill(BarkParkDesign.Colors.dogSecondary.opacity(0.3))
                     .frame(width: 60, height: 60)
                     .overlay(
