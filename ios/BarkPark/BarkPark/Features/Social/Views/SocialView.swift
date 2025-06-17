@@ -229,14 +229,20 @@ struct SocialView: View {
     
     private var friendsList: some View {
         List(viewModel.friends) { friend in
-            FriendRowView(friend: friend, viewModel: viewModel)
+            NavigationLink(destination: UserProfileView(userId: friend.friend.id)) {
+                FriendRowView(friend: friend, viewModel: viewModel)
+            }
+            .buttonStyle(PlainButtonStyle())
         }
         .listStyle(PlainListStyle())
     }
     
     private var requestsList: some View {
         List(viewModel.receivedRequests) { request in
-            FriendRequestRowView(request: request, viewModel: viewModel)
+            NavigationLink(destination: UserProfileView(userId: request.otherUser.id)) {
+                FriendRequestRowView(request: request, viewModel: viewModel)
+            }
+            .buttonStyle(PlainButtonStyle())
         }
         .listStyle(PlainListStyle())
     }
@@ -279,6 +285,7 @@ struct FriendRowView: View {
                 Image(systemName: "person.badge.minus")
                     .foregroundColor(.red)
             }
+            .buttonStyle(PlainButtonStyle())
         }
         .padding(.vertical, BarkParkDesign.Spacing.xs)
         .alert("Remove Friend", isPresented: $showingRemoveAlert) {
