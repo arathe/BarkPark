@@ -18,6 +18,8 @@ struct UserProfileView: View {
                 ProgressView("Loading...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let profile = viewModel.userProfile {
+                // Debug log
+                let _ = print("👤 UserProfileView: Displaying profile for \(profile.user.fullName)")
                 ScrollView {
                     VStack(spacing: BarkParkDesign.Spacing.lg) {
                         // User Header Section
@@ -99,12 +101,18 @@ struct UserProfileView: View {
                         .padding(.horizontal)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                // Neither loading nor has profile
+                let _ = print("👤 UserProfileView: No profile and not loading. Error: \(viewModel.errorMessage ?? "nil")")
+                Text("No content")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .navigationTitle("Profile")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(false)
         .onAppear {
+            print("👤 UserProfileView: onAppear called with userId: \(userId)")
             Task {
                 await viewModel.fetchUserProfile(userId: userId)
             }
