@@ -66,6 +66,7 @@ router.put('/:id/accept', [
         requesterId: friendship.requester_id,
         addresseeId: friendship.addressee_id,
         status: friendship.status,
+        createdAt: friendship.created_at,
         updatedAt: friendship.updated_at
       }
     });
