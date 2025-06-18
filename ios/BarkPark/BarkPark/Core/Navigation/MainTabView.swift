@@ -10,23 +10,30 @@ import SwiftUI
 struct MainTabView: View {
     @EnvironmentObject var authManager: AuthenticationManager
     @StateObject private var dogProfileViewModel = DogProfileViewModel()
-    @State private var selectedTab = 0 // Default to Parks tab
+    @State private var selectedTab = 0 // Default to Feed tab
     
     var body: some View {
         TabView(selection: $selectedTab) {
+            FeedView()
+                .tabItem {
+                    Image(systemName: "newspaper.fill")
+                    Text("Feed")
+                }
+                .tag(0)
+            
             DogParksView()
                 .tabItem {
                     Image(systemName: "map.fill")
                     Text("Parks")
                 }
-                .tag(0)
+                .tag(1)
             
             SocialView()
                 .tabItem {
                     Image(systemName: "person.2.fill")
                     Text("Social")
                 }
-                .tag(1)
+                .tag(2)
             
             ProfileView()
                 .tabItem {
@@ -34,13 +41,13 @@ struct MainTabView: View {
                     Text("Profile")
                 }
                 .environmentObject(dogProfileViewModel)
-                .tag(2)
+                .tag(3)
         }
         .accentColor(BarkParkDesign.Colors.dogPrimary)
         .onAppear {
             // For new users, automatically navigate to Profile tab
             if authManager.isNewUser {
-                selectedTab = 2
+                selectedTab = 3
             }
         }
     }

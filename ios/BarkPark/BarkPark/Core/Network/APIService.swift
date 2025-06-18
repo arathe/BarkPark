@@ -38,171 +38,62 @@ class APIService {
     
     private let baseURL = APIConfiguration.baseURL
     private let session = URLSession.shared
+    private let networkManager: NetworkManager
     
-    private init() {}
+    private init() {
+        self.networkManager = NetworkManager(baseURL: baseURL, session: session)
+    }
     
     // MARK: - Authentication Methods
     
     func login(email: String, password: String) async throws -> LoginResponse {
         print("🔐 APIService: Starting login for email: \(email)")
-        let url = URL(string: "\(baseURL)/auth/login")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        let body = [
-            "email": email,
-            "password": password
-        ]
+        let endpoint = try NetworkManager.Endpoint(
+            path: "/auth/login",
+            method: .POST,
+            body: ["email": email, "password": password],
+            requiresAuth: false
+        )
         
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        
-        print("🔐 APIService: Making login request to \(url)")
-        let (data, response) = try await session.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            print("🔐 APIService: Invalid response type")
-            throw APIError.invalidResponse
-        }
-        
-        print("🔐 APIService: Login response status: \(httpResponse.statusCode)")
-        
-        // Handle different status codes
-        switch httpResponse.statusCode {
-        case 200:
-            print("🔐 APIService: Login successful, decoding response")
-            return try JSONDecoder().decode(LoginResponse.self, from: data)
-            
-        case 400, 401:
-            // Try to decode error message from backend
-            print("🔐 APIService: Login failed with status \(httpResponse.statusCode)")
-            if let errorResponse = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let errorMessage = errorResponse["error"] as? String {
-                print("🔐 APIService: Backend error message: \(errorMessage)")
-                throw APIError.authenticationFailed(errorMessage)
-            } else {
-                let responseString = String(data: data, encoding: .utf8) ?? "No response body"
-                print("🔐 APIService: Raw error response: \(responseString)")
-                throw APIError.authenticationFailed("Invalid email or password")
-            }
-            
-        case 500...599:
-            print("🔐 APIService: Server error: \(httpResponse.statusCode)")
-            throw APIError.serverError
-            
-        default:
-            print("🔐 APIService: Unexpected status code: \(httpResponse.statusCode)")
-            let responseString = String(data: data, encoding: .utf8) ?? "No response body"
-            print("🔐 APIService: Raw response: \(responseString)")
-            throw APIError.invalidResponse
-        }
+        print("🔐 APIService: Making login request")
+        let response: LoginResponse = try await networkManager.request(endpoint, decoder: JSONDecoder())
+        print("🔐 APIService: Login successful")
+        return response
     }
     
     func register(email: String, password: String, firstName: String, lastName: String) async throws -> RegisterResponse {
         print("🔐 APIService: Starting registration for email: \(email)")
-        let url = URL(string: "\(baseURL)/auth/register")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        let body = [
-            "email": email,
-            "password": password,
-            "firstName": firstName,
-            "lastName": lastName
-        ]
+        let endpoint = try NetworkManager.Endpoint(
+            path: "/auth/register",
+            method: .POST,
+            body: [
+                "email": email,
+                "password": password,
+                "firstName": firstName,
+                "lastName": lastName
+            ],
+            requiresAuth: false
+        )
         
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        
-        print("🔐 APIService: Making register request to \(url)")
-        let (data, response) = try await session.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            print("🔐 APIService: Invalid response type")
-            throw APIError.invalidResponse
-        }
-        
-        print("🔐 APIService: Register response status: \(httpResponse.statusCode)")
-        
-        // Handle different status codes
-        switch httpResponse.statusCode {
-        case 201:
-            print("🔐 APIService: Registration successful, decoding response")
-            return try JSONDecoder().decode(RegisterResponse.self, from: data)
-            
-        case 400:
-            // Validation errors
-            print("🔐 APIService: Registration validation failed")
-            if let errorResponse = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                if let errors = errorResponse["errors"] as? [[String: Any]], !errors.isEmpty {
-                    let errorMessages = errors.compactMap { $0["msg"] as? String }
-                    let message = errorMessages.joined(separator: ", ")
-                    print("🔐 APIService: Validation errors: \(message)")
-                    throw APIError.validationFailed(message)
-                } else if let errorMessage = errorResponse["error"] as? String {
-                    print("🔐 APIService: Backend error: \(errorMessage)")
-                    throw APIError.authenticationFailed(errorMessage)
-                }
-            }
-            throw APIError.validationFailed("Invalid registration data")
-            
-        case 409:
-            // User already exists
-            print("🔐 APIService: User already exists")
-            if let errorResponse = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let errorMessage = errorResponse["error"] as? String {
-                throw APIError.authenticationFailed(errorMessage)
-            }
-            throw APIError.authenticationFailed("User with this email already exists")
-            
-        case 500...599:
-            print("🔐 APIService: Server error: \(httpResponse.statusCode)")
-            throw APIError.serverError
-            
-        default:
-            print("🔐 APIService: Unexpected status code: \(httpResponse.statusCode)")
-            let responseString = String(data: data, encoding: .utf8) ?? "No response body"
-            print("🔐 APIService: Raw response: \(responseString)")
-            throw APIError.invalidResponse
-        }
+        print("🔐 APIService: Making registration request")
+        let response: RegisterResponse = try await networkManager.request(endpoint, decoder: JSONDecoder())
+        print("🔐 APIService: Registration successful")
+        return response
     }
     
     func getCurrentUser() async throws -> User {
-        let url = URL(string: "\(baseURL)/auth/me")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-
-        if let token = UserDefaults.standard.string(forKey: "auth_token") {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
-
-        let (data, response) = try await session.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw APIError.invalidResponse
-        }
-
-        switch httpResponse.statusCode {
-        case 200:
-            let response = try JSONDecoder().decode(CurrentUserResponse.self, from: data)
-            return response.user
-        case 401:
-            throw APIError.authenticationFailed("Unauthorized")
-        default:
-            throw APIError.invalidResponse
-        }
+        let endpoint = NetworkManager.Endpoint(
+            path: "/auth/me",
+            method: .GET
+        )
+        
+        let response: CurrentUserResponse = try await networkManager.request(endpoint, decoder: JSONDecoder())
+        return response.user
     }
     
     func updateUserProfile(firstName: String, lastName: String, phone: String?, isSearchable: Bool) async throws -> UserUpdateResponse {
-        let url = URL(string: "\(baseURL)/auth/me")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "PUT"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        if let token = UserDefaults.standard.string(forKey: "auth_token") {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
-        
         var body: [String: Any] = [
             "firstName": firstName,
             "lastName": lastName,
@@ -213,7 +104,38 @@ class APIService {
             body["phone"] = phone
         }
         
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let endpoint = try NetworkManager.Endpoint(
+            path: "/auth/me",
+            method: .PUT,
+            body: body
+        )
+        
+        return try await networkManager.request(endpoint, decoder: JSONDecoder())
+    }
+    
+    func uploadProfileImage(imageData: Data) async throws -> ProfileImageUploadResponse {
+        let url = URL(string: "\(baseURL)/auth/profile-image")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let boundary = UUID().uuidString
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        
+        var body = Data()
+        
+        // Add image data
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"profileImage\"; filename=\"profile.jpg\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
+        body.append(imageData)
+        body.append("\r\n".data(using: .utf8)!)
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        
+        request.httpBody = body
         
         let (data, response) = try await session.data(for: request)
         
@@ -223,13 +145,13 @@ class APIService {
         
         switch httpResponse.statusCode {
         case 200:
-            return try JSONDecoder().decode(UserUpdateResponse.self, from: data)
+            return try JSONDecoder().decode(ProfileImageUploadResponse.self, from: data)
         case 400:
             if let errorResponse = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let errorMessage = errorResponse["error"] as? String {
                 throw APIError.validationFailed(errorMessage)
             }
-            throw APIError.validationFailed("Invalid profile data")
+            throw APIError.validationFailed("Invalid image data")
         case 401:
             throw APIError.authenticationFailed("Authentication required")
         default:
@@ -241,70 +163,28 @@ class APIService {
     
     func getDogs() async throws -> [Dog] {
         print("🌐 APIService: Starting getDogs()")
-        let url = URL(string: "\(baseURL)/dogs")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
         
-        let token = UserDefaults.standard.string(forKey: "auth_token")
-        print("🌐 APIService: Token exists: \(token != nil)")
-        if let token = token {
-            print("🌐 APIService: Using token: \(String(token.prefix(20)))...")
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        } else {
-            print("🌐 APIService: No auth token found!")
-        }
+        let endpoint = NetworkManager.Endpoint(
+            path: "/dogs",
+            method: .GET
+        )
         
-        print("🌐 APIService: Making request to \(url)")
-        let (data, response) = try await session.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            print("🌐 APIService: Invalid response type")
-            throw APIError.invalidResponse
-        }
-        
-        print("🌐 APIService: HTTP Status: \(httpResponse.statusCode)")
-        
-        if httpResponse.statusCode != 200 {
-            let responseString = String(data: data, encoding: .utf8) ?? "No response body"
-            print("🌐 APIService: Error response: \(responseString)")
-            throw APIError.invalidResponse
-        }
-        
-        let responseString = String(data: data, encoding: .utf8) ?? "No response body"
-        print("🌐 APIService: Raw response (\(data.count) bytes): \(String(responseString.prefix(200)))...")
-        
-        do {
-            let decodedResponse = try JSONDecoder().decode(DogsResponse.self, from: data)
-            print("🌐 APIService: Successfully decoded \(decodedResponse.dogs.count) dogs")
-            return decodedResponse.dogs
-        } catch {
-            print("🌐 APIService: JSON decoding error: \(error)")
-            throw APIError.decodingError
-        }
+        print("🌐 APIService: Making request")
+        let response: DogsResponse = try await networkManager.request(endpoint, decoder: JSONDecoder())
+        print("🌐 APIService: Successfully decoded \(response.dogs.count) dogs")
+        return response.dogs
     }
     
     func createDog(_ dogRequest: CreateDogRequest) async throws -> Dog {
-        let url = URL(string: "\(baseURL)/dogs")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        if let token = UserDefaults.standard.string(forKey: "auth_token") {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
-        
-        request.httpBody = try JSONEncoder().encode(dogRequest)
-        
-        let (data, response) = try await session.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 201 else {
-            throw APIError.invalidResponse
-        }
+        let endpoint = try NetworkManager.Endpoint(
+            path: "/dogs",
+            method: .POST,
+            body: dogRequest
+        )
         
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        let dogResponse = try decoder.decode(DogResponse.self, from: data)
+        let dogResponse: DogResponse = try await networkManager.request(endpoint, decoder: decoder)
         return dogResponse.dog
     }
     
@@ -528,80 +408,40 @@ class APIService {
     }
     
     func getAllParks() async throws -> [DogPark] {
-        let url = URL(string: "\(baseURL)/parks/all")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
+        let endpoint = NetworkManager.Endpoint(
+            path: "/parks/all",
+            method: .GET
+        )
         
-        if let token = UserDefaults.standard.string(forKey: "auth_token") {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
-        
-        let (data, response) = try await session.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw APIError.invalidResponse
-        }
-        
-        let parkResponse = try JSONDecoder().decode(ParksResponse.self, from: data)
-        return parkResponse.parks
+        let response: ParksResponse = try await networkManager.request(endpoint)
+        return response.parks
     }
     
     func getParkDetails(parkId: Int) async throws -> ParkDetailResponse {
-        let url = URL(string: "\(baseURL)/parks/\(parkId)")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
+        let endpoint = NetworkManager.Endpoint(
+            path: "/parks/\(parkId)",
+            method: .GET
+        )
         
-        if let token = UserDefaults.standard.string(forKey: "auth_token") {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
-        
-        let (data, response) = try await session.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw APIError.invalidResponse
-        }
-        
-        return try JSONDecoder().decode(ParkDetailResponse.self, from: data)
+        return try await networkManager.request(endpoint)
     }
     
     func getParkActivity(parkId: Int) async throws -> ParkActivityResponse {
-        let url = URL(string: "\(baseURL)/parks/\(parkId)/activity")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
+        let endpoint = NetworkManager.Endpoint(
+            path: "/parks/\(parkId)/activity",
+            method: .GET
+        )
         
-        if let token = UserDefaults.standard.string(forKey: "auth_token") {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
-        
-        let (data, response) = try await session.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw APIError.invalidResponse
-        }
-        
-        return try JSONDecoder().decode(ParkActivityResponse.self, from: data)
+        return try await networkManager.request(endpoint)
     }
     
     func getFriendsAtPark(parkId: Int) async throws -> FriendsAtParkResponse {
-        let url = URL(string: "\(baseURL)/parks/\(parkId)/friends")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
+        let endpoint = NetworkManager.Endpoint(
+            path: "/parks/\(parkId)/friends",
+            method: .GET
+        )
         
-        if let token = UserDefaults.standard.string(forKey: "auth_token") {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
-        
-        let (data, response) = try await session.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw APIError.invalidResponse
-        }
-        
-        return try JSONDecoder().decode(FriendsAtParkResponse.self, from: data)
+        return try await networkManager.request(endpoint)
     }
     
     func checkInToPark(parkId: Int, dogsPresent: [Int] = []) async throws -> CheckInResponse {
