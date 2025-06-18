@@ -9,6 +9,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const { Client } = require('pg');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
+require('dotenv').config({ path: path.join(__dirname, '../.env.local') });
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -73,6 +74,11 @@ const migrations = [
     file: '006_seed_nyc_parks.sql',
     description: 'Import 91 NYC dog runs',
     isSeed: true
+  },
+  {
+    id: '007_add_social_feed',
+    file: '007_add_social_feed.sql',
+    description: 'Add social feed tables (posts, media, likes, comments, notifications)'
   }
 ];
 
