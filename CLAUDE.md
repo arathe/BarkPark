@@ -244,6 +244,7 @@ Example from Session 17:
 - ✅ Check production logs before assuming issues
 - ✅ When implementing new features, first study existing similar implementations
 - ✅ Use Task tool to explore codebase when uncertain about patterns
+- ✅ In future when we make changes to the ios app, you should test the build succeeds
 
 ### Don'ts
 - ❌ Modify production data directly
@@ -276,7 +277,24 @@ When user says **"wrap this session"**:
 
 ## 📋 Session Notes
 
-### Recent Changes (Session 17)
+### Recent Changes (Session 18)
+- Fixed iOS build errors after major refactoring:
+  - Fixed PostType enum comparison in PostCard.swift (changed string to enum: `.checkin`)
+  - Fixed CheckInInfo type reference (removed `Post.` prefix) 
+  - Fixed PostVisibility type reference in CreatePostView.swift
+  - Updated preview data to use proper Date objects and enum values
+  - Successfully built iOS app after refactoring from commit e51f10f
+- Fixed Railway deployment failure:
+  - Added missing `backend/utils/schema-compare.js` to repository
+  - Added missing `backend/scripts/schema-sync.js` to repository
+  - Both files were created but not tracked in git, causing MODULE_NOT_FOUND error
+  - Deployment now succeeds with all required modules
+
+**Key Learning**: Always run `git status` to check for untracked files before deployment, especially utility scripts and modules
+
+**Next Steps**: Continue implementing media upload, comment viewing, and notification UI
+
+### Session 17
 - Implemented comprehensive social feed functionality:
   - Created database schema for posts, media, likes, comments, and notifications (backend/migrations/007_add_social_feed.sql)
   - Built Post, PostLike, PostComment, and Notification models with full CRUD operations
@@ -287,15 +305,11 @@ When user says **"wrap this session"**:
 - Discovered production-only database strategy (no local development database)
 - Debugged and fixed feed loading issues:
   - Added migration to unified-migrate.js migrations array (backend/scripts/unified-migrate.js:79)
-  - Fixed missing CodingKeys for date fields (ios/BarkPark/BarkPark/Models/Post.swift:53-54)
+  - Fixed missing CodingKeys for date fields (ios/BarkPark/BarkPark/Models/Post.swift:53-54)  
   - Cast PostgreSQL COUNT to int (backend/models/Post.js - COUNT()::int)
   - Created reusable date decoder (ios/BarkPark/BarkPark/Core/Extensions/JSONDecoder+DateParsing.swift)
   - Built debug tools: FeedDebugView and test endpoints (backend/routes/test-feed.js)
 - Successfully deployed to Railway with automatic migration
-
-**Key Learning**: Always create debug tools to capture exact errors rather than making assumptions
-
-**Next Steps**: Implement actual media upload, comment viewing, and notification UI
 
 ### Session 16
 - Fixed UserProfileView blank screen issue:
