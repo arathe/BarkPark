@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { param, query, validationResult } = require('express-validator');
-const { requireAuth } = require('../middleware/auth');
+const { verifyToken: requireAuth } = require('../middleware/auth');
 const Notification = require('../models/Notification');
 
 // Get notifications for authenticated user
