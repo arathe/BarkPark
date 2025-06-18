@@ -11,6 +11,8 @@ const diagnosticRoutes = require('./routes/diagnostic');
 const debugDbRoutes = require('./routes/debug-db');
 const adminRoutes = require('./routes/admin');
 const schemaValidationRoutes = require('./routes/schema-validation');
+const postRoutes = require('./routes/posts');
+const notificationRoutes = require('./routes/notifications');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -51,6 +53,8 @@ app.use('/api/diagnostic', diagnosticRoutes);
 app.use('/api/debug', debugDbRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/schema', schemaValidationRoutes);
+app.use('/api/posts', postRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
