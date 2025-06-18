@@ -80,8 +80,7 @@ struct FeedDebugView: View {
                 }
                 
                 // Try to decode
-                let decoder = JSONDecoder()
-                _ = try decoder.decode(FeedResponse.self, from: data)
+                _ = try JSONDecoder.barkParkDecoder.decode(FeedResponse.self, from: data)
                 
                 await MainActor.run {
                     decodingError = "✅ Successfully decoded!"

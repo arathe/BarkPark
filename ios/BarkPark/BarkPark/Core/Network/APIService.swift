@@ -1099,6 +1099,148 @@ class APIService {
             throw APIError.serverError
         }
     }
+    
+    // MARK: - Social Feed
+    
+    func getFeed(limit: Int = 20, offset: Int = 0) async throws -> FeedResponse {
+        let url = URL(string: "\(baseURL)/posts/feed?limit=\(limit)&offset=\(offset)")!
+        var request = URLRequest(url: url)
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 200:
+            return try JSONDecoder.barkParkDecoder.decode(FeedResponse.self, from: data)
+        case 401:
+            throw APIError.authenticationFailed("Authentication required")
+        default:
+            throw APIError.serverError
+        }
+    }
+    
+    func createPost(_ postRequest: CreatePostRequest) async throws -> Post {
+        let url = URL(string: "\(baseURL)/posts")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let encoder = JSONEncoder()
+        request.httpBody = try encoder.encode(postRequest)
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 201:
+            return try JSONDecoder.barkParkDecoder.decode(Post.self, from: data)
+        case 400:
+            if let errorResponse = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let errorMessage = errorResponse["error"] as? String {
+                throw APIError.validationFailed(errorMessage)
+            }
+            throw APIError.validationFailed("Invalid post data")
+        case 401:
+            throw APIError.authenticationFailed("Authentication required")
+        default:
+            throw APIError.serverError
+        }
+    }
+    
+    func likePost(postId: Int) async throws -> Bool {
+        let url = URL(string: "\(baseURL)/posts/\(postId)/like")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 200:
+            if let result = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let action = result["action"] as? String {
+                return action == "liked"
+            }
+            return false
+        case 401:
+            throw APIError.authenticationFailed("Authentication required")
+        default:
+            throw APIError.serverError
+        }
+    }
+    
+    func getNotifications(limit: Int = 50, offset: Int = 0) async throws -> NotificationsResponse {
+        let url = URL(string: "\(baseURL)/notifications?limit=\(limit)&offset=\(offset)")!
+        var request = URLRequest(url: url)
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 200:
+            return try JSONDecoder.barkParkDecoder.decode(NotificationsResponse.self, from: data)
+        case 401:
+            throw APIError.authenticationFailed("Authentication required")
+        default:
+            throw APIError.serverError
+        }
+    }
+    
+    func markNotificationAsRead(notificationId: Int) async throws {
+        let url = URL(string: "\(baseURL)/notifications/\(notificationId)/read")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let (_, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 200:
+            return
+        case 404:
+            throw APIError.validationFailed("Notification not found")
+        case 401:
+            throw APIError.authenticationFailed("Authentication required")
+        default:
+            throw APIError.serverError
+        }
+    }
 }
 
 // MARK: - API Errors

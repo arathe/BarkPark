@@ -17,8 +17,8 @@ class Post {
     const query = `
       SELECT p.*, 
              u.first_name, u.last_name, u.profile_image_url as user_profile_image,
-             COUNT(DISTINCT pl.id) as like_count,
-             COUNT(DISTINCT pc.id) as comment_count,
+             COUNT(DISTINCT pl.id)::int as like_count,
+             COUNT(DISTINCT pc.id)::int as comment_count,
              (
                SELECT json_agg(
                  json_build_object(
@@ -62,8 +62,8 @@ class Post {
     const query = `
       SELECT p.*, 
              u.first_name, u.last_name, u.profile_image_url as user_profile_image,
-             COUNT(DISTINCT pl.id) as like_count,
-             COUNT(DISTINCT pc.id) as comment_count,
+             COUNT(DISTINCT pl.id)::int as like_count,
+             COUNT(DISTINCT pc.id)::int as comment_count,
              EXISTS(
                SELECT 1 FROM post_likes 
                WHERE post_id = p.id AND user_id = $1
@@ -132,8 +132,8 @@ class Post {
     const query = `
       SELECT p.*, 
              u.first_name, u.last_name, u.profile_image_url as user_profile_image,
-             COUNT(DISTINCT pl.id) as like_count,
-             COUNT(DISTINCT pc.id) as comment_count,
+             COUNT(DISTINCT pl.id)::int as like_count,
+             COUNT(DISTINCT pc.id)::int as comment_count,
              EXISTS(
                SELECT 1 FROM post_likes 
                WHERE post_id = p.id AND user_id = $2
