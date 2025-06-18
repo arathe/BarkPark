@@ -13,6 +13,7 @@ const adminRoutes = require('./routes/admin');
 const schemaValidationRoutes = require('./routes/schema-validation');
 const postRoutes = require('./routes/posts');
 const notificationRoutes = require('./routes/notifications');
+const testFeedRoutes = require('./routes/test-feed');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -55,6 +56,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/schema', schemaValidationRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/test', testFeedRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
