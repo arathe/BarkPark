@@ -17,6 +17,8 @@
     "db:migrate:rollback": "echo 'Use with caution: psql $DATABASE_URL -f migrations/rollback/XXX_*.sql'",
     "db:schema:monitor": "node scripts/monitor-schema-drift.js",
     "db:schema:compare": "node scripts/unified-migrate.js --status && curl -s ${PRODUCTION_API_URL:-https://barkpark-production.up.railway.app}/api/schema/compare",
+    "db:schema:sync": "node scripts/schema-sync.js",
+    "db:schema:sync:verbose": "node scripts/schema-sync.js --verbose",
     "generate-test-token": "node scripts/generate-test-token.js",
     "migrate": "node scripts/unified-migrate.js",
     "migrate:seed": "node scripts/unified-migrate.js --seed"

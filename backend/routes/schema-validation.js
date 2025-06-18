@@ -1,9 +1,10 @@
 const express = require('express');
 const pool = require('../config/database');
+const SchemaComparer = require('../utils/schema-compare');
 const router = express.Router();
 
-// Compare schemas between environments
-router.get('/compare', async (req, res) => {
+// Get raw schema information (original endpoint)
+router.get('/compare/raw', async (req, res) => {
   try {
     // Get comprehensive schema information
     const schemaQuery = `
@@ -129,6 +130,105 @@ router.get('/compare', async (req, res) => {
     console.error('Schema validation error:', error);
     res.status(500).json({
       error: 'Failed to retrieve schema',
+      message: error.message
+    });
+  }
+});
+
+// Validate required columns exist
+// Enhanced PostGIS-aware schema comparison
+router.get('/compare', async (req, res) => {
+  try {
+    const comparer = new SchemaComparer();
+    
+    // Get current environment schema
+    const currentSchema = await comparer.getSchemaInfo({
+      connectionString: process.env.DATABASE_URL || `postgresql://${process.env.DB_USER || 'postgres'}:${process.env.DB_PASSWORD || ''}@${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || 5432}/${process.env.DB_NAME || 'barkpark_dev'}`
+    });
+    
+    // If production URL is provided, compare with production
+    let comparison = null;
+    if (req.query.productionUrl || process.env.PRODUCTION_DATABASE_URL) {
+      const productionSchema = await comparer.getSchemaInfo({
+        connectionString: req.query.productionUrl || process.env.PRODUCTION_DATABASE_URL
+      });
+      
+      comparison = comparer.compareSchemas(
+        currentSchema,
+        productionSchema,
+        process.env.NODE_ENV || 'development',
+        'production'
+      );
+    }
+    
+    res.json({
+      environment: process.env.NODE_ENV || 'development',
+      database: process.env.DATABASE_URL ? 'Railway PostgreSQL' : 'Local PostgreSQL',
+      timestamp: new Date().toISOString(),
+      currentSchema: {
+        hasPostGIS: currentSchema.hasPostGIS,
+        tableCount: currentSchema.tableCount,
+        tables: currentSchema.tables
+      },
+      comparison,
+      schemaDetails: currentSchema.schema
+    });
+    
+  } catch (error) {
+    console.error('Schema comparison error:', error);
+    res.status(500).json({
+      error: 'Failed to compare schemas',
+      message: error.message
+    });
+  }
+});
+
+// Compare specific environments
+router.post('/compare/environments', async (req, res) => {
+  try {
+    const { env1, env2 } = req.body;
+    
+    if (!env1?.connectionString || !env2?.connectionString) {
+      return res.status(400).json({
+        error: 'Both env1 and env2 must have connectionString properties'
+      });
+    }
+    
+    const comparer = new SchemaComparer();
+    
+    // Get schemas for both environments
+    const [schema1, schema2] = await Promise.all([
+      comparer.getSchemaInfo({ connectionString: env1.connectionString }),
+      comparer.getSchemaInfo({ connectionString: env2.connectionString })
+    ]);
+    
+    // Compare schemas
+    const comparison = comparer.compareSchemas(
+      schema1,
+      schema2,
+      env1.name || 'Environment 1',
+      env2.name || 'Environment 2'
+    );
+    
+    res.json({
+      timestamp: new Date().toISOString(),
+      env1: {
+        name: env1.name || 'Environment 1',
+        hasPostGIS: schema1.hasPostGIS,
+        tableCount: schema1.tableCount
+      },
+      env2: {
+        name: env2.name || 'Environment 2',
+        hasPostGIS: schema2.hasPostGIS,
+        tableCount: schema2.tableCount
+      },
+      comparison
+    });
+    
+  } catch (error) {
+    console.error('Environment comparison error:', error);
+    res.status(500).json({
+      error: 'Failed to compare environments',
       message: error.message
     });
   }

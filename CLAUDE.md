@@ -18,6 +18,8 @@ This file provides guidance for AI assistants working with the BarkPark codebase
 - 👥 Friend connections (search + QR codes)
 - ✅ Check-in system for park visits
 - 🗺️ Dynamic map with location-based search
+- 📰 Social feed with posts, likes, and comments
+- 🔔 Real-time notifications for social interactions
 
 ### Project Status
 - ✅ Backend: Production-ready on Railway
@@ -47,6 +49,12 @@ This file provides guidance for AI assistants working with the BarkPark codebase
   - Spacing: `.xs` (4), `.sm` (8), `.md` (16), `.lg` (24), `.xl` (32)
   - CornerRadius: `.small` (6), `.medium` (8), `.large` (12), `.extraLarge` (16)
 
+### Complex Model Patterns
+- **Mixed Media Support**: Use separate arrays for different media types (see `PostMedia` model)
+- **Date Formatting**: Use `RelativeDateTimeFormatter` for "time ago" displays
+- **Optimistic UI**: Update local state immediately, then sync with API (see `FeedViewModel.toggleLike`)
+- **Pagination**: Use `limit`/`offset` with `hasMore` flag for infinite scrolling
+
 ### Navigation Patterns
 - Use `NavigationLink` for push navigation
 - Use `.sheet()` for modal presentations
@@ -56,10 +64,31 @@ This file provides guidance for AI assistants working with the BarkPark codebase
 
 ### Core Principles
 1. **Read First**: Examine existing patterns before implementing
-2. **Test Locally**: Use local database for development
-3. **Schema Safety**: Always verify database alignment
+2. **Production-Only Database**: No local database - all development uses Railway production database
+3. **Schema Safety**: Always verify database alignment before migrations
 4. **Security First**: Never expose secrets, validate all input
 5. **Match Patterns**: Follow existing code conventions
+
+### Database Environment Strategy
+⚠️ **IMPORTANT**: This project uses Railway-hosted production database exclusively. There is no local database setup.
+- All migrations run against production database on Railway
+- Use caution when testing - you're working with live data
+- Consider implementing staging environment for major changes
+- Database connection available only through Railway deployment
+
+### Production Database Testing Patterns
+- **Test Data Management**:
+  - Use distinctive test data (e.g., "TEST_" prefix)
+  - Create cleanup scripts for test data
+  - Document test user accounts
+- **Debug Endpoints**:
+  - Create `/api/test/*` endpoints for development
+  - Include raw database queries for debugging
+  - Remove or secure before production release
+- **Monitoring During Development**:
+  - Keep Railway logs open while testing
+  - Use `console.log` strategically in development
+  - Check migration status after each deployment
 
 ### Git Commit Format
 ```
@@ -76,11 +105,13 @@ Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
 
 ### Pre-commit Checklist
 - ⚠️ Never commit: node_modules/, .env files, temporary scripts
-- 📝 Review with `git status` before staging
-- 🎯 Stage specific files rather than using `git add -A` when possible
-- 🔍 Use `git diff --staged` to verify changes
+- 📝 **ALWAYS** run `git status` before ANY `git add` command
+- 🎯 Stage specific files individually - avoid `git add -A` or `git add .`
+- 👀 Check for unintended files (especially node_modules, build artifacts)
+- 🔍 Use `git diff --staged` to verify changes before committing
 - 🧹 Remove debug logs (console.log, print statements) unless specifically needed
 - ✅ Ensure no test data or mock values remain in production code
+- 🚫 If too many files staged accidentally, use `git reset HEAD` to unstage all
 
 ## 🗄️ Database Management
 
@@ -123,7 +154,24 @@ npm run db:schema:sync:verbose  # Detailed schema comparison
 - Test migrations with fresh database and existing data
 - Document rollback procedures for each migration
 
+### PostGIS Compatibility Notes
+- **Version Mismatch**: May encounter "PostGIS built for PostgreSQL X cannot be loaded in PostgreSQL Y"
+- **Solution**: Create simpler migrations without PostGIS-specific functions when errors occur
+- **Alternative**: Apply migrations directly through Railway dashboard if needed
+
 ## 🐛 Debugging Methodology
+
+### Systematic Debugging Approach
+When encountering errors, follow this systematic approach:
+1. **Capture Exact Error**: Don't assume - get the full error message and stack trace
+2. **Create Minimal Test Case**: Build debug endpoints or views to isolate the issue
+3. **Test Incrementally**: Test each hypothesis one at a time
+4. **Document Findings**: Keep notes on what you've tried and results
+5. **Avoid Assumptions**: Don't guess at root causes - prove them with evidence
+
+Example from Session 17:
+- ❌ Wrong: Assumed date format was the issue without checking
+- ✅ Right: Created FeedDebugView to capture exact decoding error, revealing missing CodingKeys
 
 ### Production Issues
 1. **Check logs first**: Railway dashboard, server logs
@@ -153,6 +201,22 @@ npm run db:schema:sync:verbose  # Detailed schema comparison
 - **Migration errors**: Check `schema_migrations` table
 - **Auth failures**: Verify JWT_SECRET matches
 - **Connection issues**: Check Railway logs and limits
+
+### Common iOS/Backend Integration Issues
+- **Type Mismatches**:
+  - PostgreSQL COUNT() returns numeric strings - cast with `::int`
+  - Example: `COUNT(DISTINCT pl.id)::int as like_count`
+- **Date Formatting**:
+  - PostgreSQL timestamps: `2025-06-18T05:10:42.093Z`
+  - Use custom JSONDecoder with multiple format support
+  - Keep dates as strings if parsing fails repeatedly
+- **Field Naming**:
+  - Backend uses snake_case: `user_id`, `created_at`
+  - iOS uses camelCase: `userId`, `createdAt`
+  - Always map in CodingKeys enum
+- **Null vs Optional**:
+  - PostgreSQL NULL → Swift nil
+  - Ensure optional types match database schema
 
 ### Common iOS Issues
 - **Blank Screen Debugging**:
@@ -212,7 +276,28 @@ When user says **"wrap this session"**:
 
 ## 📋 Session Notes
 
-### Recent Changes (Session 16)
+### Recent Changes (Session 17)
+- Implemented comprehensive social feed functionality:
+  - Created database schema for posts, media, likes, comments, and notifications (backend/migrations/007_add_social_feed.sql)
+  - Built Post, PostLike, PostComment, and Notification models with full CRUD operations
+  - Added social feed API endpoints with mixed media support (backend/routes/posts.js, notifications.js)
+  - Created iOS feed UI with FeedView, PostCard, and CreatePostView components
+  - Integrated feed as default tab in MainTabView
+  - Fixed auth middleware import issues (requireAuth → verifyToken)
+- Discovered production-only database strategy (no local development database)
+- Debugged and fixed feed loading issues:
+  - Added migration to unified-migrate.js migrations array (backend/scripts/unified-migrate.js:79)
+  - Fixed missing CodingKeys for date fields (ios/BarkPark/BarkPark/Models/Post.swift:53-54)
+  - Cast PostgreSQL COUNT to int (backend/models/Post.js - COUNT()::int)
+  - Created reusable date decoder (ios/BarkPark/BarkPark/Core/Extensions/JSONDecoder+DateParsing.swift)
+  - Built debug tools: FeedDebugView and test endpoints (backend/routes/test-feed.js)
+- Successfully deployed to Railway with automatic migration
+
+**Key Learning**: Always create debug tools to capture exact errors rather than making assumptions
+
+**Next Steps**: Implement actual media upload, comment viewing, and notification UI
+
+### Session 16
 - Fixed UserProfileView blank screen issue:
   - Changed initial `isLoading` state from false to true in UserProfileViewModel (ios/BarkPark/BarkPark/Features/Profile/ViewModels/UserProfileViewModel.swift:53)
   - Added comprehensive debug logging throughout UserProfileView and UserProfileViewModel
@@ -258,20 +343,26 @@ When user says **"wrap this session"**:
 - Check-in system with persistent UI
 - Privacy controls
 - Active check-in display across app
+- Social feed with chronological posts from friends
+- Post creation with privacy settings
+- Like/unlike functionality with optimistic UI
+- Mixed media support (photos and videos in same post)
+- Real-time notifications system
 
 ### Quick Reference
 ```bash
-# Test production API
+# Test production API endpoints
 curl -H "Authorization: Bearer $TOKEN" https://barkpark-production.up.railway.app/api/parks
+curl -H "Authorization: Bearer $TOKEN" https://barkpark-production.up.railway.app/api/posts/feed
+curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"content":"Test post","visibility":"friends"}' \
+  https://barkpark-production.up.railway.app/api/posts
 
-# Check local database
-npm run db:migrate:status
+# Check migration status (requires production database connection)
+# Note: This won't work locally without Railway database credentials
 
-# Compare schemas
-npm run db:schema:compare
-
-# Generate test token
-node scripts/generate-test-token.js
+# Monitor deployment
+# Use Railway dashboard for logs and deployment status
 ```
 
 ### PostGIS Reference
