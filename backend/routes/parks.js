@@ -1,6 +1,6 @@
 const express = require('express');
 const { body, query, validationResult } = require('express-validator');
-const DogPark = require('../models/DogPark');
+const DogPark = require('../models/DogParkCompat');
 const CheckIn = require('../models/CheckIn');
 const Post = require('../models/Post');
 const { verifyToken } = require('../middleware/auth');

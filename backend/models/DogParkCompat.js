@@ -416,6 +416,47 @@ class DogParkCompat {
       borough: park.borough
     };
   }
+
+  static async getActivityLevel(parkId) {
+    const query = `
+      SELECT COUNT(*) as active_checkins
+      FROM checkins 
+      WHERE dog_park_id = $1 AND checked_out_at IS NULL
+    `;
+    const result = await pool.query(query, [parkId]);
+    const count = parseInt(result.rows[0].active_checkins);
+    
+    // Simple activity level calculation
+    if (count === 0) return 'quiet';
+    if (count <= 3) return 'moderate';
+    if (count <= 6) return 'busy';
+    return 'very busy';
+  }
+
+  static async getActiveCheckIns(parkId) {
+    const query = `
+      SELECT 
+        c.id, c.user_id, c.checked_in_at, c.dogs,
+        u.first_name, u.last_name, u.profile_image_url,
+        ARRAY_AGG(
+          JSON_BUILD_OBJECT(
+            'id', d.id,
+            'name', d.name,
+            'breed', d.breed,
+            'profile_image_url', d.profile_image_url
+          )
+        ) FILTER (WHERE d.id IS NOT NULL) as dog_details
+      FROM checkins c
+      LEFT JOIN users u ON c.user_id = u.id
+      LEFT JOIN dogs d ON d.id = ANY(c.dogs) AND d.user_id = c.user_id
+      WHERE c.dog_park_id = $1 AND c.checked_out_at IS NULL
+      GROUP BY c.id, u.id
+      ORDER BY c.checked_in_at DESC
+    `;
+    
+    const result = await pool.query(query, [parkId]);
+    return result.rows;
+  }
 }
 
 module.exports = DogParkCompat;
