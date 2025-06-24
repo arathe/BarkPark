@@ -34,3 +34,7 @@ parks_response.json
 .test-tokens
 test-tokens.json
 *-token.txt
+
+# Xcode user-specific files
+*.xcuserstate
+xcuserdata/

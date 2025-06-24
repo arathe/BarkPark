@@ -87,6 +87,7 @@ struct CheckInResponse: Codable {
     let message: String
     let checkIn: CheckIn
     let park: DogPark
+    let post: Post?
 }
 
 struct CheckOutResponse: Codable {

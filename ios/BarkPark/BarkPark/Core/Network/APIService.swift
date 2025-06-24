@@ -33,6 +33,7 @@ enum NetworkError: Error, LocalizedError {
     }
 }
 
+@MainActor
 class APIService {
     static let shared = APIService()
     
@@ -49,10 +50,11 @@ class APIService {
     func login(email: String, password: String) async throws -> LoginResponse {
         print("🔐 APIService: Starting login for email: \(email)")
         
+        let loginRequest = LoginRequest(email: email, password: password)
         let endpoint = try NetworkManager.Endpoint(
             path: "/auth/login",
             method: .POST,
-            body: ["email": email, "password": password],
+            body: loginRequest,
             requiresAuth: false
         )
         
@@ -65,15 +67,16 @@ class APIService {
     func register(email: String, password: String, firstName: String, lastName: String) async throws -> RegisterResponse {
         print("🔐 APIService: Starting registration for email: \(email)")
         
+        let registerRequest = RegisterRequest(
+            email: email,
+            password: password,
+            firstName: firstName,
+            lastName: lastName
+        )
         let endpoint = try NetworkManager.Endpoint(
             path: "/auth/register",
             method: .POST,
-            body: [
-                "email": email,
-                "password": password,
-                "firstName": firstName,
-                "lastName": lastName
-            ],
+            body: registerRequest,
             requiresAuth: false
         )
         
@@ -94,20 +97,17 @@ class APIService {
     }
     
     func updateUserProfile(firstName: String, lastName: String, phone: String?, isSearchable: Bool) async throws -> UserUpdateResponse {
-        var body: [String: Any] = [
-            "firstName": firstName,
-            "lastName": lastName,
-            "isSearchable": isSearchable
-        ]
-        
-        if let phone = phone {
-            body["phone"] = phone
-        }
+        let updateRequest = UpdateProfileRequest(
+            firstName: firstName,
+            lastName: lastName,
+            phone: phone,
+            isSearchable: isSearchable
+        )
         
         let endpoint = try NetworkManager.Endpoint(
             path: "/auth/me",
             method: .PUT,
-            body: body
+            body: updateRequest
         )
         
         return try await networkManager.request(endpoint, decoder: JSONDecoder())

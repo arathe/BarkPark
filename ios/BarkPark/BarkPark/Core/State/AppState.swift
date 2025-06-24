@@ -11,7 +11,7 @@ class AppState: ObservableObject {
     @Published var userDogs: [Dog] = []
     @Published var activeCheckIn: CheckIn?
     @Published var nearbyParks: [DogPark] = []
-    @Published var friendsList: [User] = []
+    @Published var friendsList: [Friend] = []
     @Published var feedPosts: [Post] = []
     @Published var notifications: [Notification] = []
     @Published var unreadNotificationCount: Int = 0
@@ -127,8 +127,8 @@ class AppState: ObservableObject {
         checkInError = nil
         
         do {
-            let checkIns = try await apiService.getActiveCheckIns()
-            activeCheckIn = checkIns.first
+            let response = try await apiService.getActiveCheckIns()
+            activeCheckIn = response.activeCheckIns.first
             lastCheckInFetch = Date()
         } catch {
             checkInError = error.localizedDescription
@@ -139,7 +139,7 @@ class AppState: ObservableObject {
     }
     
     func checkIn(parkId: Int, dogIds: [Int]) async throws {
-        let response = try await apiService.checkIn(parkId: parkId, dogIds: dogIds)
+        let response = try await apiService.checkInToPark(parkId: parkId, dogsPresent: dogIds)
         activeCheckIn = response.checkIn
         lastCheckInFetch = Date()
     }
@@ -147,7 +147,7 @@ class AppState: ObservableObject {
     func checkOut() async throws {
         guard let checkInId = activeCheckIn?.id else { return }
         
-        _ = try await apiService.checkOut(checkInId: checkInId)
+        _ = try await apiService.checkOutOfPark(parkId: activeCheckIn!.dogParkId)
         activeCheckIn = nil
         lastCheckInFetch = Date()
     }
@@ -169,7 +169,8 @@ class AppState: ObservableObject {
         parksError = nil
         
         do {
-            nearbyParks = try await apiService.searchParks(latitude: latitude, longitude: longitude, radiusMiles: 10)
+            let response = try await apiService.getNearbyParks(latitude: latitude, longitude: longitude, radius: 10)
+            nearbyParks = response.parks
             lastParksFetch = Date()
         } catch {
             parksError = error.localizedDescription
@@ -243,7 +244,25 @@ class AppState: ObservableObject {
         do {
             try await apiService.markNotificationAsRead(notificationId: id)
             if let index = notifications.firstIndex(where: { $0.id == id }) {
-                notifications[index].isRead = true
+                var updatedNotification = notifications[index]
+            notifications[index] = Notification(
+                id: updatedNotification.id,
+                userId: updatedNotification.userId,
+                type: updatedNotification.type,
+                actorId: updatedNotification.actorId,
+                postId: updatedNotification.postId,
+                commentId: updatedNotification.commentId,
+                isRead: true,
+                createdAt: updatedNotification.createdAt,
+                actorFirstName: updatedNotification.actorFirstName,
+                actorLastName: updatedNotification.actorLastName,
+                actorProfileImage: updatedNotification.actorProfileImage,
+                postContent: updatedNotification.postContent,
+                postType: updatedNotification.postType,
+                postMedia: updatedNotification.postMedia,
+                commentContent: updatedNotification.commentContent,
+                text: updatedNotification.text
+            )
                 unreadNotificationCount = notifications.filter { !$0.isRead }.count
             }
         } catch {

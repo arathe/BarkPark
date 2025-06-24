@@ -77,6 +77,23 @@ struct BarkParkDesign {
         static let small = Shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
         static let medium = Shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
         static let large = Shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
+        static let subtle = Shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 2)
+        static let elevated = Shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 8)
+    }
+    
+    // MARK: - Animation
+    struct Animation {
+        static let spring = SwiftUI.Animation.spring(response: 0.4, dampingFraction: 0.8)
+        static let smooth = SwiftUI.Animation.easeInOut(duration: 0.3)
+        static let quick = SwiftUI.Animation.easeOut(duration: 0.2)
+        static let bouncy = SwiftUI.Animation.interpolatingSpring(stiffness: 300, damping: 20)
+    }
+    
+    // MARK: - Blur
+    struct Blur {
+        static let light: CGFloat = 8
+        static let medium: CGFloat = 16
+        static let heavy: CGFloat = 24
     }
 }
 

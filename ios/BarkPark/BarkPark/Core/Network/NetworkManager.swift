@@ -84,7 +84,7 @@ class NetworkManager {
     /// Build URLRequest from endpoint configuration
     private func buildRequest(for endpoint: Endpoint) throws -> URLRequest {
         guard var components = URLComponents(string: "\(baseURL)\(endpoint.path)") else {
-            throw APIError.invalidURL
+            throw APIError.invalidResponse
         }
         
         if let queryItems = endpoint.queryItems {
@@ -92,7 +92,7 @@ class NetworkManager {
         }
         
         guard let url = components.url else {
-            throw APIError.invalidURL
+            throw APIError.invalidResponse
         }
         
         var request = URLRequest(url: url)

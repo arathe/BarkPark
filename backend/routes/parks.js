@@ -2,6 +2,7 @@ const express = require('express');
 const { body, query, validationResult } = require('express-validator');
 const DogPark = require('../models/DogPark');
 const CheckIn = require('../models/CheckIn');
+const Post = require('../models/Post');
 const { verifyToken } = require('../middleware/auth');
 
 const router = express.Router();
@@ -233,10 +234,20 @@ router.post('/:id/checkin', [
       dogsPresent: req.body.dogsPresent || []
     });
 
+    // Create a post for the check-in
+    const post = await Post.create({
+      userId: req.user.id,
+      content: `Checked in at ${park.name}!`,
+      postType: 'checkin',
+      visibility: 'friends',
+      checkInId: checkIn.id
+    });
+
     res.status(201).json({
       message: 'Checked in successfully',
       checkIn,
-      park
+      park,
+      post
     });
 
   } catch (error) {

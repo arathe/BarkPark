@@ -124,6 +124,9 @@ class DogParksViewModel: ObservableObject {
             // Reload active check-ins
             await loadActiveCheckIns()
             
+            // Post notification for feed refresh
+            NotificationCenter.default.post(name: NSNotification.Name("RefreshFeed"), object: nil)
+            
             return true
         } catch {
             print("🌐 DogParksViewModel: Error checking in: \(error)")

@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+temp/
+tmp/
+
+# Database backups (contain sensitive data)
+backups/
+*.sql
+*.dump
+
+# Security audit files (contain vulnerability details)
+SECURITY_AUDIT.md
+*security-audit*
+
+# Test tokens and credentials
+.test-tokens
+test-tokens.json
+*-token.txt
+
+# Admin scripts with hardcoded keys
+check-tables-admin.js
+
+# Temporary documentation
+DATABASE_SYNC_PROGRESS.md
+MIGRATION_FIX_SUMMARY.md
+POSTGIS_COMPATIBILITY_ISSUE.md
+SCHEMA_COMPARISON_RESULTS.md
