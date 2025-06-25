@@ -89,7 +89,12 @@ router.post('/', [
 
   } catch (error) {
     console.error('Create dog error:', error);
-    res.status(500).json({ error: 'Failed to create dog profile' });
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code
+    });
+    res.status(500).json({ error: 'Failed to create dog profile', details: error.message });
   }
 });
 

@@ -65,11 +65,11 @@ class Notification {
       UPDATE notifications
       SET is_read = true
       WHERE user_id = $1 AND is_read = false
-      RETURNING COUNT(*) as updated_count
+      RETURNING id
     `;
     
     const result = await pool.query(query, [userId]);
-    return parseInt(result.rows[0].updated_count);
+    return result.rows.length;
   }
 
   static async getUnreadCount(userId) {

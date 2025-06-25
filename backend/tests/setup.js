@@ -82,6 +82,18 @@ beforeAll(async () => {
         await testClient.query('ALTER TABLE dog_parks ADD COLUMN IF NOT EXISTS zipcode VARCHAR(10)');
         await testClient.query('ALTER TABLE dog_parks ADD COLUMN IF NOT EXISTS borough VARCHAR(20)');
         console.log('Added missing columns to test schema');
+        
+        // Add dogs extended fields from migration 002
+        const dogsExtendedPath = path.join(__dirname, '..', 'migrations', '002_add_dogs_extended_fields.sql');
+        const dogsExtendedSchema = fs.readFileSync(dogsExtendedPath, 'utf8');
+        await testClient.query(dogsExtendedSchema);
+        console.log('Added dogs extended fields to test schema');
+        
+        // Add social feed tables from migration 007
+        const socialFeedPath = path.join(__dirname, '..', 'migrations', '007_add_social_feed.sql');
+        const socialFeedSchema = fs.readFileSync(socialFeedPath, 'utf8');
+        await testClient.query(socialFeedSchema);
+        console.log('Added social feed tables to test schema');
       } catch (error) {
         console.warn('Warning adding missing columns:', error.message);
       }
@@ -106,12 +118,33 @@ beforeAll(async () => {
 });
 
 // Clean up test data after each test
+// Only clean up data for tests that don't manage their own test data
 afterEach(async () => {
+  // Check if this is a test file that manages its own cleanup
+  const testFile = expect.getState().testPath;
+  const selfManagedTests = [
+    'posts.test.js',
+    'posts-standalone.test.js', 
+    'notifications.test.js',
+    'dogs.test.js'
+  ];
+  
+  // Skip cleanup for tests that manage their own data
+  if (testFile && selfManagedTests.some(file => testFile.includes(file))) {
+    return;
+  }
+  
   const pool = require('../config/database');
   try {
     // Clean up in order due to foreign key constraints
+    await pool.query('DELETE FROM notifications');
+    await pool.query('DELETE FROM post_comments');
+    await pool.query('DELETE FROM post_likes');
+    await pool.query('DELETE FROM post_media');
+    await pool.query('DELETE FROM posts');
     await pool.query('DELETE FROM checkins');
     await pool.query('DELETE FROM dogs');
+    await pool.query('DELETE FROM friendships');
     await pool.query('DELETE FROM users');
     // Note: We don't delete dog_parks as they're test fixtures
   } catch (error) {
