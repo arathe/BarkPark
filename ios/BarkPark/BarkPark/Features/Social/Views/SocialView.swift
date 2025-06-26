@@ -9,7 +9,7 @@ import SwiftUI
 
 struct SocialView: View {
     @StateObject private var viewModel = SocialViewModel()
-    @StateObject private var parksViewModel = DogParksViewModel()
+    @EnvironmentObject var parksViewModel: DogParksViewModel
     @State private var selectedTab = 0
     @State private var showingUserSearch = false
     @State private var showingQRDisplay = false

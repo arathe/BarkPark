@@ -9,7 +9,9 @@ import Foundation
 
 // MARK: - API Configuration
 struct APIConfiguration {
-    static let baseURL = "https://barkpark-production.up.railway.app/api"
+    // Use your Mac's IP address for iOS Simulator
+    // localhost doesn't work in the simulator
+    static let baseURL = "http://192.168.68.65:3000/api"
 }
 
 // MARK: - Network Errors
@@ -396,7 +398,7 @@ class APIService {
         
         switch httpResponse.statusCode {
         case 200:
-            return try JSONDecoder().decode(ParksSearchResponse.self, from: data)
+            return try JSONDecoder.barkParkDecoder.decode(ParksSearchResponse.self, from: data)
         case 401:
             throw APIError.authenticationFailed("Authentication required")
         default:
@@ -471,7 +473,7 @@ class APIService {
         print("🌐 APIService: Check-in response: \(responseString)")
         
         do {
-            return try JSONDecoder().decode(CheckInResponse.self, from: data)
+            return try JSONDecoder.barkParkDecoder.decode(CheckInResponse.self, from: data)
         } catch {
             print("🌐 APIService: Failed to decode CheckInResponse: \(error)")
             print("🌐 APIService: Response was: \(responseString)")
@@ -502,7 +504,7 @@ class APIService {
         print("🌐 APIService: Check-out response: \(responseString)")
         
         do {
-            return try JSONDecoder().decode(CheckOutResponse.self, from: data)
+            return try JSONDecoder.barkParkDecoder.decode(CheckOutResponse.self, from: data)
         } catch {
             print("🌐 APIService: Failed to decode CheckOutResponse: \(error)")
             print("🌐 APIService: Response was: \(responseString)")
@@ -526,7 +528,7 @@ class APIService {
             throw APIError.invalidResponse
         }
         
-        return try JSONDecoder().decode(CheckInHistoryResponse.self, from: data)
+        return try JSONDecoder.barkParkDecoder.decode(CheckInHistoryResponse.self, from: data)
     }
     
     func getActiveCheckIns() async throws -> ActiveCheckInsResponse {
@@ -545,7 +547,7 @@ class APIService {
             throw APIError.invalidResponse
         }
         
-        return try JSONDecoder().decode(ActiveCheckInsResponse.self, from: data)
+        return try JSONDecoder.barkParkDecoder.decode(ActiveCheckInsResponse.self, from: data)
     }
     
     func searchParks(query: String, latitude: Double? = nil, longitude: Double? = nil) async throws -> ParksSearchResponse {
@@ -581,7 +583,7 @@ class APIService {
         let responseString = String(data: data, encoding: .utf8) ?? "No response"
         print("🔍 APIService: Search response: \(responseString)")
         
-        return try JSONDecoder().decode(ParksSearchResponse.self, from: data)
+        return try JSONDecoder.barkParkDecoder.decode(ParksSearchResponse.self, from: data)
     }
     
     // MARK: - Helper Methods

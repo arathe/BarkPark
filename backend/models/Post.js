@@ -13,12 +13,16 @@ class Post {
     return result.rows[0];
   }
 
-  static async findById(id) {
+  static async findById(id, currentUserId = null) {
     const query = `
       SELECT p.*, 
              u.first_name, u.last_name, u.profile_image_url as user_profile_image,
              COUNT(DISTINCT pl.id)::int as like_count,
              COUNT(DISTINCT pc.id)::int as comment_count,
+             ${currentUserId ? `EXISTS(
+               SELECT 1 FROM post_likes 
+               WHERE post_id = p.id AND user_id = $2
+             ) as user_liked,` : 'false as user_liked,'}
              (
                SELECT json_agg(
                  json_build_object(
@@ -54,7 +58,8 @@ class Post {
       GROUP BY p.id, u.first_name, u.last_name, u.profile_image_url
     `;
     
-    const result = await pool.query(query, [id]);
+    const values = currentUserId ? [id, currentUserId] : [id];
+    const result = await pool.query(query, values);
     return result.rows[0];
   }
 
@@ -103,11 +108,11 @@ class Post {
         p.user_id = $1 OR
         p.user_id IN (
           SELECT CASE 
-            WHEN requester_id = $1 THEN addressee_id
-            ELSE requester_id
+            WHEN user_id = $1 THEN friend_id
+            ELSE user_id
           END
           FROM friendships
-          WHERE (requester_id = $1 OR addressee_id = $1)
+          WHERE (user_id = $1 OR friend_id = $1)
           AND status = 'accepted'
         )
       )

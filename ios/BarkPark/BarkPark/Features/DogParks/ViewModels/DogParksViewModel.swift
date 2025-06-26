@@ -130,7 +130,7 @@ class DogParksViewModel: ObservableObject {
             return true
         } catch {
             print("🌐 DogParksViewModel: Error checking in: \(error)")
-            errorMessage = "Failed to check in: \(error.localizedDescription)"
+            // Don't set errorMessage here as it conflicts with CheckInSheetView's error handling
             return false
         }
     }

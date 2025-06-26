@@ -10,6 +10,7 @@ import SwiftUI
 struct MainTabView: View {
     @EnvironmentObject var authManager: AuthenticationManager
     @StateObject private var dogProfileViewModel = DogProfileViewModel()
+    @StateObject private var dogParksViewModel = DogParksViewModel()
     @State private var selectedTab = 0 // Default to Feed tab
     
     var body: some View {
@@ -22,6 +23,7 @@ struct MainTabView: View {
                 .tag(0)
             
             DogParksView()
+                .environmentObject(dogParksViewModel)
                 .tabItem {
                     Image(systemName: "map.fill")
                     Text("Parks")
@@ -29,6 +31,7 @@ struct MainTabView: View {
                 .tag(1)
             
             SocialView()
+                .environmentObject(dogParksViewModel)
                 .tabItem {
                     Image(systemName: "person.2.fill")
                     Text("Social")

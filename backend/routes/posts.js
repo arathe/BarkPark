@@ -61,7 +61,7 @@ router.post('/', requireAuth, [
     });
 
     // Get the full post with user info
-    const fullPost = await Post.findById(post.id);
+    const fullPost = await Post.findById(post.id, req.user.id);
     
     res.status(201).json(fullPost);
   } catch (error) {

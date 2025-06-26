@@ -277,7 +277,35 @@ When user says **"wrap this session"**:
 
 ## 📋 Session Notes
 
-### Recent Changes (Session 19)
+### Recent Changes (Session 20)
+- Fixed critical database column mismatches preventing app functionality:
+  - `friendships` table: Changed `requester_id`/`addressee_id` to `user_id`/`friend_id` in all queries
+  - `checkins` table: Changed `dogs_present` to `dogs` in CheckIn model
+  - Fixed Post.getFeedForUser and CheckIn.getFriendsAtPark queries
+  - Added `user_liked` field to Post.findById for check-in responses
+- Fixed iOS networking configuration for local development:
+  - Changed from localhost to Mac's IP address (192.168.68.65) for iOS Simulator
+  - Updated APIService.swift configuration with proper comments
+  - Backend server management: use `nohup node server.js > server.log 2>&1 &`
+- Fixed check-in decoding errors:
+  - Updated parks.js to return full post data using Post.findById
+  - Fixed date decoding by using JSONDecoder.barkParkDecoder
+  - Ensured all required fields are included in check-in response
+- Fixed state synchronization between tabs:
+  - Created shared DogParksViewModel instance in MainTabView
+  - Changed DogParksView and SocialView to use @EnvironmentObject
+  - Check-outs from Social tab now properly update Parks tab UI
+- Enhanced CLAUDE.md with comprehensive debugging guidance:
+  - Added Local Development Setup section with iOS Simulator networking
+  - Added Common Database Schema Issues section
+  - Enhanced State Management Patterns for iOS
+  - Added Change Verification Protocol
+
+**Key Learning**: Always verify actual database schema matches query expectations. The production database schema differed from migration files in column naming.
+
+**Next Steps**: Continue with media upload implementation and iOS test suites
+
+### Session 19
 - Implemented comprehensive backend test suites for social features:
   - Created posts.test.js with 22 tests (19 passing, 3 expected failures)
   - Created notifications.test.js with 18 tests (all passing)

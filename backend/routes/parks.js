@@ -243,11 +243,14 @@ router.post('/:id/checkin', [
       checkInId: checkIn.id
     });
 
+    // Get the full post with all computed fields
+    const fullPost = await Post.findById(post.id, req.user.id);
+
     res.status(201).json({
       message: 'Checked in successfully',
       checkIn,
       park,
-      post
+      post: fullPost
     });
 
   } catch (error) {

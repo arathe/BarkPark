@@ -9,7 +9,7 @@ class CheckIn {
     } = checkInData;
 
     const query = `
-      INSERT INTO checkins (user_id, dog_park_id, dogs_present)
+      INSERT INTO checkins (user_id, dog_park_id, dogs)
       VALUES ($1, $2, $3)
       RETURNING *
     `;
@@ -135,8 +135,8 @@ class CheckIn {
       SELECT c.*, u.first_name, u.last_name, u.profile_image_url
       FROM checkins c
       LEFT JOIN users u ON c.user_id = u.id
-      LEFT JOIN friendships f1 ON (f1.requester_id = $1 AND f1.addressee_id = c.user_id AND f1.status = 'accepted')
-      LEFT JOIN friendships f2 ON (f2.addressee_id = $1 AND f2.requester_id = c.user_id AND f2.status = 'accepted')
+      LEFT JOIN friendships f1 ON (f1.user_id = $1 AND f1.friend_id = c.user_id AND f1.status = 'accepted')
+      LEFT JOIN friendships f2 ON (f2.friend_id = $1 AND f2.user_id = c.user_id AND f2.status = 'accepted')
       WHERE c.dog_park_id = $2 
         AND c.checked_out_at IS NULL
         AND c.user_id != $1
@@ -155,7 +155,7 @@ class CheckIn {
       id: checkIn.id,
       userId: checkIn.user_id,
       dogParkId: checkIn.dog_park_id,
-      dogsPresent: checkIn.dogs_present || [],
+      dogsPresent: checkIn.dogs || [],
       checkedInAt: checkIn.checked_in_at,
       checkedOutAt: checkIn.checked_out_at,
       parkName: checkIn.park_name,

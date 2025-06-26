@@ -9,7 +9,7 @@ import SwiftUI
 import MapKit
 
 struct DogParksView: View {
-    @StateObject private var viewModel = DogParksViewModel()
+    @EnvironmentObject var viewModel: DogParksViewModel
     @StateObject private var locationManager = LocationManager.shared
     @State private var showingLocationPrompt = false
     @State private var showingSearchResults = false
@@ -190,10 +190,11 @@ struct DogParksView: View {
             } message: {
                 Text("Enable location access to find nearby dog parks. You can change this in Settings.")
             }
-            .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
-                Button("OK") {
-                    viewModel.errorMessage = nil
-                }
+            .alert("Error", isPresented: Binding(
+                get: { viewModel.errorMessage != nil },
+                set: { _ in viewModel.errorMessage = nil }
+            )) {
+                Button("OK") { }
             } message: {
                 if let errorMessage = viewModel.errorMessage {
                     Text(errorMessage)
