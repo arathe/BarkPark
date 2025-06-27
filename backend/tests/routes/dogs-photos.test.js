@@ -50,8 +50,8 @@ describe('Dogs Photo Upload API - Gallery Updates & Race Conditions', () => {
     });
     
     // Generate auth tokens
-    authToken1 = jwt.sign({ id: user1.id, email: user1.email }, process.env.JWT_SECRET);
-    authToken2 = jwt.sign({ id: user2.id, email: user2.email }, process.env.JWT_SECRET);
+    authToken1 = jwt.sign({ userId: user1.id }, process.env.JWT_SECRET);
+    authToken2 = jwt.sign({ userId: user2.id }, process.env.JWT_SECRET);
     
     // Create test dogs
     dog1 = await Dog.create({

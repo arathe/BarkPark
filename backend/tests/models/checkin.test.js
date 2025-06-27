@@ -71,7 +71,7 @@ describe('CheckIn Model - Concurrency & Time-Sensitive Operations', () => {
     await pool.query('DELETE FROM checkins WHERE user_id IN ($1, $2, $3)', [user1.id, user2.id, user3.id]);
     await pool.query('DELETE FROM dogs WHERE user_id IN ($1, $2, $3)', [user1.id, user2.id, user3.id]);
     await pool.query('DELETE FROM dog_parks WHERE id IN ($1, $2)', [park1.id, park2.id]);
-    await pool.query('DELETE FROM friendships WHERE requester_id IN ($1, $2, $3) OR addressee_id IN ($1, $2, $3)', 
+    await pool.query('DELETE FROM friendships WHERE user_id IN ($1, $2, $3) OR friend_id IN ($1, $2, $3)', 
       [user1.id, user2.id, user3.id]);
     await pool.query('DELETE FROM users WHERE id IN ($1, $2, $3)', [user1.id, user2.id, user3.id]);
   });
@@ -301,7 +301,7 @@ describe('CheckIn Model - Concurrency & Time-Sensitive Operations', () => {
       checkInTime.setHours(checkInTime.getHours() - 2); // 2 hours ago
       
       const result = await pool.query(`
-        INSERT INTO checkins (user_id, dog_park_id, dogs_present, checked_in_at)
+        INSERT INTO checkins (user_id, dog_park_id, dogs, checked_in_at)
         VALUES ($1, $2, $3, $4)
         RETURNING *
       `, [user1.id, park1.id, [], checkInTime]);
@@ -346,7 +346,7 @@ describe('CheckIn Model - Concurrency & Time-Sensitive Operations', () => {
       oldTime.setHours(oldTime.getHours() - 48);
       
       await pool.query(`
-        INSERT INTO checkins (user_id, dog_park_id, dogs_present, checked_in_at, checked_out_at)
+        INSERT INTO checkins (user_id, dog_park_id, dogs, checked_in_at, checked_out_at)
         VALUES ($1, $2, $3, $4, $5)
       `, [user2.id, park1.id, [], oldTime, oldTime]);
       
@@ -513,7 +513,7 @@ describe('CheckIn Model - Concurrency & Time-Sensitive Operations', () => {
       oldTime.setHours(oldTime.getHours() - 6); // 6 hours ago
       
       await pool.query(`
-        INSERT INTO checkins (user_id, dog_park_id, dogs_present, checked_in_at)
+        INSERT INTO checkins (user_id, dog_park_id, dogs, checked_in_at)
         VALUES ($1, $2, $3, $4)
       `, [user1.id, park1.id, [], oldTime]);
       

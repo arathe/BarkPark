@@ -27,8 +27,8 @@ router.post('/request', [
       message: 'Friend request sent successfully',
       friendship: {
         id: friendship.id,
-        requesterId: friendship.requester_id,
-        addresseeId: friendship.addressee_id,
+        user_id: friendship.user_id,
+        friend_id: friendship.friend_id,
         status: friendship.status,
         createdAt: friendship.created_at
       }
@@ -247,12 +247,12 @@ router.get('/status/:userId', [
       res.json({
         friendship: {
           id: friendship.id,
-          requesterId: friendship.requester_id,
-          addresseeId: friendship.addressee_id,
+          requesterId: friendship.user_id,
+          addresseeId: friendship.friend_id,
           status: friendship.status,
           createdAt: friendship.created_at,
           updatedAt: friendship.updated_at,
-          isRequester: friendship.requester_id === userId
+          isRequester: friendship.user_id === userId
         }
       });
     } else {

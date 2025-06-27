@@ -38,7 +38,7 @@ describe('Friendship Model - State Machine & Bidirectional Relationships', () =>
 
   afterEach(async () => {
     // Clean up in reverse order due to foreign key constraints
-    await pool.query('DELETE FROM friendships WHERE requester_id IN ($1, $2, $3, $4) OR addressee_id IN ($1, $2, $3, $4)', 
+    await pool.query('DELETE FROM friendships WHERE user_id IN ($1, $2, $3, $4) OR friend_id IN ($1, $2, $3, $4)', 
       [user1.id, user2.id, user3.id, user4.id]);
     await pool.query('DELETE FROM users WHERE id IN ($1, $2, $3, $4)', 
       [user1.id, user2.id, user3.id, user4.id]);
@@ -49,8 +49,8 @@ describe('Friendship Model - State Machine & Bidirectional Relationships', () =>
       const friendship = await Friendship.sendFriendRequest(user1.id, user2.id);
       
       expect(friendship).toBeDefined();
-      expect(friendship.requester_id).toBe(user1.id);
-      expect(friendship.addressee_id).toBe(user2.id);
+      expect(friendship.user_id).toBe(user1.id);
+      expect(friendship.friend_id).toBe(user2.id);
       expect(friendship.status).toBe('pending');
       expect(friendship.id).toBeDefined();
     });

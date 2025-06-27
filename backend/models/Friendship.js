@@ -3,6 +3,10 @@ const pool = require('../config/database');
 class Friendship {
   // Send a friend request
   static async sendFriendRequest(requesterId, addresseeId) {
+    if (!requesterId || !addresseeId) {
+      throw new Error('User IDs cannot be null or undefined');
+    }
+    
     if (requesterId === addresseeId) {
       throw new Error('Cannot send friend request to yourself');
     }
@@ -46,10 +50,9 @@ class Friendship {
   // Decline a friend request
   static async declineFriendRequest(friendshipId, userId) {
     const query = `
-      UPDATE friendships 
-      SET status = 'declined', updated_at = CURRENT_TIMESTAMP
+      DELETE FROM friendships 
       WHERE id = $1 AND friend_id = $2 AND status = 'pending'
-      RETURNING id, user_id, friend_id, status, updated_at
+      RETURNING id, user_id, friend_id, 'declined' as status, NOW() as updated_at
     `;
     
     const values = [friendshipId, userId];
@@ -217,8 +220,9 @@ class Friendship {
     const query = `
       SELECT id, user_id, friend_id, status
       FROM friendships
-      WHERE (user_id = $1 AND friend_id = $2)
-         OR (user_id = $2 AND friend_id = $1)
+      WHERE ((user_id = $1 AND friend_id = $2)
+         OR (user_id = $2 AND friend_id = $1))
+         AND status IN ('pending', 'accepted')
     `;
     
     const result = await pool.query(query, [userId1, userId2]);

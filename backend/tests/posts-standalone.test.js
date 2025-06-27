@@ -79,7 +79,7 @@ describe('Posts API Tests', () => {
     await pool.query(`DELETE FROM post_media WHERE post_id IN (SELECT id FROM posts WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'test%'))`);
     await pool.query(`DELETE FROM posts WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'test%')`);
     await pool.query(`DELETE FROM checkins WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'test%')`);
-    await pool.query(`DELETE FROM friendships WHERE requester_id IN (SELECT id FROM users WHERE email LIKE 'test%') OR addressee_id IN (SELECT id FROM users WHERE email LIKE 'test%')`);
+    await pool.query(`DELETE FROM friendships WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'test%') OR friend_id IN (SELECT id FROM users WHERE email LIKE 'test%')`);
     await pool.query(`DELETE FROM users WHERE email IN ('testpost@example.com', 'testfriend@example.com', 'testother@example.com')`);
 
     // Create test users
@@ -127,7 +127,7 @@ describe('Posts API Tests', () => {
 
     // Create friendship
     await pool.query(`
-      INSERT INTO friendships (requester_id, addressee_id, status)
+      INSERT INTO friendships (user_id, friend_id, status)
       VALUES ($1, $2, 'accepted')
     `, [userId, friendId]);
 
@@ -156,7 +156,7 @@ describe('Posts API Tests', () => {
     await pool.query(`DELETE FROM posts WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'test%')`);
     await pool.query(`DELETE FROM checkins WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'test%')`);
     await pool.query(`DELETE FROM dog_parks WHERE name = 'Test Park Posts'`);
-    await pool.query(`DELETE FROM friendships WHERE requester_id IN (SELECT id FROM users WHERE email LIKE 'test%') OR addressee_id IN (SELECT id FROM users WHERE email LIKE 'test%')`);
+    await pool.query(`DELETE FROM friendships WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'test%') OR friend_id IN (SELECT id FROM users WHERE email LIKE 'test%')`);
     await pool.query(`DELETE FROM users WHERE email IN ('testpost@example.com', 'testfriend@example.com', 'testother@example.com')`);
     await pool.end();
   });

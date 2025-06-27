@@ -80,19 +80,33 @@ describe('Integration Tests - Full Authentication Flow', () => {
         .set('Authorization', `Bearer ${userToken}`)
         .send({
           firstName: 'Updated',
-          phone: '+1234567890'
+          phone: '+12125551234'
         })
         .expect(200);
 
       expect(updateResponse.body.user.firstName).toBe('Updated');
-      expect(updateResponse.body.user.phone).toBe('+1234567890');
+      expect(updateResponse.body.user.phone).toBe('+12125551234');
     });
 
     it('should handle authentication errors correctly in full flow', async () => {
       // Step 1: Try to register user that already exists
+      const duplicateUser = {
+        email: 'duplicate@test.com',
+        password: 'duplicate123',
+        firstName: 'Duplicate',
+        lastName: 'Test'
+      };
+      
+      // First register the user
+      await request(app)
+        .post('/api/auth/register')
+        .send(duplicateUser)
+        .expect(201);
+      
+      // Now try to register again
       const duplicateResponse = await request(app)
         .post('/api/auth/register')
-        .send(testUser) // Using same user from previous test
+        .send(duplicateUser)
         .expect(409);
 
       expect(duplicateResponse.body).toHaveProperty('error', 'User with this email already exists');
@@ -101,7 +115,7 @@ describe('Integration Tests - Full Authentication Flow', () => {
       const wrongPasswordResponse = await request(app)
         .post('/api/auth/login')
         .send({
-          email: testUser.email,
+          email: duplicateUser.email,
           password: 'wrongpassword'
         })
         .expect(401);
@@ -132,8 +146,20 @@ describe('Integration Tests - Full Authentication Flow', () => {
     });
 
     it('should maintain authentication state across requests', async () => {
-      // Use token from previous successful login
-      const token = userToken;
+      // Create a fresh user and login
+      const persistUser = {
+        email: 'persist@test.com',
+        password: 'persist123',
+        firstName: 'Persist',
+        lastName: 'Test'
+      };
+      
+      const registerRes = await request(app)
+        .post('/api/auth/register')
+        .send(persistUser)
+        .expect(201);
+        
+      const token = registerRes.body.token;
 
       // Make multiple authenticated requests
       for (let i = 0; i < 3; i++) {
@@ -142,7 +168,7 @@ describe('Integration Tests - Full Authentication Flow', () => {
           .set('Authorization', `Bearer ${token}`)
           .expect(200);
 
-        expect(response.body.user.email).toBe(testUser.email);
+        expect(response.body.user.email).toBe(persistUser.email);
       }
     });
   });
@@ -157,20 +183,20 @@ describe('Integration Tests - Full Authentication Flow', () => {
     };
 
     beforeEach(async () => {
-      // Register and login user for each test
-      await request(app)
+      // Create a unique user for each test to avoid conflicts
+      const uniqueEmail = `dogs${Date.now()}@test.com`;
+      const uniqueUser = {
+        ...testUser,
+        email: uniqueEmail
+      };
+      
+      // Register and get token
+      const registerResponse = await request(app)
         .post('/api/auth/register')
-        .send(testUser);
+        .send(uniqueUser)
+        .expect(201);
 
-      const loginResponse = await request(app)
-        .post('/api/auth/login')
-        .send({
-          email: testUser.email,
-          password: testUser.password
-        })
-        .expect(200);
-
-      authToken = loginResponse.body.token;
+      authToken = registerResponse.body.token;
     });
 
     it('should access dogs API with valid authentication', async () => {
@@ -221,7 +247,7 @@ describe('Integration Tests - Full Authentication Flow', () => {
         .send(dogData)
         .expect(201);
 
-      expect(createResponse.body).toHaveProperty('message', 'Dog created successfully');
+      expect(createResponse.body).toHaveProperty('message', 'Dog profile created successfully');
       expect(createResponse.body.dog.name).toBe(dogData.name);
       expect(createResponse.body.dog.breed).toBe(dogData.breed);
     });

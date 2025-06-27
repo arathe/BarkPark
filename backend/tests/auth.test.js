@@ -257,7 +257,7 @@ describe('Authentication API', () => {
       const updateData = {
         firstName: 'Updated',
         lastName: 'Name',
-        phone: '+1234567890'
+        phone: '+12125551234'  // Valid US phone number
       };
 
       const response = await request(app)
@@ -267,7 +267,11 @@ describe('Authentication API', () => {
         .expect(200);
 
       expect(response.body).toHaveProperty('message', 'Profile updated successfully');
-      expect(response.body.user).toMatchObject(updateData);
+      expect(response.body.user).toMatchObject({
+        firstName: updateData.firstName,
+        lastName: updateData.lastName,
+        phone: updateData.phone
+      });
     });
 
     it('should return 401 without token', async () => {

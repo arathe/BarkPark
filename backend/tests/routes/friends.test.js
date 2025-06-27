@@ -40,14 +40,14 @@ describe('Friends API Routes', () => {
     });
     
     // Generate auth tokens
-    authToken1 = jwt.sign({ id: user1.id, email: user1.email }, process.env.JWT_SECRET);
-    authToken2 = jwt.sign({ id: user2.id, email: user2.email }, process.env.JWT_SECRET);
-    authToken3 = jwt.sign({ id: user3.id, email: user3.email }, process.env.JWT_SECRET);
+    authToken1 = jwt.sign({ userId: user1.id }, process.env.JWT_SECRET);
+    authToken2 = jwt.sign({ userId: user2.id }, process.env.JWT_SECRET);
+    authToken3 = jwt.sign({ userId: user3.id }, process.env.JWT_SECRET);
   });
 
   afterEach(async () => {
     // Clean up
-    await pool.query('DELETE FROM friendships WHERE requester_id IN ($1, $2, $3, $4) OR addressee_id IN ($1, $2, $3, $4)', 
+    await pool.query('DELETE FROM friendships WHERE user_id IN ($1, $2, $3, $4) OR friend_id IN ($1, $2, $3, $4)', 
       [user1.id, user2.id, user3.id, user4.id]);
     await pool.query('DELETE FROM users WHERE id IN ($1, $2, $3, $4)', 
       [user1.id, user2.id, user3.id, user4.id]);
@@ -63,8 +63,8 @@ describe('Friends API Routes', () => {
 
       expect(response.body.message).toBe('Friend request sent successfully');
       expect(response.body.friendship).toMatchObject({
-        requesterId: user1.id,
-        addresseeId: user2.id,
+        user_id: user1.id,
+        friend_id: user2.id,
         status: 'pending'
       });
     });
@@ -540,7 +540,7 @@ describe('Friends API Routes', () => {
         lastName: 'User'
       });
       
-      const tempToken = jwt.sign({ id: tempUser.id, email: tempUser.email }, process.env.JWT_SECRET);
+      const tempToken = jwt.sign({ userId: tempUser.id }, process.env.JWT_SECRET);
       
       // Delete the user
       await pool.query('DELETE FROM users WHERE id = $1', [tempUser.id]);
