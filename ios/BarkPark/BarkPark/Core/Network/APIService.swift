@@ -1180,6 +1180,103 @@ class APIService {
     }
 }
 
+// MARK: - Password Reset
+extension APIService {
+    func requestPasswordReset(email: String) async throws -> PasswordResetResponse {
+        let endpoint = "\(baseURL)/auth/forgot-password"
+        
+        var request = URLRequest(url: URL(string: endpoint)!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let body = ["email": email]
+        request.httpBody = try JSONEncoder().encode(body)
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 200:
+            return try JSONDecoder().decode(PasswordResetResponse.self, from: data)
+        case 400:
+            if let errorResponse = try? JSONDecoder().decode(PasswordResetErrorResponse.self, from: data) {
+                throw APIError.validationFailed(errorResponse.error)
+            }
+            throw APIError.validationFailed("Invalid request")
+        case 429:
+            if let errorResponse = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let errorMessage = errorResponse["error"] as? String {
+                throw APIError.validationFailed(errorMessage)
+            }
+            throw APIError.validationFailed("Too many requests")
+        default:
+            throw APIError.serverError
+        }
+    }
+    
+    func resetPassword(token: String, newPassword: String) async throws -> ResetPasswordResponse {
+        let endpoint = "\(baseURL)/auth/reset-password"
+        
+        var request = URLRequest(url: URL(string: endpoint)!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let body = [
+            "token": token,
+            "password": newPassword
+        ]
+        request.httpBody = try JSONEncoder().encode(body)
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 200:
+            return try JSONDecoder().decode(ResetPasswordResponse.self, from: data)
+        case 400:
+            if let errorResponse = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let errorMessage = errorResponse["error"] as? String {
+                throw APIError.validationFailed(errorMessage)
+            }
+            throw APIError.validationFailed("Invalid or expired reset token")
+        default:
+            throw APIError.serverError
+        }
+    }
+    
+    func verifyResetToken(token: String) async throws -> VerifyTokenResponse {
+        let endpoint = "\(baseURL)/auth/verify-reset-token?token=\(token)"
+        
+        var request = URLRequest(url: URL(string: endpoint)!)
+        request.httpMethod = "GET"
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 200:
+            return try JSONDecoder().decode(VerifyTokenResponse.self, from: data)
+        case 400:
+            if let errorResponse = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let errorMessage = errorResponse["error"] as? String {
+                throw APIError.validationFailed(errorMessage)
+            }
+            throw APIError.validationFailed("Invalid token")
+        default:
+            throw APIError.serverError
+        }
+    }
+}
+
 // MARK: - API Errors
 enum APIError: Error, LocalizedError {
     case invalidResponse

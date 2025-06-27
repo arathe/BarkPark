@@ -14,6 +14,7 @@ struct LoginView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var showPassword = false
+    @State private var showForgotPassword = false
     
     var body: some View {
         NavigationView {
@@ -105,6 +106,16 @@ struct LoginView: View {
                         }
                         .barkParkButton()
                         .disabled(email.isEmpty || password.isEmpty || authManager.isLoading)
+                        
+                        // Forgot password link
+                        Button(action: {
+                            showForgotPassword = true
+                        }) {
+                            Text("Forgot Password?")
+                                .font(BarkParkDesign.Typography.body)
+                                .foregroundColor(BarkParkDesign.Colors.dogPrimary)
+                        }
+                        .padding(.top, BarkParkDesign.Spacing.sm)
                     }
                     .padding(.horizontal, BarkParkDesign.Spacing.lg)
                     
@@ -119,6 +130,9 @@ struct LoginView: View {
                         dismiss()
                     }
                 }
+            }
+            .sheet(isPresented: $showForgotPassword) {
+                ForgotPasswordView()
             }
         }
     }
