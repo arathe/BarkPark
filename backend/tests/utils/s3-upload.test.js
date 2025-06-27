@@ -19,6 +19,11 @@ jest.mock('aws-sdk', () => {
 
 describe('S3 Upload Utilities - Error Handling & Recovery', () => {
   let mockS3Instance;
+  const mockFile = {
+    buffer: Buffer.from('test image data'),
+    mimetype: 'image/jpeg',
+    originalname: 'test.jpg'
+  };
   
   beforeEach(() => {
     // Clear all mocks

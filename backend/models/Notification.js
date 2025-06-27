@@ -2,13 +2,19 @@ const pool = require('../config/database');
 
 class Notification {
   static async create({ userId, type, actorId, postId = null, commentId = null }) {
+    const data = {
+      actorId,
+      postId,
+      commentId
+    };
+    
     const query = `
-      INSERT INTO notifications (user_id, type, actor_id, post_id, comment_id)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO notifications (user_id, type, data)
+      VALUES ($1, $2, $3)
       RETURNING *
     `;
     
-    const values = [userId, type, actorId, postId, commentId];
+    const values = [userId, type, JSON.stringify(data)];
     const result = await pool.query(query, values);
     return result.rows[0];
   }
@@ -17,6 +23,9 @@ class Notification {
     const query = `
       SELECT 
         n.*,
+        n.data->>'actorId' as actor_id,
+        n.data->>'postId' as post_id,
+        n.data->>'commentId' as comment_id,
         u.first_name as actor_first_name,
         u.last_name as actor_last_name,
         u.profile_image_url as actor_profile_image,
@@ -31,14 +40,14 @@ class Notification {
             ) ORDER BY pm.order_index
           )
           FROM post_media pm
-          WHERE pm.post_id = n.post_id
+          WHERE pm.post_id = (n.data->>'postId')::int
           LIMIT 1
         ) as post_media,
         pc.content as comment_content
       FROM notifications n
-      JOIN users u ON u.id = n.actor_id
-      LEFT JOIN posts p ON p.id = n.post_id
-      LEFT JOIN post_comments pc ON pc.id = n.comment_id
+      JOIN users u ON u.id = (n.data->>'actorId')::int
+      LEFT JOIN posts p ON p.id = (n.data->>'postId')::int
+      LEFT JOIN post_comments pc ON pc.id = (n.data->>'commentId')::int
       WHERE n.user_id = $1
       ORDER BY n.created_at DESC
       LIMIT $2 OFFSET $3
@@ -51,7 +60,7 @@ class Notification {
   static async markAsRead(notificationId, userId) {
     const query = `
       UPDATE notifications
-      SET is_read = true
+      SET read = true
       WHERE id = $1 AND user_id = $2
       RETURNING id
     `;
@@ -63,8 +72,8 @@ class Notification {
   static async markAllAsRead(userId) {
     const query = `
       UPDATE notifications
-      SET is_read = true
-      WHERE user_id = $1 AND is_read = false
+      SET read = true
+      WHERE user_id = $1 AND read = false
       RETURNING id
     `;
     
@@ -76,7 +85,7 @@ class Notification {
     const query = `
       SELECT COUNT(*) as count
       FROM notifications
-      WHERE user_id = $1 AND is_read = false
+      WHERE user_id = $1 AND read = false
     `;
     
     const result = await pool.query(query, [userId]);
