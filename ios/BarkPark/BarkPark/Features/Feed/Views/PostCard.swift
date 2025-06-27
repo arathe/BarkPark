@@ -55,7 +55,7 @@ struct PostCard: View {
             y: 2
         )
         .sheet(isPresented: $showComments) {
-            CommentsView(post: post)
+            CommentsSheetView(post: post)
         }
     }
     

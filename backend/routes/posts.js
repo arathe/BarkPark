@@ -247,6 +247,9 @@ router.post('/:id/like', requireAuth, [
     });
   } catch (error) {
     console.error('Error toggling like:', error);
+    if (error.message === 'Post not found') {
+      return res.status(404).json({ error: 'Post not found' });
+    }
     res.status(500).json({ error: 'Failed to update like status' });
   }
 });
@@ -306,6 +309,9 @@ router.post('/:id/comment', requireAuth, [
     res.status(201).json(comment);
   } catch (error) {
     console.error('Error creating comment:', error);
+    if (error.message === 'Post not found') {
+      return res.status(404).json({ error: 'Post not found' });
+    }
     res.status(500).json({ error: 'Failed to create comment' });
   }
 });
@@ -336,33 +342,6 @@ router.get('/:id/comments', requireAuth, [
   } catch (error) {
     console.error('Error fetching comments:', error);
     res.status(500).json({ error: 'Failed to fetch comments' });
-  }
-});
-
-// Update comment
-router.put('/comments/:id', requireAuth, [
-  param('id').isInt(),
-  body('content').isString().trim().isLength({ min: 1, max: 1000 })
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
-    const commentId = parseInt(req.params.id);
-    const { content } = req.body;
-    
-    const comment = await PostComment.update(commentId, req.user.id, content);
-    
-    if (!comment) {
-      return res.status(404).json({ error: 'Comment not found or you do not have permission to edit it' });
-    }
-    
-    res.json(comment);
-  } catch (error) {
-    console.error('Error updating comment:', error);
-    res.status(500).json({ error: 'Failed to update comment' });
   }
 });
 

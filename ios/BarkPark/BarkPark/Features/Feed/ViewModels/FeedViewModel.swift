@@ -13,6 +13,68 @@ class FeedViewModel: ObservableObject {
     private var currentOffset = 0
     private let pageSize = 20
     
+    init() {
+        setupNotificationObservers()
+    }
+    
+    private func setupNotificationObservers() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleCommentAdded),
+            name: NSNotification.Name("CommentAdded"),
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleCommentDeleted),
+            name: NSNotification.Name("CommentDeleted"),
+            object: nil
+        )
+    }
+    
+    @objc private func handleCommentAdded(_ notification: Foundation.Notification) {
+        guard let postId = notification.userInfo?["postId"] as? Int else { return }
+        updateCommentCount(for: postId, increment: 1)
+    }
+    
+    @objc private func handleCommentDeleted(_ notification: Foundation.Notification) {
+        guard let postId = notification.userInfo?["postId"] as? Int else { return }
+        updateCommentCount(for: postId, increment: -1)
+    }
+    
+    private func updateCommentCount(for postId: Int, increment: Int) {
+        if let index = posts.firstIndex(where: { $0.id == postId }) {
+            let updatedPost = posts[index]
+            var updatedPosts = posts
+            
+            updatedPosts[index] = Post(
+                id: updatedPost.id,
+                userId: updatedPost.userId,
+                content: updatedPost.content,
+                postType: updatedPost.postType,
+                visibility: updatedPost.visibility,
+                checkInId: updatedPost.checkInId,
+                sharedPostId: updatedPost.sharedPostId,
+                createdAt: updatedPost.createdAt,
+                updatedAt: updatedPost.updatedAt,
+                firstName: updatedPost.firstName,
+                lastName: updatedPost.lastName,
+                userProfileImage: updatedPost.userProfileImage,
+                likeCount: updatedPost.likeCount,
+                commentCount: max(0, updatedPost.commentCount + increment),
+                userLiked: updatedPost.userLiked,
+                media: updatedPost.media,
+                checkIn: updatedPost.checkIn
+            )
+            posts = updatedPosts
+        }
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
     func loadFeed() async {
         guard !isLoading else { return }
         isLoading = true

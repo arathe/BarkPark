@@ -10,6 +10,7 @@ This file provides guidance for AI assistants working with the BarkPark codebase
 - **Frontend**: iOS SwiftUI app (iOS 17+)
 - **Deployment**: Railway PaaS (backend), TestFlight (iOS)
 - **Production API**: `https://barkpark-production.up.railway.app/api`
+- **Local/Dev API**: Development is done on a locally hosted API
 
 ### Current Features
 - 🔐 JWT authentication with privacy controls
@@ -20,12 +21,6 @@ This file provides guidance for AI assistants working with the BarkPark codebase
 - 🗺️ Dynamic map with location-based search
 - 📰 Social feed with posts, likes, and comments
 - 🔔 Real-time notifications for social interactions
-
-### Project Status
-- ✅ Backend: Production-ready on Railway
-- ✅ iOS App: Feature-complete, ready for App Store
-- ✅ Database: Fully migrated with unified system
-- ✅ Social Features: Privacy settings, QR codes, friend management
 
 ## 📱 iOS App Architecture
 
@@ -64,17 +59,11 @@ This file provides guidance for AI assistants working with the BarkPark codebase
 
 ### Core Principles
 1. **Read First**: Examine existing patterns before implementing
-2. **Production-Only Database**: No local database - all development uses Railway production database
-3. **Schema Safety**: Always verify database alignment before migrations
-4. **Security First**: Never expose secrets, validate all input
-5. **Match Patterns**: Follow existing code conventions
+2. **Schema Safety**: Always verify database alignment before migrations
+3. **Security First**: Never expose secrets, validate all input
+4. **Match Patterns**: Follow existing code conventions
+5. **Test based development**: We are following a test-based development approach. tests should be written for all new functionality and used through the development process to ensure functionality.
 
-### Database Environment Strategy
-⚠️ **IMPORTANT**: This project uses Railway-hosted production database exclusively. There is no local database setup.
-- All migrations run against production database on Railway
-- Use caution when testing - you're working with live data
-- Consider implementing staging environment for major changes
-- Database connection available only through Railway deployment
 
 ### Production Database Testing Patterns
 - **Test Data Management**:
@@ -153,11 +142,6 @@ npm run db:schema:sync:verbose  # Detailed schema comparison
 - Handle both development and production scenarios
 - Test migrations with fresh database and existing data
 - Document rollback procedures for each migration
-
-### PostGIS Compatibility Notes
-- **Version Mismatch**: May encounter "PostGIS built for PostgreSQL X cannot be loaded in PostgreSQL Y"
-- **Solution**: Create simpler migrations without PostGIS-specific functions when errors occur
-- **Alternative**: Apply migrations directly through Railway dashboard if needed
 
 ## 🐛 Debugging Methodology
 
@@ -277,141 +261,6 @@ When user says **"wrap this session"**:
 
 ## 📋 Session Notes
 
-### Recent Changes (Session 20)
-- Fixed critical database column mismatches preventing app functionality:
-  - `friendships` table: Changed `requester_id`/`addressee_id` to `user_id`/`friend_id` in all queries
-  - `checkins` table: Changed `dogs_present` to `dogs` in CheckIn model
-  - Fixed Post.getFeedForUser and CheckIn.getFriendsAtPark queries
-  - Added `user_liked` field to Post.findById for check-in responses
-- Fixed iOS networking configuration for local development:
-  - Changed from localhost to Mac's IP address (192.168.68.65) for iOS Simulator
-  - Updated APIService.swift configuration with proper comments
-  - Backend server management: use `nohup node server.js > server.log 2>&1 &`
-- Fixed check-in decoding errors:
-  - Updated parks.js to return full post data using Post.findById
-  - Fixed date decoding by using JSONDecoder.barkParkDecoder
-  - Ensured all required fields are included in check-in response
-- Fixed state synchronization between tabs:
-  - Created shared DogParksViewModel instance in MainTabView
-  - Changed DogParksView and SocialView to use @EnvironmentObject
-  - Check-outs from Social tab now properly update Parks tab UI
-- Enhanced CLAUDE.md with comprehensive debugging guidance:
-  - Added Local Development Setup section with iOS Simulator networking
-  - Added Common Database Schema Issues section
-  - Enhanced State Management Patterns for iOS
-  - Added Change Verification Protocol
-
-**Key Learning**: Always verify actual database schema matches query expectations. The production database schema differed from migration files in column naming.
-
-**Next Steps**: Continue with media upload implementation and iOS test suites
-
-### Session 19
-- Implemented comprehensive backend test suites for social features:
-  - Created posts.test.js with 22 tests (19 passing, 3 expected failures)
-  - Created notifications.test.js with 18 tests (all passing)
-  - Created dogs.test.js with 25 tests (all passing)
-  - Backend test coverage improved from ~40% to ~70%
-- Fixed critical test infrastructure issues:
-  - Modified global setup.js to skip cleanup for self-managed tests (backend/tests/setup.js:123-135)
-  - Fixed field naming mismatches (snake_case DB vs camelCase API)
-  - Updated tests for schema evolution (age→birthday, description→bio)
-  - Fixed PostgreSQL aggregate function error in Notification.markAllAsRead (backend/models/Notification.js:63-73)
-- Key technical discoveries:
-  - PostComment.getCommentsForPost returns nested user objects, not flat fields
-  - API returns 500 (foreign key violation) instead of 404 for non-existent resources
-  - COUNT() returns strings in some contexts, requiring parseInt()
-  - Tests must account for async post creation affecting feed ordering
-
-**Key Learning**: When tests fail, always verify the actual API response structure before assuming the test is correct. Field naming and nesting patterns often differ from expectations.
-
-**Next Steps**: Create iOS test suites (FeedViewModel, DogParksViewModel, APIService) and backend integration tests
-
-### Session 18
-- Fixed iOS build errors after major refactoring:
-  - Fixed PostType enum comparison in PostCard.swift (changed string to enum: `.checkin`)
-  - Fixed CheckInInfo type reference (removed `Post.` prefix) 
-  - Fixed PostVisibility type reference in CreatePostView.swift
-  - Updated preview data to use proper Date objects and enum values
-  - Successfully built iOS app after refactoring from commit e51f10f
-- Fixed Railway deployment failure:
-  - Added missing `backend/utils/schema-compare.js` to repository
-  - Added missing `backend/scripts/schema-sync.js` to repository
-  - Both files were created but not tracked in git, causing MODULE_NOT_FOUND error
-  - Deployment now succeeds with all required modules
-
-**Key Learning**: Always run `git status` to check for untracked files before deployment, especially utility scripts and modules
-
-**Next Steps**: Continue implementing media upload, comment viewing, and notification UI
-
-### Session 17
-- Implemented comprehensive social feed functionality:
-  - Created database schema for posts, media, likes, comments, and notifications (backend/migrations/007_add_social_feed.sql)
-  - Built Post, PostLike, PostComment, and Notification models with full CRUD operations
-  - Added social feed API endpoints with mixed media support (backend/routes/posts.js, notifications.js)
-  - Created iOS feed UI with FeedView, PostCard, and CreatePostView components
-  - Integrated feed as default tab in MainTabView
-  - Fixed auth middleware import issues (requireAuth → verifyToken)
-- Discovered production-only database strategy (no local development database)
-- Debugged and fixed feed loading issues:
-  - Added migration to unified-migrate.js migrations array (backend/scripts/unified-migrate.js:79)
-  - Fixed missing CodingKeys for date fields (ios/BarkPark/BarkPark/Models/Post.swift:53-54)  
-  - Cast PostgreSQL COUNT to int (backend/models/Post.js - COUNT()::int)
-  - Created reusable date decoder (ios/BarkPark/BarkPark/Core/Extensions/JSONDecoder+DateParsing.swift)
-  - Built debug tools: FeedDebugView and test endpoints (backend/routes/test-feed.js)
-- Successfully deployed to Railway with automatic migration
-
-### Session 16
-- Fixed UserProfileView blank screen issue:
-  - Changed initial `isLoading` state from false to true in UserProfileViewModel (ios/BarkPark/BarkPark/Features/Profile/ViewModels/UserProfileViewModel.swift:53)
-  - Added comprehensive debug logging throughout UserProfileView and UserProfileViewModel
-  - Added fallback "No data loaded" state for edge cases (ios/BarkPark/BarkPark/Features/Profile/Views/UserProfileView.swift:119-125)
-  - Root cause: View was starting with all states false/nil, causing no UI to render
-
-**Next Steps**: Remove debug logs once profile viewing is confirmed working
-
-### Session 15
-- Implemented user profile viewing for friends and friend requests:
-  - Added `/api/users/:userId/profile` endpoint with permission checks (backend/routes/users.js)
-  - Created UserProfileView and UserProfileViewModel (ios/BarkPark/BarkPark/Features/Profile/*)
-  - Added navigation from friend lists to user profiles
-  - Fixed naming conflicts (DogCard → UserProfileDogCard)
-  - Fixed CornerRadius API usage (.md → .medium)
-- Extended user profiles with recent check-ins feature:
-  - Added `getUserHistory` method to CheckIn model (backend/models/CheckIn.js)
-  - Updated profile endpoint to include last 3 check-ins
-  - Created CheckInCard component showing park visits with duration
-  - Added proper date/time formatting for visit durations
-- Fixed multiple iOS build errors related to networking patterns
-- Updated CLAUDE.md with iOS architecture documentation
-
-### Session 14
-- Fixed iOS navigation from sheet to push presentation (RootView.swift, ProfileView.swift, MainTabView.swift)
-- Resolved security issue with hardcoded JWT secret (backend/scripts/update-local-env.sh:7)
-- Migrated entire codebase to PostGIS from lat/lng columns:
-  - Updated all migrations to use GEOGRAPHY(POINT, 4326)
-  - Rewrote DogPark.js model with PostGIS queries (backend/models/DogPark.js)
-  - Converted 103+ park seed data to ST_MakePoint format
-  - Maintained API compatibility by extracting lat/lng in queries
-- Enhanced migration system with better error handling (backend/scripts/unified-migrate.js)
-- Improved CLAUDE.md with technical decision guidance and PostGIS reference
-
-### Session 13 & Earlier
-- Session 13: Persistent check-in UI across all views
-- Session 12: Unified migration system implementation
-
-### Known Working Features
-- All authentication endpoints
-- Park search and discovery
-- Friend connections with QR codes
-- Check-in system with persistent UI
-- Privacy controls
-- Active check-in display across app
-- Social feed with chronological posts from friends
-- Post creation with privacy settings
-- Like/unlike functionality with optimistic UI
-- Mixed media support (photos and videos in same post)
-- Real-time notifications system
-
 ### Quick Reference
 ```bash
 # Test production API endpoints
@@ -435,6 +284,39 @@ curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/jso
 -- Find nearby: ST_DWithin(location, point, distance_meters)
 -- Calculate distance: ST_Distance(location1, location2)
 ```
+
+## Session 21 Summary - Threaded Comments Implementation
+
+### Features Implemented
+- **Backend Changes**:
+  - Removed comment editing functionality (users can only delete) - backend/routes/posts.js:348
+  - Added cascade deletion for child comments using recursive CTE - backend/models/PostComment.js:165-216
+  - Created comprehensive test suite - backend/tests/comments.test.js
+
+- **iOS Implementation**:
+  - Created Comment model with nested reply support - ios/BarkPark/BarkPark/Models/Comment.swift
+  - Built CommentView for recursive comment display - ios/BarkPark/BarkPark/Features/Feed/Views/CommentView.swift
+  - Created CommentsSheetView with composition UI - ios/BarkPark/BarkPark/Features/Feed/Views/CommentsSheetView.swift
+  - Added CommentViewModel for state management - ios/BarkPark/BarkPark/Features/Feed/ViewModels/CommentViewModel.swift
+  - Updated APIService with comment endpoints - ios/BarkPark/BarkPark/Core/Network/APIService.swift:1087-1180
+  - Integrated real-time comment count updates - ios/BarkPark/BarkPark/Features/Feed/ViewModels/FeedViewModel.swift:16-75
+
+### Technical Decisions
+- Limited comment nesting to 3 levels for UI clarity
+- Used cascade deletion instead of soft delete for data integrity
+- Implemented optimistic UI updates for comment counts
+- Added NotificationCenter for cross-view state synchronization
+
+### Build Issues Fixed
+- Resolved @objc selector compilation errors with Foundation.Notification
+- Fixed Post model initialization in preview providers
+- Corrected variable mutability warnings
+
+### Next Steps
+- Consider adding comment reactions/likes
+- Implement comment reporting/moderation
+- Add push notifications for comment replies
+- Create comment search functionality
 
 ---
 *For detailed session history, see git commits. This file maintains current project state and essential protocols.*

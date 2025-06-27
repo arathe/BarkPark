@@ -1083,6 +1083,101 @@ class APIService {
             throw APIError.serverError
         }
     }
+    
+    // MARK: - Comments
+    
+    func getComments(postId: Int, limit: Int = 50, offset: Int = 0) async throws -> CommentsResponse {
+        let url = URL(string: "\(baseURL)/posts/\(postId)/comments?limit=\(limit)&offset=\(offset)")!
+        var request = URLRequest(url: url)
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 200:
+            return try JSONDecoder.barkParkDecoder.decode(CommentsResponse.self, from: data)
+        case 401:
+            throw APIError.authenticationFailed("Authentication required")
+        default:
+            throw APIError.serverError
+        }
+    }
+    
+    func postComment(postId: Int, content: String, parentCommentId: Int? = nil) async throws -> CommentResponse {
+        let url = URL(string: "\(baseURL)/posts/\(postId)/comment")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        var body: [String: Any] = ["content": content]
+        if let parentId = parentCommentId {
+            body["parentCommentId"] = parentId
+        }
+        
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 201:
+            return try JSONDecoder.barkParkDecoder.decode(CommentResponse.self, from: data)
+        case 404:
+            throw APIError.validationFailed("Post not found")
+        case 401:
+            throw APIError.authenticationFailed("Authentication required")
+        case 400:
+            if let errorData = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let errors = errorData["errors"] as? [[String: Any]] {
+                let messages = errors.compactMap { $0["msg"] as? String }.joined(separator: ", ")
+                throw APIError.validationFailed(messages)
+            }
+            throw APIError.validationFailed("Invalid comment data")
+        default:
+            throw APIError.serverError
+        }
+    }
+    
+    func deleteComment(commentId: Int) async throws {
+        let url = URL(string: "\(baseURL)/posts/comments/\(commentId)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        let (_, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 200:
+            return
+        case 404:
+            throw APIError.validationFailed("Comment not found or you don't have permission to delete it")
+        case 401:
+            throw APIError.authenticationFailed("Authentication required")
+        default:
+            throw APIError.serverError
+        }
+    }
 }
 
 // MARK: - API Errors

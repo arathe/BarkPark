@@ -6,6 +6,12 @@ class PostComment {
     try {
       await client.query('BEGIN');
       
+      // Check if post exists
+      const postCheck = await client.query('SELECT id FROM posts WHERE id = $1', [postId]);
+      if (postCheck.rows.length === 0) {
+        throw new Error('Post not found');
+      }
+      
       const insertQuery = `
         INSERT INTO post_comments (post_id, user_id, content, parent_comment_id)
         VALUES ($1, $2, $3, $4)
@@ -21,11 +27,16 @@ class PostComment {
       const postResult = await client.query(postQuery, [postId]);
       
       if (postResult.rows[0] && postResult.rows[0].user_id !== userId) {
+        const data = {
+          actorId: userId,
+          postId: postId,
+          commentId: comment.id
+        };
         const notifQuery = `
-          INSERT INTO notifications (user_id, type, actor_id, post_id, comment_id)
-          VALUES ($1, 'comment', $2, $3, $4)
+          INSERT INTO notifications (user_id, type, data)
+          VALUES ($1, 'comment', $2)
         `;
-        await client.query(notifQuery, [postResult.rows[0].user_id, userId, postId, comment.id]);
+        await client.query(notifQuery, [postResult.rows[0].user_id, JSON.stringify(data)]);
       }
       
       // If replying to a comment, notify the parent comment author
@@ -34,11 +45,16 @@ class PostComment {
         const parentResult = await client.query(parentQuery, [parentCommentId]);
         
         if (parentResult.rows[0] && parentResult.rows[0].user_id !== userId) {
+          const data = {
+            actorId: userId,
+            postId: postId,
+            commentId: comment.id
+          };
           const replyNotifQuery = `
-            INSERT INTO notifications (user_id, type, actor_id, post_id, comment_id)
-            VALUES ($1, 'comment', $2, $3, $4)
+            INSERT INTO notifications (user_id, type, data)
+            VALUES ($1, 'comment', $2)
           `;
-          await client.query(replyNotifQuery, [parentResult.rows[0].user_id, userId, postId, comment.id]);
+          await client.query(replyNotifQuery, [parentResult.rows[0].user_id, JSON.stringify(data)]);
         }
       }
       
@@ -146,27 +162,57 @@ class PostComment {
     return parseInt(result.rows[0].count);
   }
 
-  static async update(commentId, userId, content) {
-    const query = `
-      UPDATE post_comments
-      SET content = $3, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1 AND user_id = $2
-      RETURNING *
-    `;
-    
-    const result = await pool.query(query, [commentId, userId, content]);
-    return result.rows[0];
-  }
-
   static async delete(commentId, userId) {
-    const query = `
-      DELETE FROM post_comments
-      WHERE id = $1 AND user_id = $2
-      RETURNING id
-    `;
-    
-    const result = await pool.query(query, [commentId, userId]);
-    return result.rows.length > 0;
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      
+      // First check if the comment exists and belongs to the user
+      const checkQuery = `
+        SELECT id, user_id, post_id
+        FROM post_comments
+        WHERE id = $1
+      `;
+      const checkResult = await client.query(checkQuery, [commentId]);
+      
+      if (checkResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return false;
+      }
+      
+      if (checkResult.rows[0].user_id !== userId) {
+        await client.query('ROLLBACK');
+        return false;
+      }
+      
+      // Delete all child comments recursively using CTE
+      const deleteQuery = `
+        WITH RECURSIVE comment_tree AS (
+          -- Base case: the comment to delete
+          SELECT id FROM post_comments WHERE id = $1
+          
+          UNION ALL
+          
+          -- Recursive case: all child comments
+          SELECT pc.id 
+          FROM post_comments pc
+          JOIN comment_tree ct ON pc.parent_comment_id = ct.id
+        )
+        DELETE FROM post_comments
+        WHERE id IN (SELECT id FROM comment_tree)
+        RETURNING id
+      `;
+      
+      const result = await client.query(deleteQuery, [commentId]);
+      
+      await client.query('COMMIT');
+      return result.rows.length > 0;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 }
 
