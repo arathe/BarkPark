@@ -79,6 +79,11 @@ const migrations = [
     id: '007_add_social_feed',
     file: '007_add_social_feed.sql',
     description: 'Add social feed tables (posts, media, likes, comments, notifications)'
+  },
+  {
+    id: '008_add_password_reset',
+    file: '008_add_password_reset.sql',
+    description: 'Add password reset functionality'
   }
 ];
 

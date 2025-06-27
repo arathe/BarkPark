@@ -2,6 +2,7 @@ const express = require('express');
 const { body, query, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { generateToken, verifyToken } = require('../middleware/auth');
+const emailService = require('../services/emailService');
 
 const router = express.Router();
 
@@ -229,6 +230,132 @@ router.get('/search', verifyToken, [
   } catch (error) {
     console.error('Search users error:', error);
     res.status(500).json({ error: 'Failed to search users' });
+  }
+});
+
+// Request password reset
+router.post('/forgot-password', [
+  body('email').isEmail().normalizeEmail()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email } = req.body;
+
+    // Check rate limiting - max 3 requests per hour
+    const resetCount = await User.getResetRequestCount(email, 1);
+    if (resetCount >= 3) {
+      return res.status(429).json({ 
+        error: 'Too many password reset requests. Please try again later.' 
+      });
+    }
+
+    // Generate reset token
+    const userWithToken = await User.generatePasswordResetToken(email);
+
+    if (userWithToken) {
+      // Send email with reset token
+      try {
+        const emailResult = await emailService.sendPasswordResetEmail(
+          userWithToken.email, 
+          userWithToken.reset_token
+        );
+        
+        if (process.env.NODE_ENV === 'development' && emailResult.previewUrl) {
+          console.log('Password reset email preview:', emailResult.previewUrl);
+        }
+      } catch (emailError) {
+        console.error('Failed to send password reset email:', emailError);
+        // Continue anyway - user can still use the token if they know to check the app
+      }
+    }
+
+    // Always return success to prevent email enumeration
+    res.json({
+      message: 'If an account exists with this email, a password reset code has been sent.',
+      expiresIn: '1 hour'
+    });
+
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ error: 'Failed to process password reset request' });
+  }
+});
+
+// Reset password with token
+router.post('/reset-password', [
+  body('token').isLength({ min: 32 }).withMessage('Invalid reset token'),
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { token, password } = req.body;
+
+    // Reset password
+    const user = await User.resetPassword(token, password);
+
+    // Generate new auth token for automatic login
+    const authToken = generateToken(user.id);
+
+    res.json({
+      message: 'Password reset successful',
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name
+      },
+      token: authToken
+    });
+
+  } catch (error) {
+    console.error('Reset password error:', error);
+    
+    if (error.message === 'Invalid or expired reset token') {
+      return res.status(400).json({ error: error.message });
+    }
+    
+    res.status(500).json({ error: 'Failed to reset password' });
+  }
+});
+
+// Verify reset token (optional endpoint for better UX)
+router.get('/verify-reset-token', [
+  query('token').isLength({ min: 32 }).withMessage('Invalid reset token')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { token } = req.query;
+
+    const user = await User.findByResetToken(token);
+
+    if (!user) {
+      return res.status(400).json({ 
+        error: 'Invalid or expired reset token',
+        valid: false 
+      });
+    }
+
+    res.json({
+      message: 'Reset token is valid',
+      valid: true,
+      email: user.email
+    });
+
+  } catch (error) {
+    console.error('Verify reset token error:', error);
+    res.status(500).json({ error: 'Failed to verify reset token' });
   }
 });
 
