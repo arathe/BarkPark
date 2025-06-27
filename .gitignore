@@ -38,3 +38,10 @@ test-tokens.json
 # Xcode user-specific files
 *.xcuserstate
 xcuserdata/
+
+# Database backups
+*.sql
+barkpark_backup_*
+
+# iOS test results
+ios/TestResults/
