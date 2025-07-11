@@ -21,6 +21,7 @@ This file provides guidance for AI assistants working with the BarkPark codebase
 - 🗺️ Dynamic map with location-based search
 - 📰 Social feed with posts, likes, and comments
 - 🔔 Real-time notifications for social interactions
+- 🔑 Password reset with 5-digit alphanumeric codes via email
 
 ## 📱 iOS App Architecture
 
@@ -54,6 +55,33 @@ This file provides guidance for AI assistants working with the BarkPark codebase
 - Use `NavigationLink` for push navigation
 - Use `.sheet()` for modal presentations
 - Navigation is already wrapped in `NavigationView` at root level
+
+## 💻 Local Development Setup
+
+### Backend Server Management
+- **Starting the server**: `npm run dev` (runs with nodemon for auto-reload)
+- **Running in background**: `npm run dev > server.log 2>&1 &`
+- **Checking server status**: `ps aux | grep "node.*server" | grep -v grep`
+- **Viewing logs**: `tail -f server.log` (if running in background)
+- **Default port**: 3000 (configurable via PORT env variable)
+
+### iOS Development Configuration
+- **IP Address Setup**:
+  1. Find your machine's IP: `ifconfig | grep -E "inet.*broadcast" | awk '{print $2}'`
+  2. Update `APIService.swift` baseURL: `http://YOUR_IP:3000/api`
+  3. Rebuild iOS app after IP changes (Clean Build: Cmd+Shift+K)
+- **Common Issues**:
+  - iOS Simulator can't reach localhost - must use machine IP
+  - IP addresses change when switching networks
+  - Firewall may block port 3000 - check system preferences
+- **Testing Connection**: `curl http://YOUR_IP:3000/health`
+
+### Development Workflow Best Practices
+1. Always start backend server before iOS development
+2. Keep server logs visible in separate terminal
+3. Update IP address in APIService when network changes
+4. Use `git status` before commits to avoid server.log
+5. Test API endpoints with curl before iOS integration
 
 ## 🛠️ Development Protocols
 
@@ -292,9 +320,13 @@ curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/jso
 -- Calculate distance: ST_Distance(location1, location2)
 ```
 
-## Session 21 Summary - Threaded Comments Implementation
+## 📚 Technical Implementation References
 
-### Features Implemented
+*Note: Detailed session summaries below contain technical learnings and implementation patterns that may be useful for future development. For progress tracking, see git commit history.*
+
+### Session 21 - Threaded Comments Implementation
+
+#### Features Implemented
 - **Backend Changes**:
   - Removed comment editing functionality (users can only delete) - backend/routes/posts.js:348
   - Added cascade deletion for child comments using recursive CTE - backend/models/PostComment.js:165-216
@@ -325,9 +357,9 @@ curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/jso
 - Add push notifications for comment replies
 - Create comment search functionality
 
-## Session 22 Summary - Password Reset Implementation
+### Session 22 - Password Reset Implementation
 
-### Features Implemented
+#### Features Implemented
 - **Backend Password Reset**:
   - Database migration adding reset_token and reset_token_expires to users table - backend/migrations/008_add_password_reset.sql
   - Email service with nodemailer integration - backend/services/emailService.js
@@ -365,6 +397,18 @@ curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/jso
 - **iOS API Error Handling**: Always check exact function names in URLSession patterns
 - **Environment-Specific Config**: Use .env for local only, Railway dashboard for production
 - **Test Database Sync**: Remember to apply migrations to both development and test databases
+
+### Session 23 - Password Reset UX Improvements
+
+#### Changes Made
+- **Shorter Reset Codes**: Changed from 32-char hex to 5-digit alphanumeric (e.g., "A3B7K")
+- **Manual Login Flow**: Removed auto-login after reset - users must login with new password
+- **iOS Navigation Fix**: Used binding pattern to dismiss multiple sheets properly
+  - Pass `@Binding var shouldDismissAll: Bool` between nested sheets
+  - Parent sheet watches binding with `.onChange(of:)` to dismiss when true
+
+#### Key Learning
+- **iOS Sheet Dismissal**: When presenting multiple sheets (A → B → C), dismissing C only closes C, not the entire stack. Use binding communication to coordinate dismissal of the entire flow.
 
 ---
 *For detailed session history, see git commits. This file maintains current project state and essential protocols.*
