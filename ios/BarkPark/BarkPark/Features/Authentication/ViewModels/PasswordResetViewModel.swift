@@ -81,11 +81,7 @@ class PasswordResetViewModel: ObservableObject {
                 newPassword: newPassword
             )
             
-            // Store the new auth token
-            UserDefaults.standard.set(response.token, forKey: "auth_token")
-            
-            // Authentication is handled by storing the token
-            // The app will check for token on next launch
+            // Don't store any token - user must login
             
             successMessage = response.message
             resetComplete = true

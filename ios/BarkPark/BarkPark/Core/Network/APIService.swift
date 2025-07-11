@@ -11,7 +11,7 @@ import Foundation
 struct APIConfiguration {
     // Use your Mac's IP address for iOS Simulator
     // localhost doesn't work in the simulator
-    static let baseURL = "http://192.168.68.65:3000/api"
+    static let baseURL = "http://192.168.86.67:3000/api"
 }
 
 // MARK: - Network Errors

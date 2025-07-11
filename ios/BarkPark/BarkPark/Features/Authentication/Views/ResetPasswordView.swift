@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ResetPasswordView: View {
     @ObservedObject var viewModel: PasswordResetViewModel
+    @Binding var shouldDismissAll: Bool
     @Environment(\.dismiss) private var dismiss
     @State private var showPassword = false
     @State private var showConfirmPassword = false
@@ -170,11 +171,16 @@ struct ResetPasswordView: View {
                 }
             }
             .alert("Success!", isPresented: $viewModel.resetComplete) {
-                Button("OK") {
+                Button("Login") {
+                    // Reset the view model
+                    viewModel.reset()
+                    // Signal to dismiss all sheets
+                    shouldDismissAll = true
+                    // Dismiss this sheet
                     dismiss()
                 }
             } message: {
-                Text("Your password has been reset successfully. You are now logged in.")
+                Text("Your password has been reset successfully. Please login with your new password.")
             }
         }
     }
@@ -182,6 +188,6 @@ struct ResetPasswordView: View {
 
 struct ResetPasswordView_Previews: PreviewProvider {
     static var previews: some View {
-        ResetPasswordView(viewModel: PasswordResetViewModel())
+        ResetPasswordView(viewModel: PasswordResetViewModel(), shouldDismissAll: .constant(false))
     }
 }

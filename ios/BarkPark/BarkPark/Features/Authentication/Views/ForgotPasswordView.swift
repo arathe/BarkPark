@@ -3,6 +3,7 @@ import SwiftUI
 struct ForgotPasswordView: View {
     @StateObject private var viewModel = PasswordResetViewModel()
     @Environment(\.dismiss) private var dismiss
+    @State private var shouldDismissAll = false
     
     var body: some View {
         NavigationView {
@@ -112,7 +113,12 @@ struct ForgotPasswordView: View {
                 }
             }
             .sheet(isPresented: $viewModel.showResetTokenView) {
-                ResetPasswordView(viewModel: viewModel)
+                ResetPasswordView(viewModel: viewModel, shouldDismissAll: $shouldDismissAll)
+            }
+            .onChange(of: shouldDismissAll) { newValue in
+                if newValue {
+                    dismiss()
+                }
             }
         }
     }

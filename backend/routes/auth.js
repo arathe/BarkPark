@@ -287,7 +287,7 @@ router.post('/forgot-password', [
 
 // Reset password with token
 router.post('/reset-password', [
-  body('token').isLength({ min: 32 }).withMessage('Invalid reset token'),
+  body('token').isLength({ min: 5, max: 5 }).withMessage('Invalid reset token'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
 ], async (req, res) => {
   try {
@@ -301,18 +301,10 @@ router.post('/reset-password', [
     // Reset password
     const user = await User.resetPassword(token, password);
 
-    // Generate new auth token for automatic login
-    const authToken = generateToken(user.id);
-
+    // Don't generate auth token - user must login again
     res.json({
-      message: 'Password reset successful',
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name
-      },
-      token: authToken
+      message: 'Password reset successful. Please login with your new password.',
+      success: true
     });
 
   } catch (error) {
@@ -328,7 +320,7 @@ router.post('/reset-password', [
 
 // Verify reset token (optional endpoint for better UX)
 router.get('/verify-reset-token', [
-  query('token').isLength({ min: 32 }).withMessage('Invalid reset token')
+  query('token').isLength({ min: 5, max: 5 }).withMessage('Invalid reset token')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);

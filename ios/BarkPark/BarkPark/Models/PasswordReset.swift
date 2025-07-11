@@ -9,15 +9,7 @@ struct PasswordResetResponse: Codable {
 
 struct ResetPasswordResponse: Codable {
     let message: String
-    let user: ResetUser
-    let token: String
-}
-
-struct ResetUser: Codable {
-    let id: Int
-    let email: String
-    let firstName: String
-    let lastName: String
+    let success: Bool
 }
 
 struct VerifyTokenResponse: Codable {

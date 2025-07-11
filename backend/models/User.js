@@ -90,8 +90,12 @@ class User {
       return null;
     }
 
-    // Generate a secure random token
-    const resetToken = crypto.randomBytes(32).toString('hex');
+    // Generate a 5-digit alphanumeric code
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let resetToken = '';
+    for (let i = 0; i < 5; i++) {
+      resetToken += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
     
     // Token expires in 1 hour
     const expiresAt = new Date();
