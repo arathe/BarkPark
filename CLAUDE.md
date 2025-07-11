@@ -214,6 +214,16 @@ Example from Session 17:
 - `SMTP_PASS` - SMTP password/API key
 - `SMTP_FROM` - Sender email address (must be verified)
 - `APP_URL` - Application URL for email links
+- `AWS_ACCESS_KEY_ID` - AWS access key for S3
+- `AWS_SECRET_ACCESS_KEY` - AWS secret key for S3
+- `AWS_REGION` - AWS region (defaults to us-east-1)
+- `S3_BUCKET_NAME` - S3 bucket name for image storage
+
+**Important S3 Configuration Notes:**
+- ALL photo uploads (user profiles and dog photos) require S3 credentials
+- Without S3 credentials, uploads will fail with "Failed to upload image"
+- Default bucket name is 'barkpark-images' if not specified
+- No local file storage fallback exists - S3 is mandatory for photo features
 
 ### Common Issues
 - **Schema mismatch**: Run `npm run db:schema:compare`
@@ -409,6 +419,37 @@ curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/jso
 
 #### Key Learning
 - **iOS Sheet Dismissal**: When presenting multiple sheets (A → B → C), dismissing C only closes C, not the entire stack. Use binding communication to coordinate dismissal of the entire flow.
+
+### Session 24 - Account Management & Profile Photos
+
+#### Features Implemented
+- **Account Management**:
+  - AccountSettingsView for editing user profile (first name, last name, email, phone) - ios/BarkPark/BarkPark/Features/Profile/Views/AccountSettingsView.swift
+  - Change password functionality within account settings
+  - Profile photo upload with PhotosPicker
+  - Navigation from ProfileView (tap user info section)
+  
+- **Profile Photo Upload**:
+  - Backend endpoints: `POST /api/auth/me/profile-photo`, `DELETE /api/auth/me/profile-photo` - backend/routes/auth.js:216-296
+  - Uses same S3 infrastructure as dog photos
+  - Image processing with automatic resize and compression
+  - Multipart form data upload from iOS
+
+- **Profile Display Updates**:
+  - ProfileView now shows user's actual profile photo - ios/BarkPark/BarkPark/Features/Profile/Views/ProfileView.swift:44-66
+  - AsyncImage with circular clipping and border styling
+  - Falls back to person.circle.fill icon when no photo
+
+#### Technical Patterns
+- **Photo Upload Flow**: PhotosPicker → Data → ImageProcessor → S3 → Update User Profile
+- **State Management**: Profile updates trigger AuthenticationManager.updateCurrentUser()
+- **Error Handling**: Separate photo upload from profile data update for better error recovery
+
+#### Key Learnings
+- **S3 Credentials Required**: Photo uploads will not work without AWS credentials in .env
+- **No Local Storage**: There is no fallback for development - S3 is mandatory
+- **Profile Image Display**: Must use AsyncImage with proper URL handling for S3 images
+- **Update Sequencing**: Upload photo first, then update profile to avoid overwriting photo URL
 
 ---
 *For detailed session history, see git commits. This file maintains current project state and essential protocols.*

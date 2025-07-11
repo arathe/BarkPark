@@ -51,10 +51,18 @@ class User {
   }
 
   static async updateProfile(id, updates) {
-    const allowedFields = ['first_name', 'last_name', 'phone', 'profile_image_url', 'is_searchable'];
+    const allowedFields = ['email', 'first_name', 'last_name', 'phone', 'profile_image_url', 'is_searchable'];
     const fields = [];
     const values = [];
     let paramCount = 1;
+
+    // Check if email is being updated and if it's already taken
+    if (updates.email) {
+      const existingUser = await this.findByEmail(updates.email);
+      if (existingUser && existingUser.id !== id) {
+        throw new Error('Email already in use');
+      }
+    }
 
     Object.keys(updates).forEach(key => {
       if (allowedFields.includes(key) && updates[key] !== undefined) {
@@ -162,6 +170,20 @@ class User {
   static async recordResetAttempt(email, ipAddress = null) {
     // This would record the attempt in a separate table
     // For now, we'll skip this for testing
+  }
+
+  static async updatePassword(userId, newPassword) {
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    const query = `
+      UPDATE users 
+      SET password_hash = $1, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2
+      RETURNING id, email, first_name, last_name
+    `;
+    
+    const result = await pool.query(query, [hashedPassword, userId]);
+    return result.rows[0];
   }
 }
 

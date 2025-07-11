@@ -1275,6 +1275,118 @@ extension APIService {
             throw APIError.serverError
         }
     }
+    
+    // MARK: - Profile Management
+    
+    func updateUserProfile(firstName: String, lastName: String, email: String, phone: String?) async throws -> UserUpdateResponse {
+        let updateRequest = ProfileUpdateRequest(
+            firstName: firstName,
+            lastName: lastName,
+            email: email,
+            phone: phone
+        )
+        
+        let endpoint = try NetworkManager.Endpoint(
+            path: "/auth/me",
+            method: .PUT,
+            body: updateRequest
+        )
+        
+        return try await networkManager.request(endpoint, decoder: JSONDecoder())
+    }
+    
+    func changePassword(currentPassword: String, newPassword: String) async throws {
+        let changePasswordRequest = ChangePasswordRequest(
+            currentPassword: currentPassword,
+            newPassword: newPassword
+        )
+        
+        let endpoint = try NetworkManager.Endpoint(
+            path: "/auth/change-password",
+            method: .POST,
+            body: changePasswordRequest
+        )
+        
+        let _: MessageResponse = try await networkManager.request(endpoint, decoder: JSONDecoder())
+    }
+    
+    func uploadUserProfilePhoto(imageData: Data) async throws -> UserUpdateResponse {
+        print("📸 APIService: Uploading user profile photo")
+        
+        let boundary = "Boundary-\(UUID().uuidString)"
+        var body = Data()
+        
+        // Add image data
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"photo\"; filename=\"profile.jpg\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
+        body.append(imageData)
+        body.append("\r\n".data(using: .utf8)!)
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        
+        guard let url = URL(string: "\(baseURL)/auth/me/profile-photo") else {
+            throw APIError.invalidResponse
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        
+        // Add auth token
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        request.httpBody = body
+        
+        let (data, response) = try await session.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 200:
+            return try JSONDecoder().decode(UserUpdateResponse.self, from: data)
+        case 401:
+            throw APIError.authenticationFailed("Invalid or expired token")
+        case 400:
+            if let errorResponse = try? JSONDecoder().decode([String: String].self, from: data),
+               let errorMessage = errorResponse["error"] {
+                throw APIError.validationFailed(errorMessage)
+            }
+            throw APIError.validationFailed("Invalid request")
+        default:
+            throw APIError.serverError
+        }
+    }
+    
+    func deleteUserProfilePhoto() async throws -> UserUpdateResponse {
+        let endpoint = NetworkManager.Endpoint(
+            path: "/auth/me/profile-photo",
+            method: .DELETE
+        )
+        
+        return try await networkManager.request(endpoint, decoder: JSONDecoder())
+    }
+}
+
+// MARK: - Request Models
+
+struct ProfileUpdateRequest: Codable {
+    let firstName: String
+    let lastName: String
+    let email: String
+    let phone: String?
+}
+
+struct ChangePasswordRequest: Codable {
+    let currentPassword: String
+    let newPassword: String
+}
+
+struct MessageResponse: Codable {
+    let message: String
 }
 
 // MARK: - API Errors

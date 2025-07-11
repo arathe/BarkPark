@@ -8,7 +8,11 @@ const s3 = new AWS.S3({
   region: process.env.AWS_REGION || 'us-east-1'
 });
 
-const bucketName = process.env.S3_BUCKET_NAME;
+const bucketName = process.env.S3_BUCKET_NAME || 'barkpark-images';
+
+if (!bucketName || bucketName === 'barkpark-images') {
+  console.warn('⚠️  S3_BUCKET_NAME not configured in .env, using default: barkpark-images');
+}
 
 // Upload file to S3
 const uploadToS3 = async (file, folder, filename) => {

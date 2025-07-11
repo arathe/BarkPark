@@ -12,6 +12,7 @@ struct ProfileView: View {
     @EnvironmentObject var dogProfileViewModel: DogProfileViewModel
     @StateObject private var parksViewModel = DogParksViewModel()
     @State private var showingPrivacySettings = false
+    @State private var showingAccountSettings = false
     @State private var navigateToMyDogs = false
     
     var body: some View {
@@ -36,26 +37,55 @@ struct ProfileView: View {
                 List {
                 // User Info Section
                 Section {
-                    HStack(spacing: BarkParkDesign.Spacing.md) {
-                        Image(systemName: "person.circle.fill")
-                            .font(.system(size: 50))
-                            .foregroundColor(BarkParkDesign.Colors.dogPrimary)
-                        
-                        if let user = authManager.currentUser {
-                            VStack(alignment: .leading, spacing: BarkParkDesign.Spacing.xs) {
-                                Text(user.fullName)
-                                    .font(BarkParkDesign.Typography.headline)
-                                    .foregroundColor(BarkParkDesign.Colors.primaryText)
-                                
-                                Text(user.email)
-                                    .font(BarkParkDesign.Typography.callout)
-                                    .foregroundColor(BarkParkDesign.Colors.secondaryText)
+                    Button(action: {
+                        showingAccountSettings = true
+                    }) {
+                        HStack(spacing: BarkParkDesign.Spacing.md) {
+                            // Profile Image
+                            if let user = authManager.currentUser,
+                               let profileImageUrl = user.profileImageUrl,
+                               !profileImageUrl.isEmpty,
+                               let url = URL(string: profileImageUrl) {
+                                AsyncImage(url: url) { image in
+                                    image
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                } placeholder: {
+                                    ProgressView()
+                                }
+                                .frame(width: 60, height: 60)
+                                .clipShape(Circle())
+                                .overlay(
+                                    Circle()
+                                        .stroke(BarkParkDesign.Colors.dogPrimary, lineWidth: 2)
+                                )
+                            } else {
+                                Image(systemName: "person.circle.fill")
+                                    .font(.system(size: 50))
+                                    .foregroundColor(BarkParkDesign.Colors.dogPrimary)
                             }
+                            
+                            if let user = authManager.currentUser {
+                                VStack(alignment: .leading, spacing: BarkParkDesign.Spacing.xs) {
+                                    Text(user.fullName)
+                                        .font(BarkParkDesign.Typography.headline)
+                                        .foregroundColor(BarkParkDesign.Colors.primaryText)
+                                    
+                                    Text(user.email)
+                                        .font(BarkParkDesign.Typography.callout)
+                                        .foregroundColor(BarkParkDesign.Colors.secondaryText)
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12))
+                                .foregroundColor(BarkParkDesign.Colors.secondaryText)
                         }
-                        
-                        Spacer()
+                        .padding(.vertical, BarkParkDesign.Spacing.sm)
                     }
-                    .padding(.vertical, BarkParkDesign.Spacing.sm)
+                    .buttonStyle(PlainButtonStyle())
                 }
                 
                 // My Dogs Section
@@ -124,6 +154,10 @@ struct ProfileView: View {
             .navigationTitle("Profile")
             .sheet(isPresented: $showingPrivacySettings) {
                 PrivacySettingsView()
+                    .environmentObject(authManager)
+            }
+            .sheet(isPresented: $showingAccountSettings) {
+                AccountSettingsView()
                     .environmentObject(authManager)
             }
             .onAppear {

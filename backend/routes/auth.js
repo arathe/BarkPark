@@ -3,6 +3,8 @@ const { body, query, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { generateToken, verifyToken } = require('../middleware/auth');
 const emailService = require('../services/emailService');
+const { uploadSingle } = require('../middleware/upload');
+const { uploadToS3, generateFilename } = require('../config/s3');
 
 const router = express.Router();
 
@@ -132,6 +134,7 @@ router.get('/me', verifyToken, async (req, res) => {
 router.put('/me', verifyToken, [
   body('firstName').optional().trim().isLength({ min: 1 }),
   body('lastName').optional().trim().isLength({ min: 1 }),
+  body('email').optional().isEmail().normalizeEmail(),
   body('phone').optional().isMobilePhone(),
   body('isSearchable').optional().isBoolean().withMessage('isSearchable must be a boolean')
 ], async (req, res) => {
@@ -144,6 +147,7 @@ router.put('/me', verifyToken, [
     const updates = {};
     if (req.body.firstName) updates.first_name = req.body.firstName;
     if (req.body.lastName) updates.last_name = req.body.lastName;
+    if (req.body.email) updates.email = req.body.email;
     if (req.body.phone) updates.phone = req.body.phone;
     if (req.body.profileImageUrl) updates.profile_image_url = req.body.profileImageUrl;
     if (req.body.isSearchable !== undefined) updates.is_searchable = req.body.isSearchable;
@@ -166,6 +170,124 @@ router.put('/me', verifyToken, [
   } catch (error) {
     console.error('Update profile error:', error);
     res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
+// Change password
+router.post('/change-password', verifyToken, [
+  body('currentPassword').isLength({ min: 1 }).withMessage('Current password is required'),
+  body('newPassword').isLength({ min: 8 }).withMessage('New password must be at least 8 characters')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.id;
+
+    // Get the user with password hash
+    const user = await User.findByEmail(req.user.email);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Verify current password
+    const isValidPassword = await User.validatePassword(currentPassword, user.password_hash);
+    if (!isValidPassword) {
+      return res.status(401).json({ error: 'Current password is incorrect' });
+    }
+
+    // Update password
+    await User.updatePassword(userId, newPassword);
+
+    res.json({
+      message: 'Password changed successfully'
+    });
+
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ error: 'Failed to change password' });
+  }
+});
+
+// Upload user profile photo
+router.post('/me/profile-photo', verifyToken, uploadSingle('photo'), async (req, res) => {
+  console.log('📸 Profile photo upload request received');
+  console.log('📸 User ID:', req.user.id);
+  console.log('📸 File:', req.file ? `${req.file.originalname} (${req.file.size} bytes)` : 'No file');
+  
+  try {
+    if (!req.file) {
+      console.log('❌ No file in request');
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // Generate unique filename and upload to S3
+    const filename = generateFilename(req.file.originalname, 'profile-');
+    const folder = `users/${req.user.id}`;
+    
+    try {
+      console.log('📸 Uploading to S3...');
+      const profileImageUrl = await uploadToS3(req.file, folder, filename);
+      console.log('✅ S3 upload successful:', profileImageUrl);
+
+      // Update user profile with new image URL
+      console.log('📸 Updating user profile with new image URL...');
+      const updatedUser = await User.updateProfile(req.user.id, {
+        profile_image_url: profileImageUrl
+      });
+      console.log('✅ User profile updated');
+
+      res.json({
+        message: 'Profile photo uploaded successfully',
+        user: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          firstName: updatedUser.first_name,
+          lastName: updatedUser.last_name,
+          phone: updatedUser.phone,
+          profileImageUrl: updatedUser.profile_image_url,
+          isSearchable: updatedUser.is_searchable
+        }
+      });
+
+    } catch (s3Error) {
+      console.error('S3 upload error:', s3Error);
+      res.status(500).json({ error: 'Failed to upload image' });
+    }
+
+  } catch (error) {
+    console.error('Profile photo upload error:', error);
+    res.status(500).json({ error: 'Failed to upload profile photo' });
+  }
+});
+
+// Delete user profile photo
+router.delete('/me/profile-photo', verifyToken, async (req, res) => {
+  try {
+    // Update user profile to remove image URL
+    const updatedUser = await User.updateProfile(req.user.id, {
+      profile_image_url: null
+    });
+
+    res.json({
+      message: 'Profile photo removed successfully',
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        firstName: updatedUser.first_name,
+        lastName: updatedUser.last_name,
+        phone: updatedUser.phone,
+        profileImageUrl: updatedUser.profile_image_url,
+        isSearchable: updatedUser.is_searchable
+      }
+    });
+
+  } catch (error) {
+    console.error('Remove profile photo error:', error);
+    res.status(500).json({ error: 'Failed to remove profile photo' });
   }
 });
 
