@@ -179,6 +179,13 @@ Example from Session 17:
 - `JWT_SECRET` - Token signing secret
 - `NODE_ENV` - Set to "production"
 - `ADMIN_KEY` - For protected admin endpoints
+- `SMTP_HOST` - Email server hostname (e.g., smtp.sendgrid.net)
+- `SMTP_PORT` - Email server port (typically 587)
+- `SMTP_SECURE` - Use TLS (true/false)
+- `SMTP_USER` - SMTP username (for SendGrid: "apikey")
+- `SMTP_PASS` - SMTP password/API key
+- `SMTP_FROM` - Sender email address (must be verified)
+- `APP_URL` - Application URL for email links
 
 ### Common Issues
 - **Schema mismatch**: Run `npm run db:schema:compare`
@@ -317,6 +324,47 @@ curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/jso
 - Implement comment reporting/moderation
 - Add push notifications for comment replies
 - Create comment search functionality
+
+## Session 22 Summary - Password Reset Implementation
+
+### Features Implemented
+- **Backend Password Reset**:
+  - Database migration adding reset_token and reset_token_expires to users table - backend/migrations/008_add_password_reset.sql
+  - Email service with nodemailer integration - backend/services/emailService.js
+  - Three new auth endpoints: /forgot-password, /reset-password, /verify-reset-token - backend/routes/auth.js:236-360
+  - User model methods for token generation and validation - backend/models/User.js:85-161
+  - Comprehensive test suite with 12 passing tests - backend/tests/password-reset.test.js
+  - Support for both development (Ethereal Email) and production (SMTP) email delivery
+
+- **iOS Password Reset**:
+  - Password reset API methods in APIService - ios/BarkPark/BarkPark/Core/Network/APIService.swift:1184-1278
+  - PasswordResetViewModel with validation logic - ios/BarkPark/BarkPark/Features/Authentication/ViewModels/PasswordResetViewModel.swift
+  - ForgotPasswordView for email input - ios/BarkPark/BarkPark/Features/Authentication/Views/ForgotPasswordView.swift
+  - ResetPasswordView with token and password fields - ios/BarkPark/BarkPark/Features/Authentication/Views/ResetPasswordView.swift
+  - Response models for API communication - ios/BarkPark/BarkPark/Models/PasswordReset.swift
+  - "Forgot Password?" link in LoginView - ios/BarkPark/BarkPark/Features/Authentication/Views/LoginView.swift:111-117
+
+### Technical Issues & Solutions
+- **Nodemailer Import Error**: Fixed by correcting function name from `createTransporter` to `createTransport` (common mistake)
+- **Nodemailer Version**: Downgraded from v7 to v6.10.1 for compatibility
+- **iOS onChange Deprecation**: Updated to new iOS 17 syntax with two-parameter closure
+- **Test Database Migration**: Applied password reset migration directly to test database using psql
+- **Migration Runner**: Added migration 008 to unified-migrate.js migrations array
+
+### Email Configuration
+- **Development**: Automatically uses Ethereal Email when SMTP vars not set (shows preview URLs in console)
+- **Production**: Requires SMTP environment variables in Railway dashboard:
+  - SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS, SMTP_FROM
+- **SendGrid Setup**: 
+  - Use `apikey` as SMTP_USER
+  - API key as SMTP_PASS
+  - Requires verified sender email
+- **Security Note**: SMTP credentials should NEVER be committed - use environment variables only
+
+### Important Patterns Learned
+- **iOS API Error Handling**: Always check exact function names in URLSession patterns
+- **Environment-Specific Config**: Use .env for local only, Railway dashboard for production
+- **Test Database Sync**: Remember to apply migrations to both development and test databases
 
 ---
 *For detailed session history, see git commits. This file maintains current project state and essential protocols.*

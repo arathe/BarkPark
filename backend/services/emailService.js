@@ -9,7 +9,7 @@ class EmailService {
       this.transporter = null;
       this.isTestMode = true;
     } else {
-      this.transporter = nodemailer.createTransporter({
+      this.transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: parseInt(process.env.SMTP_PORT, 10) || 587,
         secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
@@ -31,7 +31,7 @@ class EmailService {
       // Create a test account
       const testAccount = await nodemailer.createTestAccount();
       
-      this.transporter = nodemailer.createTransporter({
+      this.transporter = nodemailer.createTransport({
         host: 'smtp.ethereal.email',
         port: 587,
         secure: false,
