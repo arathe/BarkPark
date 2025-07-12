@@ -4,6 +4,10 @@ const pool = require('../config/database');
 const Post = require('../models/Post');
 const PostLike = require('../models/PostLike');
 const PostComment = require('../models/PostComment');
+const testDataFactory = require('./utils/testDataFactory');
+
+// Mock auth middleware
+jest.mock('../middleware/auth', () => require('./utils/testMocks').mockAuthMiddleware());
 
 // Create app instance
 const app = express();
@@ -13,19 +17,8 @@ app.use(express.json());
 const postRoutes = require('../routes/posts');
 app.use('/api/posts', postRoutes);
 
-// Custom cleanup that preserves test users
-const cleanupTestData = async () => {
-  try {
-    // Clean up only post-related data, not users
-    await pool.query('DELETE FROM notifications WHERE user_id IN (SELECT id FROM users WHERE email LIKE \'testpost%\' OR email LIKE \'testfriend%\' OR email LIKE \'testother%\')');
-    await pool.query('DELETE FROM post_comments WHERE user_id IN (SELECT id FROM users WHERE email LIKE \'testpost%\' OR email LIKE \'testfriend%\' OR email LIKE \'testother%\')');
-    await pool.query('DELETE FROM post_likes WHERE user_id IN (SELECT id FROM users WHERE email LIKE \'testpost%\' OR email LIKE \'testfriend%\' OR email LIKE \'testother%\')');
-    await pool.query('DELETE FROM post_media WHERE post_id IN (SELECT id FROM posts WHERE user_id IN (SELECT id FROM users WHERE email LIKE \'testpost%\' OR email LIKE \'testfriend%\' OR email LIKE \'testother%\'))');
-    await pool.query('DELETE FROM posts WHERE user_id IN (SELECT id FROM users WHERE email LIKE \'testpost%\' OR email LIKE \'testfriend%\' OR email LIKE \'testother%\')');
-  } catch (error) {
-    // Ignore cleanup errors
-  }
-};
+// Import test data factory
+const User = require('../models/User');
 
 describe('Posts API', () => {
   let authToken;
@@ -35,65 +28,36 @@ describe('Posts API', () => {
   let friendId;
   let checkInId;
 
-  beforeAll(async () => {
-    // Clean up any existing test data first
-    await cleanupTestData();
-    await pool.query(`
-      DELETE FROM checkins WHERE user_id IN (
-        SELECT id FROM users WHERE email IN ('testpost@example.com', 'testfriend@example.com', 'testother@example.com')
-      )
-    `);
-    await pool.query(`
-      DELETE FROM friendships WHERE user_id IN (
-        SELECT id FROM users WHERE email IN ('testpost@example.com', 'testfriend@example.com', 'testother@example.com')
-      ) OR friend_id IN (
-        SELECT id FROM users WHERE email IN ('testpost@example.com', 'testfriend@example.com', 'testother@example.com')
-      )
-    `);
-    await pool.query(`DELETE FROM users WHERE email IN ('testpost@example.com', 'testfriend@example.com', 'testother@example.com')`);
+  beforeEach(async () => {
+    // Create test users using factory
+    const userData1 = testDataFactory.createUserData();
+    const userData2 = testDataFactory.createUserData();
+    const userData3 = testDataFactory.createUserData();
 
-    // Create test users
-    const authApp = express();
-    authApp.use(express.json());
-    const authRoutes = require('../routes/auth');
-    authApp.use('/api/auth', authRoutes);
+    // Create users directly
+    const user1Result = await pool.query(`
+      INSERT INTO users (email, password_hash, first_name, last_name)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id
+    `, [userData1.email, 'hashedpassword', userData1.firstName, userData1.lastName]);
+    userId = user1Result.rows[0].id;
 
-    // Create main test user
-    const registerRes = await request(authApp)
-      .post('/api/auth/register')
-      .send({
-        email: 'testpost@example.com',
-        password: 'password123',
-        firstName: 'Test',
-        lastName: 'Post'
-      });
+    const user2Result = await pool.query(`
+      INSERT INTO users (email, password_hash, first_name, last_name)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id
+    `, [userData2.email, 'hashedpassword', userData2.firstName, userData2.lastName]);
+    friendId = user2Result.rows[0].id;
 
-    authToken = registerRes.body.token;
-    userId = registerRes.body.user.id;
+    const user3Result = await pool.query(`
+      INSERT INTO users (email, password_hash, first_name, last_name)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id
+    `, [userData3.email, 'hashedpassword', userData3.firstName, userData3.lastName]);
+    otherUserId = user3Result.rows[0].id;
 
-    // Create friend user
-    const friendRes = await request(authApp)
-      .post('/api/auth/register')
-      .send({
-        email: 'testfriend@example.com',
-        password: 'password123',
-        firstName: 'Test',
-        lastName: 'Friend'
-      });
-    
-    friendId = friendRes.body.user.id;
-
-    // Create other user (not a friend)
-    const otherRes = await request(authApp)
-      .post('/api/auth/register')
-      .send({
-        email: 'testother@example.com',
-        password: 'password123',
-        firstName: 'Test',
-        lastName: 'Other'
-      });
-    
-    otherUserId = otherRes.body.user.id;
+    // Generate auth token
+    authToken = testDataFactory.generateTestToken(userId);
 
     // Create friendship
     await pool.query(`
@@ -117,9 +81,12 @@ describe('Posts API', () => {
     checkInId = checkInResult.rows[0].id;
   });
 
+  afterEach(async () => {
+    // Cleanup is handled by setup.js
+  });
+
   afterAll(async () => {
-    // Clean up all test data
-    await cleanupTestData();
+    // Final cleanup
     await pool.query(`
       DELETE FROM checkins WHERE user_id IN (
         SELECT id FROM users WHERE email IN ('testpost@example.com', 'testfriend@example.com', 'testother@example.com')

@@ -5,11 +5,9 @@ const { Client } = require('pg');
 describe('DogPark Model - PostGIS Spatial Queries', () => {
   let testParks = [];
   let hasPostGIS = false;
+  let testParkIds = [];
 
   beforeAll(async () => {
-    // Clean up any leftover test data from previous runs
-    await pool.query("DELETE FROM dog_parks WHERE name LIKE '%Test Park%' OR name LIKE 'UNIQUE_TEST_PARK%' OR name IN ('Date Line West', 'Date Line East', 'Arctic Dog Park', 'Fiji Dog Park', 'Samoa Dog Park', 'Legacy Park', 'Precision Test Park')");
-    
     // Check if PostGIS is available
     try {
       const result = await pool.query("SELECT PostGIS_Version()");
@@ -42,7 +40,7 @@ describe('DogPark Model - PostGIS Spatial Queries', () => {
       }
     }
 
-    // Create test parks with known locations
+    // Define test parks with known locations
     testParks = [
       {
         name: 'Central Park Dog Run',
@@ -85,8 +83,16 @@ describe('DogPark Model - PostGIS Spatial Queries', () => {
         borough: 'International'
       }
     ];
+  });
 
-    // Insert test parks
+  beforeEach(async () => {
+    // Clean up any test parks from previous test
+    if (testParkIds.length > 0) {
+      await pool.query('DELETE FROM dog_parks WHERE id = ANY($1::int[])', [testParkIds]);
+      testParkIds = [];
+    }
+
+    // Insert test parks fresh for each test
     for (const park of testParks) {
       const result = await DogPark.create({
         ...park,
@@ -100,15 +106,15 @@ describe('DogPark Model - PostGIS Spatial Queries', () => {
         reviewCount: 10
       });
       park.id = result.id;
+      testParkIds.push(result.id);
     }
   });
 
-  afterAll(async () => {
-    // Clean up test parks
-    for (const park of testParks) {
-      if (park.id) {
-        await pool.query('DELETE FROM dog_parks WHERE id = $1', [park.id]);
-      }
+  afterEach(async () => {
+    // Clean up test parks after each test
+    if (testParkIds.length > 0) {
+      await pool.query('DELETE FROM dog_parks WHERE id = ANY($1::int[])', [testParkIds]);
+      testParkIds = [];
     }
     // Also clean up any parks created during tests
     await pool.query("DELETE FROM dog_parks WHERE name LIKE '%Test Park%' OR name LIKE 'UNIQUE_TEST_PARK%' OR name IN ('Date Line West', 'Date Line East', 'Arctic Dog Park', 'Fiji Dog Park', 'Samoa Dog Park', 'Legacy Park', 'Precision Test Park')");

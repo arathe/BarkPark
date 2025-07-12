@@ -27,6 +27,17 @@ jest.mock('aws-sdk', () => {
   };
 });
 
+// Mock nodemailer for tests
+jest.mock('nodemailer', () => ({
+  createTransport: jest.fn().mockReturnValue({
+    sendMail: jest.fn().mockResolvedValue({
+      messageId: 'test-message-id',
+      response: '250 OK'
+    }),
+    verify: jest.fn().mockResolvedValue(true)
+  })
+}));
+
 // Test database configuration
 process.env.NODE_ENV = 'test';
 process.env.DB_NAME = 'barkpark_test';
@@ -68,9 +79,6 @@ beforeAll(async () => {
       process.exit(1);
     }
     
-    // Clear all data except dog_parks (which are fixtures)
-    await testClient.query('TRUNCATE TABLE notifications, post_comments, post_likes, post_media, posts, checkins, dogs, friendships, users RESTART IDENTITY CASCADE');
-    
     console.log('Test database ready with correct schema');
     await testClient.end();
   } catch (error) {
@@ -80,37 +88,35 @@ beforeAll(async () => {
   }
 });
 
-// Clean up test data after each test
-// Only clean up data for tests that don't manage their own test data
-afterEach(async () => {
-  // Check if this is a test file that manages its own cleanup
-  const testFile = expect.getState().testPath;
-  const selfManagedTests = [
-    'posts.test.js',
-    'posts-standalone.test.js', 
-    'notifications.test.js',
-    'dogs.test.js'
-  ];
-  
-  // Skip cleanup for tests that manage their own data
-  if (testFile && selfManagedTests.some(file => testFile.includes(file))) {
-    return;
-  }
-  
+// Clean up ALL test data before each test to ensure complete isolation
+beforeEach(async () => {
   const pool = require('../config/database');
   try {
-    // Clean up in order due to foreign key constraints
-    await pool.query('DELETE FROM notifications');
-    await pool.query('DELETE FROM post_comments');
-    await pool.query('DELETE FROM post_likes');
-    await pool.query('DELETE FROM post_media');
-    await pool.query('DELETE FROM posts');
-    await pool.query('DELETE FROM checkins');
-    await pool.query('DELETE FROM dogs');
-    await pool.query('DELETE FROM friendships');
-    await pool.query('DELETE FROM users');
-    // Note: We don't delete dog_parks as they're test fixtures
+    // Clear all data except dog_parks (which are fixtures)
+    // Using TRUNCATE with RESTART IDENTITY to reset auto-increment sequences
+    await pool.query('TRUNCATE TABLE notifications, post_comments, post_likes, post_media, posts, checkins, dogs, friendships, users RESTART IDENTITY CASCADE');
   } catch (error) {
-    // Ignore cleanup errors in tests
+    console.error('Error cleaning test database:', error.message);
+    throw error;
   }
+});
+
+// Close database connections after all tests
+afterAll(async () => {
+  const pool = require('../config/database');
+  try {
+    // Give a small delay to allow any pending operations to complete
+    await new Promise(resolve => setTimeout(resolve, 100));
+    await pool.end();
+  } catch (error) {
+    console.error('Error closing database pool:', error.message);
+  }
+});
+
+// Set test timeout
+jest.setTimeout(30000);
+
+// Prevent open handle warnings
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled promise rejection in tests:', err);
 });

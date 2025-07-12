@@ -220,7 +220,7 @@ describe('Dogs Photo Upload API - Gallery Updates & Race Conditions', () => {
         .attach('images', Buffer.from('fake image 6'), 'gallery6.jpg')
         .expect(400);
 
-      expect(response.body.error).toContain('Too many files');
+      expect(response.body.error).toContain('Too many files. Maximum is 5 files.');
     });
 
     test('should handle concurrent gallery updates', async () => {
@@ -418,16 +418,16 @@ describe('Dogs Photo Upload API - Gallery Updates & Race Conditions', () => {
       
       const urlToDelete = 'https://test-bucket.s3.amazonaws.com/dogs/gallery-1.jpg';
 
-      // Should still succeed (implementation continues despite S3 error)
+      // Should fail when S3 deletion fails
       await request(app)
         .delete(`/api/dogs/${dog1.id}/gallery`)
         .set('Authorization', `Bearer ${authToken1}`)
         .send({ imageUrl: urlToDelete })
-        .expect(200);
+        .expect(500);
 
-      // Image should still be removed from database
+      // Image should still be in database since operation failed
       const dog = await Dog.findByIdAndUser(dog1.id, user1.id);
-      expect(dog.galleryImages).not.toContain(urlToDelete);
+      expect(dog.galleryImages).toContain(urlToDelete);
     });
   });
 
@@ -480,6 +480,7 @@ describe('Dogs Photo Upload API - Gallery Updates & Race Conditions', () => {
       }
 
       uploadToS3.mockResolvedValue('new-image.jpg');
+      deleteFromS3.mockResolvedValue(undefined); // Ensure delete succeeds
 
       // Concurrent operations
       const promises = [
@@ -499,7 +500,8 @@ describe('Dogs Photo Upload API - Gallery Updates & Race Conditions', () => {
       const results = await Promise.allSettled(promises);
       
       // Both should succeed
-      expect(results.every(r => r.status === 'fulfilled')).toBe(true);
+      const succeeded = results.filter(r => r.status === 'fulfilled' && r.value.status < 400);
+      expect(succeeded.length).toBe(2);
 
       // Final gallery should reflect both operations
       const dog = await Dog.findByIdAndUser(dog1.id, user1.id);

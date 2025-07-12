@@ -1,6 +1,7 @@
 const request = require('supertest');
 const jwt = require('jsonwebtoken');
 const pool = require('../config/database');
+const testDataFactory = require('./utils/testDataFactory');
 
 // Mock the auth middleware to avoid database user lookups
 jest.mock('../middleware/auth', () => {
@@ -36,72 +37,24 @@ describe('Comments API', () => {
   let friendPostId;
   let publicPostId;
 
-  beforeAll(async () => {
-    // Clean up any existing test data
-    await pool.query(`
-      DELETE FROM notifications 
-      WHERE user_id IN (
-        SELECT id FROM users WHERE email IN (
-          'testcommenter@example.com', 
-          'testcommenter2@example.com',
-          'testcommenter3@example.com'
-        )
-      )
-    `);
-    await pool.query(`
-      DELETE FROM post_comments 
-      WHERE user_id IN (
-        SELECT id FROM users WHERE email IN (
-          'testcommenter@example.com', 
-          'testcommenter2@example.com',
-          'testcommenter3@example.com'
-        )
-      )
-    `);
-    await pool.query(`
-      DELETE FROM posts 
-      WHERE user_id IN (
-        SELECT id FROM users WHERE email IN (
-          'testcommenter@example.com', 
-          'testcommenter2@example.com',
-          'testcommenter3@example.com'
-        )
-      )
-    `);
-    await pool.query(`
-      DELETE FROM friendships 
-      WHERE user_id IN (
-        SELECT id FROM users WHERE email IN (
-          'testcommenter@example.com', 
-          'testcommenter2@example.com',
-          'testcommenter3@example.com'
-        )
-      ) OR friend_id IN (
-        SELECT id FROM users WHERE email IN (
-          'testcommenter@example.com', 
-          'testcommenter2@example.com',
-          'testcommenter3@example.com'
-        )
-      )
-    `);
-    await pool.query(`
-      DELETE FROM users 
-      WHERE email IN (
-        'testcommenter@example.com', 
-        'testcommenter2@example.com',
-        'testcommenter3@example.com'
-      )
-    `);
+  beforeEach(async () => {
+    // Create test users using factory
+    const userData1 = testDataFactory.createUserData();
+    const userData2 = testDataFactory.createUserData();
+    const userData3 = testDataFactory.createUserData();
 
-    // Create test users
     const userResult = await pool.query(`
       INSERT INTO users (email, password_hash, first_name, last_name)
       VALUES 
-        ('testcommenter@example.com', 'hashedpassword', 'Test', 'Commenter'),
-        ('testcommenter2@example.com', 'hashedpassword', 'Test', 'Commenter2'),
-        ('testcommenter3@example.com', 'hashedpassword', 'Test', 'Commenter3')
+        ($1, 'hashedpassword', $2, $3),
+        ($4, 'hashedpassword', $5, $6),
+        ($7, 'hashedpassword', $8, $9)
       RETURNING id
-    `);
+    `, [
+      userData1.email, userData1.firstName, userData1.lastName,
+      userData2.email, userData2.firstName, userData2.lastName,
+      userData3.email, userData3.firstName, userData3.lastName
+    ]);
     userId = userResult.rows[0].id;
     userId2 = userResult.rows[1].id;
     userId3 = userResult.rows[2].id;
@@ -113,9 +66,9 @@ describe('Comments API', () => {
     `, [userId, userId2]);
 
     // Generate auth tokens
-    authToken = jwt.sign({ userId }, process.env.JWT_SECRET || 'test_secret');
-    authToken2 = jwt.sign({ userId: userId2 }, process.env.JWT_SECRET || 'test_secret');
-    authToken3 = jwt.sign({ userId: userId3 }, process.env.JWT_SECRET || 'test_secret');
+    authToken = testDataFactory.generateTestToken(userId);
+    authToken2 = testDataFactory.generateTestToken(userId2);
+    authToken3 = testDataFactory.generateTestToken(userId3);
 
     // Create test posts
     try {
@@ -124,9 +77,9 @@ describe('Comments API', () => {
         VALUES 
           ($1, 'Test post for comments', 'status', 'friends'),
           ($2, 'Friend post for comments', 'status', 'friends'),
-          ($1, 'Public post for comments', 'status', 'public')
+          ($3, 'Public post for comments', 'status', 'public')
         RETURNING id
-      `, [userId, userId2]);
+      `, [userId, userId2, userId]);
       postId = postResult.rows[0].id;
       friendPostId = postResult.rows[1].id;
       publicPostId = postResult.rows[2].id;
@@ -134,36 +87,10 @@ describe('Comments API', () => {
       console.error('Error creating test posts:', error);
       throw error;
     }
-    
-    console.log('Test posts created:', { postId, friendPostId, publicPostId });
   });
 
-  afterAll(async () => {
-    // Clean up test data
-    await pool.query(`
-      DELETE FROM notifications 
-      WHERE user_id IN ($1, $2, $3)
-    `, [userId, userId2, userId3]);
-
-    await pool.query(`
-      DELETE FROM post_comments 
-      WHERE user_id IN ($1, $2, $3)
-    `, [userId, userId2, userId3]);
-
-    await pool.query(`
-      DELETE FROM posts 
-      WHERE user_id IN ($1, $2, $3)
-    `, [userId, userId2, userId3]);
-
-    await pool.query(`
-      DELETE FROM friendships 
-      WHERE user_id IN ($1, $2, $3) OR friend_id IN ($1, $2, $3)
-    `, [userId, userId2, userId3]);
-
-    await pool.query(`
-      DELETE FROM users 
-      WHERE id IN ($1, $2, $3)
-    `, [userId, userId2, userId3]);
+  afterEach(async () => {
+    // Cleanup is handled by setup.js
   });
 
   describe('POST /api/posts/:id/comment', () => {

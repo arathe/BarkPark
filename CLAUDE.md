@@ -451,5 +451,59 @@ curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/jso
 - **Profile Image Display**: Must use AsyncImage with proper URL handling for S3 images
 - **Update Sequencing**: Upload photo first, then update profile to avoid overwriting photo URL
 
+## 🧪 Test Infrastructure Patterns
+
+### Critical Test Setup Rules
+1. **ALWAYS use beforeEach, NEVER beforeAll**
+   - Test database is truncated before each test by setup.js
+   - Data created in beforeAll will be lost, causing failures
+   - Each test must be completely independent
+
+2. **Let setup.js handle cleanup**
+   - Don't manually delete test data in afterEach/afterAll
+   - Don't call pool.end() in tests - handled globally
+   - Trust the TRUNCATE CASCADE in setup.js
+
+3. **Mock Scope Management**
+   ```javascript
+   // ❌ WRONG - Will cause "Invalid variable access" error
+   jest.mock('../middleware/auth', () => ({
+     verifyToken: (req, res, next) => {
+       const decoded = jwt.verify(token, secret); // jwt not in scope!
+     }
+   }));
+
+   // ✅ CORRECT - Import inside the mock factory
+   jest.mock('../middleware/auth', () => {
+     const mockJwt = require('jsonwebtoken');
+     return {
+       verifyToken: (req, res, next) => {
+         const decoded = mockJwt.verify(token, secret);
+       }
+     };
+   });
+   ```
+
+4. **Test Data Factory Usage**
+   - Always use testDataFactory for unique test data
+   - Factory includes timestamp + counter + random hex
+   - Never hardcode test emails or names
+
+5. **Global Mocks in setup.js**
+   - AWS SDK (S3) is mocked globally
+   - Nodemailer is mocked globally
+   - Don't re-mock these in individual test files
+
+### Common Test Failure Patterns
+- **"Post not found"** - Check SQL parameter binding (e.g., using $1, $2, $3 for 3 values)
+- **Timeout errors** - Test might be using beforeAll with complex setup
+- **Foreign key violations** - Check if related data exists before operations
+- **Mock conflicts** - Local mocks overriding global mocks from setup.js
+
+### Test Success Metrics
+- Target: >90% test success rate
+- Current: 89.8% (354/394 tests passing)
+- Remaining failures are mostly legitimate business logic issues
+
 ---
 *For detailed session history, see git commits. This file maintains current project state and essential protocols.*

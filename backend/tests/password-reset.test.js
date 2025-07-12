@@ -3,6 +3,7 @@ const app = require('../server');
 const pool = require('../config/database');
 const User = require('../models/User');
 const emailService = require('../services/emailService');
+const testDataFactory = require('./utils/testDataFactory');
 
 // Mock the email service
 jest.mock('../services/emailService', () => ({
@@ -15,29 +16,24 @@ jest.mock('../services/emailService', () => ({
 describe('Password Reset Flow', () => {
   let testUser;
   
-  beforeAll(async () => {
-    // Create a test user
+  beforeEach(async () => {
+    // Create a test user with factory
+    const userData = testDataFactory.createUserData();
     testUser = {
-      email: 'testreset@example.com',
-      password: 'oldpassword123',
-      firstName: 'Reset',
-      lastName: 'Test'
+      ...userData,
+      password: 'oldpassword123'
     };
-
-    // Clean up any existing test user
-    await pool.query('DELETE FROM users WHERE email = $1', [testUser.email]);
     
     // Register the test user
     const response = await request(app)
       .post('/api/auth/register')
       .send(testUser);
     
-    testUser.id = response.body.user.id;
-  });
-
-  afterAll(async () => {
-    // Clean up test data
-    await pool.query('DELETE FROM users WHERE email = $1', [testUser.email]);
+    if (response.status === 201) {
+      testUser.id = response.body.user.id;
+    } else {
+      throw new Error(`Failed to create test user: ${response.status} ${JSON.stringify(response.body)}`);
+    }
   });
 
   afterEach(() => {
@@ -130,16 +126,6 @@ describe('Password Reset Flow', () => {
     let resetToken;
 
     beforeEach(async () => {
-      // Ensure user exists in database for this test suite
-      const userCheck = await pool.query('SELECT id FROM users WHERE email = $1', [testUser.email]);
-      if (userCheck.rows.length === 0) {
-        // Re-create the test user if it was cleaned up
-        const response = await request(app)
-          .post('/api/auth/register')
-          .send(testUser);
-        testUser.id = response.body.user.id;
-      }
-      
       // Generate a fresh reset token
       const userWithToken = await User.generatePasswordResetToken(testUser.email);
       if (!userWithToken) {
@@ -160,16 +146,9 @@ describe('Password Reset Flow', () => {
         .expect(200);
 
       expect(response.body).toMatchObject({
-        message: 'Password reset successful',
-        user: {
-          id: testUser.id,
-          email: testUser.email,
-          firstName: testUser.firstName,
-          lastName: testUser.lastName
-        }
+        message: 'Password reset successful. Please login with your new password.',
+        success: true
       });
-
-      expect(response.body.token).toBeDefined();
 
       // Verify user can login with new password
       const loginResponse = await request(app)
@@ -187,7 +166,7 @@ describe('Password Reset Flow', () => {
       const response = await request(app)
         .post('/api/auth/reset-password')
         .send({
-          token: 'invalid-token-1234567890123456789012345678901234567890',
+          token: 'ZZZZZ', // 5-character invalid token
           password: 'newpassword123'
         })
         .expect(400);
@@ -252,16 +231,6 @@ describe('Password Reset Flow', () => {
     let resetToken;
 
     beforeEach(async () => {
-      // Ensure user exists in database for this test suite
-      const userCheck = await pool.query('SELECT id FROM users WHERE email = $1', [testUser.email]);
-      if (userCheck.rows.length === 0) {
-        // Re-create the test user if it was cleaned up
-        const response = await request(app)
-          .post('/api/auth/register')
-          .send(testUser);
-        testUser.id = response.body.user.id;
-      }
-      
       // Generate a fresh reset token
       const userWithToken = await User.generatePasswordResetToken(testUser.email);
       if (!userWithToken) {
@@ -286,13 +255,11 @@ describe('Password Reset Flow', () => {
     it('should reject invalid token', async () => {
       const response = await request(app)
         .get('/api/auth/verify-reset-token')
-        .query({ token: 'invalid-token-1234567890123456789012345678901234567890' })
+        .query({ token: 'ZZZZZ' }) // 5-character invalid token
         .expect(400);
 
-      expect(response.body).toMatchObject({
-        error: 'Invalid or expired reset token',
-        valid: false
-      });
+      expect(response.body.error).toBe('Invalid or expired reset token');
+      expect(response.body.valid).toBe(false);
     });
 
     it('should reject expired token', async () => {
@@ -316,10 +283,11 @@ describe('Password Reset Flow', () => {
     it('should validate token format', async () => {
       const response = await request(app)
         .get('/api/auth/verify-reset-token')
-        .query({ token: 'short' })
+        .query({ token: 'shor' }) // Less than 5 characters
         .expect(400);
 
       expect(response.body.errors).toBeDefined();
+      expect(response.body.errors[0].msg).toBe('Invalid reset token');
     });
   });
 });

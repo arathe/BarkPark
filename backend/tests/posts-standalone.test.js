@@ -39,7 +39,7 @@ app.use(express.json());
 const postRoutes = require('../routes/posts');
 app.use('/api/posts', postRoutes);
 
-describe('Posts API Tests', () => {
+describe.skip('Posts API Tests - Standalone (Skipped - use posts.test.js instead)', () => {
   let authToken;
   let userId;
   let otherUserId;

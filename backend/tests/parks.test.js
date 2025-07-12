@@ -3,8 +3,9 @@ const express = require('express');
 const cors = require('cors');
 const authRoutes = require('../routes/auth');
 const parkRoutes = require('../routes/parks');
-const DogPark = require('../models/DogPark');
+const DogPark = require('../models/DogParkCompat');
 const CheckIn = require('../models/CheckIn');
+const testDataFactory = require('./utils/testDataFactory');
 
 // Create test app
 const createTestApp = () => {
@@ -28,12 +29,7 @@ describe('Parks API', () => {
 
   beforeEach(async () => {
     // Create and authenticate test user
-    testUser = {
-      email: 'parktest@example.com',
-      password: 'password123',
-      firstName: 'Park',
-      lastName: 'Tester'
-    };
+    testUser = testDataFactory.createUserData();
 
     const registerResponse = await request(app)
       .post('/api/auth/register')

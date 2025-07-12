@@ -3,7 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const authRoutes = require('../routes/auth');
 const CheckIn = require('../models/CheckIn');
-const DogPark = require('../models/DogPark');
+const DogPark = require('../models/DogParkCompat');
+const testDataFactory = require('./utils/testDataFactory');
 
 // Create test app
 const createTestApp = () => {
@@ -27,12 +28,7 @@ describe('CheckIn Model', () => {
 
   beforeEach(async () => {
     // Create and authenticate test user
-    testUser = {
-      email: 'checkintest@example.com',
-      password: 'password123',
-      firstName: 'CheckIn',
-      lastName: 'Tester'
-    };
+    testUser = testDataFactory.createUserData();
 
     const registerResponse = await request(app)
       .post('/api/auth/register')
@@ -298,12 +294,7 @@ describe('CheckIn Model', () => {
 
     it('should return empty array for user with no history', async () => {
       // Create another user
-      const anotherUser = {
-        email: 'nohistory@example.com',
-        password: 'password123',
-        firstName: 'No',
-        lastName: 'History'
-      };
+      const anotherUser = testDataFactory.createUserData();
 
       const registerResponse = await request(app)
         .post('/api/auth/register')

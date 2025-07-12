@@ -2,6 +2,7 @@ const request = require('supertest');
 const express = require('express');
 const pool = require('../config/database');
 const Dog = require('../models/Dog');
+const testDataFactory = require('./utils/testDataFactory');
 
 // Create app instance
 const app = express();
@@ -18,48 +19,37 @@ describe('Dogs API', () => {
   let otherAuthToken;
   let dogId;
 
-  beforeAll(async () => {
-    // Create test users
-    const authApp = express();
-    authApp.use(express.json());
-    const authRoutes = require('../routes/auth');
-    authApp.use('/api/auth', authRoutes);
+  beforeEach(async () => {
+    // Create test users using test data factory
+    const userData = testDataFactory.createUserData();
+    const otherUserData = testDataFactory.createUserData();
 
-    // Create main test user
-    const registerRes = await request(authApp)
-      .post('/api/auth/register')
-      .send({
-        email: 'testdog@example.com',
-        password: 'password123',
-        firstName: 'Test',
-        lastName: 'DogOwner'
-      });
+    // Create users directly in database
+    const userResult = await pool.query(`
+      INSERT INTO users (email, password_hash, first_name, last_name)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id
+    `, [userData.email, 'hashedpassword', userData.firstName, userData.lastName]);
+    userId = userResult.rows[0].id;
 
-    authToken = registerRes.body.token;
-    userId = registerRes.body.user.id;
+    const otherUserResult = await pool.query(`
+      INSERT INTO users (email, password_hash, first_name, last_name)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id
+    `, [otherUserData.email, 'hashedpassword', otherUserData.firstName, otherUserData.lastName]);
+    otherUserId = otherUserResult.rows[0].id;
 
-    // Create other user
-    const otherRes = await request(authApp)
-      .post('/api/auth/register')
-      .send({
-        email: 'testdogother@example.com',
-        password: 'password123',
-        firstName: 'Other',
-        lastName: 'Owner'
-      });
-    
-    otherUserId = otherRes.body.user.id;
-    otherAuthToken = otherRes.body.token;
+    // Generate auth tokens
+    authToken = testDataFactory.generateTestToken(userId);
+    otherAuthToken = testDataFactory.generateTestToken(otherUserId);
   });
 
-  afterAll(async () => {
-    // Clean up test data
-    await pool.query(`DELETE FROM dogs WHERE user_id IN ($1, $2)`, [userId, otherUserId]);
-    await pool.query(`DELETE FROM users WHERE id IN ($1, $2)`, [userId, otherUserId]);
+  afterEach(async () => {
+    // Cleanup is handled by setup.js
   });
 
   describe('GET /api/dogs', () => {
-    beforeAll(async () => {
+    beforeEach(async () => {
       // Create test dogs with new schema
       await pool.query(`
         INSERT INTO dogs (user_id, name, breed, birthday, weight, bio, friendliness_dogs, is_vaccinated)
@@ -189,7 +179,7 @@ describe('Dogs API', () => {
   describe('GET /api/dogs/:id', () => {
     let testDogId;
 
-    beforeAll(async () => {
+    beforeEach(async () => {
       // Create a test dog
       const result = await pool.query(`
         INSERT INTO dogs (user_id, name, breed, birthday, weight)
@@ -246,7 +236,7 @@ describe('Dogs API', () => {
   describe('PUT /api/dogs/:id', () => {
     let updateDogId;
 
-    beforeAll(async () => {
+    beforeEach(async () => {
       // Create a dog to update
       const result = await pool.query(`
         INSERT INTO dogs (user_id, name, breed, birthday, weight, bio)
@@ -405,7 +395,7 @@ describe('Dogs API', () => {
   describe('Gallery Management', () => {
     let galleryDogId;
 
-    beforeAll(async () => {
+    beforeEach(async () => {
       // Create a dog for gallery tests
       const result = await pool.query(`
         INSERT INTO dogs (user_id, name, breed, birthday)

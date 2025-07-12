@@ -30,7 +30,7 @@ describe('Comments API - Simple Test', () => {
   let userId;
   let postId;
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     // Create a unique test user
     const timestamp = Date.now();
     const userResult = await pool.query(`
@@ -54,11 +54,8 @@ describe('Comments API - Simple Test', () => {
     console.log('Test setup:', { userId, postId });
   });
 
-  afterAll(async () => {
-    // Clean up in reverse order of foreign key dependencies
-    await pool.query('DELETE FROM post_comments WHERE post_id = $1', [postId]);
-    await pool.query('DELETE FROM posts WHERE id = $1', [postId]);
-    await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+  afterEach(async () => {
+    // Cleanup is handled by setup.js
   });
 
   it('should create a comment on a post', async () => {

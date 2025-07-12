@@ -1,6 +1,6 @@
 const CheckIn = require('../../models/CheckIn');
 const User = require('../../models/User');
-const DogPark = require('../../models/DogPark');
+const DogPark = require('../../models/DogParkCompat');
 const Dog = require('../../models/Dog');
 const Friendship = require('../../models/Friendship');
 const pool = require('../../config/database');

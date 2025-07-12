@@ -2,6 +2,7 @@ const request = require('supertest');
 const express = require('express');
 const pool = require('../config/database');
 const Notification = require('../models/Notification');
+const testDataFactory = require('./utils/testDataFactory');
 
 // Create app instance
 const app = express();
@@ -20,38 +21,29 @@ describe('Notifications API', () => {
   let otherAuthToken;
   let postId;
 
-  beforeAll(async () => {
-    // Create test users
-    const authApp = express();
-    authApp.use(express.json());
-    const authRoutes = require('../routes/auth');
-    authApp.use('/api/auth', authRoutes);
+  beforeEach(async () => {
+    // Create test users using factory
+    const userData = testDataFactory.createUserData();
+    const otherUserData = testDataFactory.createUserData();
 
-    // Create main test user
-    const registerRes = await request(authApp)
-      .post('/api/auth/register')
-      .send({
-        email: 'testnotif@example.com',
-        password: 'password123',
-        firstName: 'Test',
-        lastName: 'Notification'
-      });
+    // Create users directly in database
+    const userResult = await pool.query(`
+      INSERT INTO users (email, password_hash, first_name, last_name)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id
+    `, [userData.email, 'hashedpassword', userData.firstName, userData.lastName]);
+    userId = userResult.rows[0].id;
 
-    authToken = registerRes.body.token;
-    userId = registerRes.body.user.id;
+    const otherUserResult = await pool.query(`
+      INSERT INTO users (email, password_hash, first_name, last_name)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id
+    `, [otherUserData.email, 'hashedpassword', otherUserData.firstName, otherUserData.lastName]);
+    otherUserId = otherUserResult.rows[0].id;
 
-    // Create other user
-    const otherRes = await request(authApp)
-      .post('/api/auth/register')
-      .send({
-        email: 'testnotifother@example.com',
-        password: 'password123',
-        firstName: 'Test',
-        lastName: 'Other'
-      });
-    
-    otherUserId = otherRes.body.user.id;
-    otherAuthToken = otherRes.body.token;
+    // Generate auth tokens
+    authToken = testDataFactory.generateTestToken(userId);
+    otherAuthToken = testDataFactory.generateTestToken(otherUserId);
 
     // Create friendship so they can interact
     await pool.query(`
@@ -68,18 +60,12 @@ describe('Notifications API', () => {
     postId = postResult.rows[0].id;
   });
 
-  afterAll(async () => {
-    // Clean up test data
-    await pool.query(`DELETE FROM notifications WHERE user_id IN ($1, $2)`, [userId, otherUserId]);
-    await pool.query(`DELETE FROM post_comments WHERE user_id IN ($1, $2)`, [userId, otherUserId]);
-    await pool.query(`DELETE FROM post_likes WHERE user_id IN ($1, $2)`, [userId, otherUserId]);
-    await pool.query(`DELETE FROM posts WHERE user_id IN ($1, $2)`, [userId, otherUserId]);
-    await pool.query(`DELETE FROM friendships WHERE user_id IN ($1, $2) OR friend_id IN ($1, $2)`, [userId, otherUserId]);
-    await pool.query(`DELETE FROM users WHERE id IN ($1, $2)`, [userId, otherUserId]);
+  afterEach(async () => {
+    // Cleanup is handled by setup.js
   });
 
   describe('GET /api/notifications', () => {
-    beforeAll(async () => {
+    beforeEach(async () => {
       // Create various types of notifications
       await pool.query(`
         INSERT INTO notifications (user_id, type, data, read, created_at)
@@ -168,7 +154,7 @@ describe('Notifications API', () => {
   describe('PUT /api/notifications/:id/read', () => {
     let notificationId;
 
-    beforeAll(async () => {
+    beforeEach(async () => {
       // Create a new unread notification
       const result = await pool.query(`
         INSERT INTO notifications (user_id, type, data, read)
@@ -234,7 +220,7 @@ describe('Notifications API', () => {
   });
 
   describe('PUT /api/notifications/read-all', () => {
-    beforeAll(async () => {
+    beforeEach(async () => {
       // Create multiple unread notifications
       await pool.query(`
         INSERT INTO notifications (user_id, type, data, read)

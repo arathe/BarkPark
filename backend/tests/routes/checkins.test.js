@@ -1,12 +1,13 @@
 const request = require('supertest');
 const app = require('../../server');
 const User = require('../../models/User');
-const DogPark = require('../../models/DogPark');
+const DogPark = require('../../models/DogParkCompat');
 const Dog = require('../../models/Dog');
 const CheckIn = require('../../models/CheckIn');
 const Friendship = require('../../models/Friendship');
 const pool = require('../../config/database');
 const jwt = require('jsonwebtoken');
+const testDataFactory = require('../utils/testDataFactory');
 
 describe('Check-In API Routes', () => {
   let user1, user2, user3;
@@ -16,31 +17,14 @@ describe('Check-In API Routes', () => {
   
   beforeEach(async () => {
     // Create test users
-    user1 = await User.create({
-      email: 'checkinapi1@test.com',
-      password: 'password123',
-      firstName: 'CheckIn',
-      lastName: 'User1'
-    });
-    
-    user2 = await User.create({
-      email: 'checkinapi2@test.com',
-      password: 'password123',
-      firstName: 'CheckIn',
-      lastName: 'User2'
-    });
-    
-    user3 = await User.create({
-      email: 'checkinapi3@test.com',
-      password: 'password123',
-      firstName: 'CheckIn',
-      lastName: 'User3'
-    });
+    user1 = await User.create(testDataFactory.createUserData());
+    user2 = await User.create(testDataFactory.createUserData());
+    user3 = await User.create(testDataFactory.createUserData());
     
     // Generate auth tokens
-    authToken1 = jwt.sign({ userId: user1.id }, process.env.JWT_SECRET);
-    authToken2 = jwt.sign({ userId: user2.id }, process.env.JWT_SECRET);
-    authToken3 = jwt.sign({ userId: user3.id }, process.env.JWT_SECRET);
+    authToken1 = testDataFactory.generateTestToken(user1.id);
+    authToken2 = testDataFactory.generateTestToken(user2.id);
+    authToken3 = testDataFactory.generateTestToken(user3.id);
     
     // Create test parks
     park1 = await DogPark.create({
@@ -80,14 +64,7 @@ describe('Check-In API Routes', () => {
   });
 
   afterEach(async () => {
-    // Clean up - delete in order of dependencies
-    await pool.query('DELETE FROM posts WHERE user_id IN ($1, $2, $3)', [user1.id, user2.id, user3.id]);
-    await pool.query('DELETE FROM checkins WHERE user_id IN ($1, $2, $3)', [user1.id, user2.id, user3.id]);
-    await pool.query('DELETE FROM dogs WHERE user_id IN ($1, $2, $3)', [user1.id, user2.id, user3.id]);
-    await pool.query('DELETE FROM dog_parks WHERE id IN ($1, $2)', [park1.id, park2.id]);
-    await pool.query('DELETE FROM friendships WHERE user_id IN ($1, $2, $3) OR friend_id IN ($1, $2, $3)', 
-      [user1.id, user2.id, user3.id]);
-    await pool.query('DELETE FROM users WHERE id IN ($1, $2, $3)', [user1.id, user2.id, user3.id]);
+    // Cleanup is handled by setup.js
   });
 
   describe('POST /api/parks/:id/checkin', () => {
