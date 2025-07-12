@@ -33,24 +33,20 @@ describe('CheckIn Model - Concurrency & Time-Sensitive Operations', () => {
       lastName: 'User3'
     });
     
-    // Create test parks
-    park1 = await DogPark.create({
-      name: 'Test Park 1',
-      address: '123 Test St',
-      latitude: 40.7128,
-      longitude: -74.0060,
-      hoursOpen: '06:00',
-      hoursClose: '22:00'
-    });
+    // Create test parks directly via SQL to avoid PostGIS issues
+    const park1Result = await pool.query(`
+      INSERT INTO dog_parks (name, address, latitude, longitude, hours_open, hours_close)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING id, name, address, latitude, longitude
+    `, ['Test Park 1', '123 Test St', 40.7128, -74.0060, '06:00', '22:00']);
+    park1 = park1Result.rows[0];
     
-    park2 = await DogPark.create({
-      name: 'Test Park 2',
-      address: '456 Test Ave',
-      latitude: 40.7589,
-      longitude: -73.9851,
-      hoursOpen: '06:00',
-      hoursClose: '22:00'
-    });
+    const park2Result = await pool.query(`
+      INSERT INTO dog_parks (name, address, latitude, longitude, hours_open, hours_close)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING id, name, address, latitude, longitude
+    `, ['Test Park 2', '456 Test Ave', 40.7589, -73.9851, '06:00', '22:00']);
+    park2 = park2Result.rows[0];
     
     // Create test dogs
     dog1 = await Dog.create({
@@ -67,13 +63,21 @@ describe('CheckIn Model - Concurrency & Time-Sensitive Operations', () => {
   });
 
   afterEach(async () => {
-    // Clean up in reverse order
-    await pool.query('DELETE FROM checkins WHERE user_id IN ($1, $2, $3)', [user1.id, user2.id, user3.id]);
-    await pool.query('DELETE FROM dogs WHERE user_id IN ($1, $2, $3)', [user1.id, user2.id, user3.id]);
-    await pool.query('DELETE FROM dog_parks WHERE id IN ($1, $2)', [park1.id, park2.id]);
-    await pool.query('DELETE FROM friendships WHERE user_id IN ($1, $2, $3) OR friend_id IN ($1, $2, $3)', 
-      [user1.id, user2.id, user3.id]);
-    await pool.query('DELETE FROM users WHERE id IN ($1, $2, $3)', [user1.id, user2.id, user3.id]);
+    // Clean up in reverse order - use try/catch to handle cases where creation failed
+    try {
+      if (user1?.id) {
+        await pool.query('DELETE FROM checkins WHERE user_id IN ($1, $2, $3)', [user1.id, user2?.id, user3?.id].filter(Boolean));
+        await pool.query('DELETE FROM dogs WHERE user_id IN ($1, $2, $3)', [user1.id, user2?.id, user3?.id].filter(Boolean));
+        await pool.query('DELETE FROM friendships WHERE user_id IN ($1, $2, $3) OR friend_id IN ($1, $2, $3)', 
+          [user1.id, user2?.id, user3?.id].filter(Boolean));
+        await pool.query('DELETE FROM users WHERE id IN ($1, $2, $3)', [user1.id, user2?.id, user3?.id].filter(Boolean));
+      }
+      if (park1?.id || park2?.id) {
+        await pool.query('DELETE FROM dog_parks WHERE id IN ($1, $2)', [park1?.id, park2?.id].filter(Boolean));
+      }
+    } catch (error) {
+      console.error('Cleanup error:', error.message);
+    }
   });
 
   describe('Check-In Creation', () => {

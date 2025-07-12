@@ -17,11 +17,8 @@ describe('Authentication API', () => {
   let app;
   let testUser;
 
-  beforeAll(() => {
-    app = createTestApp();
-  });
-
   beforeEach(async () => {
+    app = createTestApp();
     // Create a test user for login tests
     testUser = {
       email: 'test@example.com',

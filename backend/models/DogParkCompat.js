@@ -172,9 +172,10 @@ class DogParkCompat {
                   created_at, updated_at
       `;
       values = [
-        name, description, address, latitude, longitude,
-        amenities || null, rules, hoursOpen, hoursClose,
-        website, phone, rating, reviewCount, surfaceType, hasSeating, zipcode, borough
+        name, description || null, address, latitude, longitude,
+        amenities || null, rules || null, hoursOpen || null, hoursClose || null,
+        website || null, phone || null, rating || null, reviewCount || null, 
+        surfaceType || null, hasSeating || false, zipcode || null, borough || null
       ];
     } else {
       query = `
@@ -190,9 +191,10 @@ class DogParkCompat {
                   created_at, updated_at
       `;
       values = [
-        name, description, address, latitude, longitude,
-        amenities || null, rules, hoursOpen, hoursClose,
-        website, phone, rating, reviewCount, surfaceType, hasSeating, zipcode, borough
+        name, description || null, address, latitude, longitude,
+        amenities || null, rules || null, hoursOpen || null, hoursClose || null,
+        website || null, phone || null, rating || null, reviewCount || null, 
+        surfaceType || null, hasSeating || false, zipcode || null, borough || null
       ];
     }
 

@@ -4,6 +4,22 @@ const pool = require('../config/database');
 const Dog = require('../models/Dog');
 const testDataFactory = require('./utils/testDataFactory');
 
+// Mock auth middleware
+jest.mock('../middleware/auth', () => ({
+  verifyToken: (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+    // Extract user ID from test token
+    const token = authHeader.split(' ')[1];
+    const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+    req.userId = payload.userId;
+    req.user = { id: payload.userId };
+    next();
+  }
+}));
+
 // Create app instance
 const app = express();
 app.use(express.json());

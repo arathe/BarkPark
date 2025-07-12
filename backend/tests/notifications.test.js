@@ -4,6 +4,9 @@ const pool = require('../config/database');
 const Notification = require('../models/Notification');
 const testDataFactory = require('./utils/testDataFactory');
 
+// Mock auth middleware
+jest.mock('../middleware/auth', () => require('./utils/testMocks').mockAuthMiddleware());
+
 // Create app instance
 const app = express();
 app.use(express.json());

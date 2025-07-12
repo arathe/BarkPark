@@ -38,12 +38,7 @@ describe('S3 Upload Utilities - Error Handling & Recovery', () => {
 
     test('should upload file successfully', async () => {
       const mockLocation = 'https://test-bucket.s3.amazonaws.com/dogs/123456-abc123.jpg';
-      mockUpload().promise.mockResolvedValue({
-        Location: mockLocation,
-        ETag: '"abc123"',
-        Key: 'dogs/123456-abc123.jpg'
-      });
-
+      
       const result = await uploadToS3(mockFile, 'dogs', '123456-abc123.jpg');
 
       expect(result).toBe(mockLocation);
@@ -57,7 +52,9 @@ describe('S3 Upload Utilities - Error Handling & Recovery', () => {
 
     test('should handle upload failure', async () => {
       const mockError = new Error('Network error');
-      mockUpload().promise.mockRejectedValue(mockError);
+      mockUpload.mockReturnValue({
+        promise: jest.fn().mockRejectedValue(mockError)
+      });
 
       await expect(uploadToS3(mockFile, 'dogs', '123456-abc123.jpg'))
         .rejects.toThrow('Failed to upload image');
@@ -66,7 +63,9 @@ describe('S3 Upload Utilities - Error Handling & Recovery', () => {
     test('should handle AWS credential errors', async () => {
       const mockError = new Error('Invalid credentials');
       mockError.code = 'CredentialsError';
-      mockUpload().promise.mockRejectedValue(mockError);
+      mockUpload.mockReturnValue({
+        promise: jest.fn().mockRejectedValue(mockError)
+      });
 
       await expect(uploadToS3(mockFile, 'dogs', '123456-abc123.jpg'))
         .rejects.toThrow('Failed to upload image');
@@ -75,7 +74,9 @@ describe('S3 Upload Utilities - Error Handling & Recovery', () => {
     test('should handle rate limiting', async () => {
       const mockError = new Error('Too Many Requests');
       mockError.code = 'RequestLimitExceeded';
-      mockUpload().promise.mockRejectedValue(mockError);
+      mockUpload.mockReturnValue({
+        promise: jest.fn().mockRejectedValue(mockError)
+      });
 
       await expect(uploadToS3(mockFile, 'dogs', '123456-abc123.jpg'))
         .rejects.toThrow('Failed to upload image');
@@ -95,8 +96,10 @@ describe('S3 Upload Utilities - Error Handling & Recovery', () => {
           originalname: `test.${fileType.extension}`
         };
 
-        mockUpload().promise.mockResolvedValue({
-          Location: `https://test-bucket.s3.amazonaws.com/dogs/test.${fileType.extension}`
+        mockUpload.mockReturnValue({
+          promise: jest.fn().mockResolvedValue({
+            Location: `https://test-bucket.s3.amazonaws.com/dogs/test.${fileType.extension}`
+          })
         });
 
         const result = await uploadToS3(file, 'dogs', `test.${fileType.extension}`);
@@ -111,16 +114,20 @@ describe('S3 Upload Utilities - Error Handling & Recovery', () => {
         originalname: 'large.jpg'
       };
 
-      mockUpload().promise.mockResolvedValue({
-        Location: 'https://test-bucket.s3.amazonaws.com/dogs/large.jpg'
+      mockUpload.mockReturnValue({
+        promise: jest.fn().mockResolvedValue({
+          Location: 'https://test-bucket.s3.amazonaws.com/dogs/large.jpg'
+        })
       });
 
       await expect(uploadToS3(largeFile, 'dogs', 'large.jpg')).resolves.toBeDefined();
     });
 
     test('should handle concurrent uploads', async () => {
-      mockUpload().promise.mockResolvedValue({
-        Location: 'https://test-bucket.s3.amazonaws.com/dogs/concurrent.jpg'
+      mockUpload.mockReturnValue({
+        promise: jest.fn().mockResolvedValue({
+          Location: 'https://test-bucket.s3.amazonaws.com/dogs/concurrent.jpg'
+        })
       });
 
       const uploads = Array(5).fill(null).map((_, index) => 
@@ -135,9 +142,11 @@ describe('S3 Upload Utilities - Error Handling & Recovery', () => {
 
   describe('deleteFromS3', () => {
     test('should delete file successfully', async () => {
-      mockDeleteObject().promise.mockResolvedValue({
-        DeleteMarker: true,
-        VersionId: '12345'
+      mockDeleteObject.mockReturnValue({
+        promise: jest.fn().mockResolvedValue({
+          DeleteMarker: true,
+          VersionId: '12345'
+        })
       });
 
       const imageUrl = 'https://test-bucket.s3.amazonaws.com/dogs/123456-abc123.jpg';
@@ -150,7 +159,9 @@ describe('S3 Upload Utilities - Error Handling & Recovery', () => {
     });
 
     test('should handle deletion failure silently', async () => {
-      mockDeleteObject().promise.mockRejectedValue(new Error('Access Denied'));
+      mockDeleteObject.mockReturnValue({
+        promise: jest.fn().mockRejectedValue(new Error('Access Denied'))
+      });
 
       const imageUrl = 'https://test-bucket.s3.amazonaws.com/dogs/123456-abc123.jpg';
       
@@ -176,7 +187,9 @@ describe('S3 Upload Utilities - Error Handling & Recovery', () => {
     });
 
     test('should extract key correctly from various URL formats', async () => {
-      mockDeleteObject().promise.mockResolvedValue({});
+      mockDeleteObject.mockReturnValue({
+        promise: jest.fn().mockResolvedValue({})
+      });
 
       const urlFormats = [
         {
@@ -204,7 +217,9 @@ describe('S3 Upload Utilities - Error Handling & Recovery', () => {
     });
 
     test('should handle concurrent deletions', async () => {
-      mockDeleteObject().promise.mockResolvedValue({});
+      mockDeleteObject.mockReturnValue({
+        promise: jest.fn().mockResolvedValue({})
+      });
 
       const urls = Array(5).fill(null).map((_, index) => 
         `https://test-bucket.s3.amazonaws.com/dogs/image-${index}.jpg`
@@ -261,7 +276,9 @@ describe('S3 Upload Utilities - Error Handling & Recovery', () => {
     test('should handle S3 service unavailable', async () => {
       const mockError = new Error('Service Unavailable');
       mockError.statusCode = 503;
-      mockUpload().promise.mockRejectedValue(mockError);
+      mockUpload.mockReturnValue({
+        promise: jest.fn().mockRejectedValue(mockError)
+      });
 
       await expect(uploadToS3(mockFile, 'dogs', 'test.jpg'))
         .rejects.toThrow('Failed to upload image');
@@ -270,7 +287,9 @@ describe('S3 Upload Utilities - Error Handling & Recovery', () => {
     test('should handle bucket not found', async () => {
       const mockError = new Error('NoSuchBucket');
       mockError.code = 'NoSuchBucket';
-      mockUpload().promise.mockRejectedValue(mockError);
+      mockUpload.mockReturnValue({
+        promise: jest.fn().mockRejectedValue(mockError)
+      });
 
       await expect(uploadToS3(mockFile, 'dogs', 'test.jpg'))
         .rejects.toThrow('Failed to upload image');
@@ -279,7 +298,9 @@ describe('S3 Upload Utilities - Error Handling & Recovery', () => {
     test('should handle permission denied', async () => {
       const mockError = new Error('Access Denied');
       mockError.code = 'AccessDenied';
-      mockUpload().promise.mockRejectedValue(mockError);
+      mockUpload.mockReturnValue({
+        promise: jest.fn().mockRejectedValue(mockError)
+      });
 
       await expect(uploadToS3(mockFile, 'dogs', 'test.jpg'))
         .rejects.toThrow('Failed to upload image');
@@ -288,7 +309,9 @@ describe('S3 Upload Utilities - Error Handling & Recovery', () => {
     test('should handle network timeout', async () => {
       const mockError = new Error('Request timeout');
       mockError.code = 'RequestTimeout';
-      mockUpload().promise.mockRejectedValue(mockError);
+      mockUpload.mockReturnValue({
+        promise: jest.fn().mockRejectedValue(mockError)
+      });
 
       await expect(uploadToS3(mockFile, 'dogs', 'test.jpg'))
         .rejects.toThrow('Failed to upload image');
@@ -302,8 +325,10 @@ describe('S3 Upload Utilities - Error Handling & Recovery', () => {
         mimetype: 'image/jpeg'
       };
 
-      mockUpload().promise.mockResolvedValue({
-        Location: 'https://test-bucket.s3.amazonaws.com/dogs/empty.jpg'
+      mockUpload.mockReturnValue({
+        promise: jest.fn().mockResolvedValue({
+          Location: 'https://test-bucket.s3.amazonaws.com/dogs/empty.jpg'
+        })
       });
 
       await uploadToS3(emptyFile, 'dogs', 'empty.jpg');
@@ -338,7 +363,9 @@ describe('S3 Upload Utilities - Error Handling & Recovery', () => {
       delete process.env.S3_BUCKET_NAME;
       
       // Should still attempt upload but with undefined bucket
-      mockUpload().promise.mockRejectedValue(new Error('Bucket name missing'));
+      mockUpload.mockReturnValue({
+        promise: jest.fn().mockRejectedValue(new Error('Bucket name missing'))
+      });
       
       await expect(uploadToS3(mockFile, 'dogs', 'test.jpg'))
         .rejects.toThrow('Failed to upload image');
