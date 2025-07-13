@@ -296,7 +296,7 @@ describe('Dogs API', () => {
       expect(res.status).toBe(200);
       expect(res.body.dog.bio).toBe('Only updating bio');
       // Other fields should remain unchanged
-      expect(res.body.dog.name).toBe('Updated Name');
+      expect(res.body.dog.name).toBe('UpdateMe');
     });
 
     it('should not update other user dogs', async () => {

@@ -45,3 +45,4 @@ barkpark_backup_*
 
 # iOS test results
 ios/TestResults/
+ios/BarkPark/TestResults/

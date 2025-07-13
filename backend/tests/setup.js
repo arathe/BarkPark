@@ -7,13 +7,13 @@ jest.mock('aws-sdk', () => {
   const mockDeleteObject = jest.fn();
   
   // Create mock functions that can be controlled in tests
-  mockUpload.mockReturnValue({
+  mockUpload.mockImplementation((params) => ({
     promise: jest.fn().mockResolvedValue({
-      Location: 'https://test-bucket.s3.amazonaws.com/test-image.jpg',
+      Location: `https://${params.Bucket}.s3.amazonaws.com/${params.Key}`,
       ETag: '"test-etag"',
-      Key: 'test-image.jpg'
+      Key: params.Key
     })
-  });
+  }));
   
   mockDeleteObject.mockReturnValue({
     promise: jest.fn().mockResolvedValue({})

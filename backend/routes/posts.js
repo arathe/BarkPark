@@ -306,7 +306,10 @@ router.post('/:id/comment', requireAuth, [
       parentCommentId
     });
     
-    res.status(201).json(comment);
+    // Fetch the formatted comment with user data
+    const formattedComment = await PostComment.getFormattedComment(comment.id);
+    
+    res.status(201).json(formattedComment);
   } catch (error) {
     console.error('Error creating comment:', error);
     if (error.message === 'Post not found') {

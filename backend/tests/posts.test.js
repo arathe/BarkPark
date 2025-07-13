@@ -198,7 +198,7 @@ describe('Posts API', () => {
   });
 
   describe('GET /api/posts/feed', () => {
-    beforeAll(async () => {
+    beforeEach(async () => {
       // Create posts with different visibilities
       await pool.query(`
         INSERT INTO posts (user_id, content, post_type, visibility, created_at)
@@ -237,8 +237,8 @@ describe('Posts API', () => {
       expect(postContents).not.toContain('Other friends post');
       
       // Posts should be ordered by created_at DESC
-      // The most recent post could be any of the newly created ones
-      expect(res.body.posts.length).toBeGreaterThan(5);
+      // We should see our posts (3 from user, 2 from friend visible, and potentially public posts)
+      expect(res.body.posts.length).toBeGreaterThanOrEqual(5);
     });
 
     it('should support pagination', async () => {
@@ -274,7 +274,7 @@ describe('Posts API', () => {
   describe('POST /api/posts/:id/like', () => {
     let likePostId;
 
-    beforeAll(async () => {
+    beforeEach(async () => {
       // Create a post to like
       const result = await pool.query(`
         INSERT INTO posts (user_id, content, post_type, visibility)
@@ -302,6 +302,12 @@ describe('Posts API', () => {
     });
 
     it('should unlike a post', async () => {
+      // First like the post
+      await request(app)
+        .post(`/api/posts/${likePostId}/like`)
+        .set('Authorization', `Bearer ${authToken}`);
+      
+      // Then unlike it
       const res = await request(app)
         .post(`/api/posts/${likePostId}/like`)
         .set('Authorization', `Bearer ${authToken}`);
@@ -329,7 +335,7 @@ describe('Posts API', () => {
   describe('POST /api/posts/:id/comment', () => {
     let commentPostId;
 
-    beforeAll(async () => {
+    beforeEach(async () => {
       const result = await pool.query(`
         INSERT INTO posts (user_id, content, post_type, visibility)
         VALUES ($1, 'Post for comments', 'status', 'public')
@@ -377,7 +383,7 @@ describe('Posts API', () => {
   describe('GET /api/posts/:id/comments', () => {
     let commentedPostId;
     
-    beforeAll(async () => {
+    beforeEach(async () => {
       // Create post and comments
       const postResult = await pool.query(`
         INSERT INTO posts (user_id, content, post_type, visibility)

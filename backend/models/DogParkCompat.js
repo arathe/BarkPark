@@ -157,16 +157,15 @@ class DogParkCompat {
     let values;
     
     if (hasPostGIS) {
+      // Insert into both location column AND latitude/longitude for compatibility
       query = `
         INSERT INTO dog_parks (
-          name, description, address, location, amenities, rules, 
+          name, description, address, latitude, longitude, location, amenities, rules, 
           hours_open, hours_close, website, phone, rating, review_count,
           surface_type, has_seating, zipcode, borough
         )
-        VALUES ($1, $2, $3, ST_MakePoint($5, $4)::geography, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-        RETURNING id, name, description, address,
-                  ST_X(location::geometry) as longitude, 
-                  ST_Y(location::geometry) as latitude,
+        VALUES ($1, $2, $3, $4, $5, ST_MakePoint($5, $4)::geography, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+        RETURNING id, name, description, address, longitude, latitude,
                   amenities, rules, hours_open, hours_close,
                   website, phone, rating, review_count, surface_type, has_seating, zipcode, borough,
                   created_at, updated_at

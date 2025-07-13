@@ -7,7 +7,7 @@ describe('DogPark Model - PostGIS Spatial Queries', () => {
   let hasPostGIS = false;
   let testParkIds = [];
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     // Check if PostGIS is available
     try {
       const result = await pool.query("SELECT PostGIS_Version()");
@@ -83,9 +83,7 @@ describe('DogPark Model - PostGIS Spatial Queries', () => {
         borough: 'International'
       }
     ];
-  });
 
-  beforeEach(async () => {
     // Clean up any test parks from previous test
     if (testParkIds.length > 0) {
       await pool.query('DELETE FROM dog_parks WHERE id = ANY($1::int[])', [testParkIds]);

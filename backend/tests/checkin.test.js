@@ -22,11 +22,8 @@ describe('CheckIn Model', () => {
   let testPark;
   let userId;
 
-  beforeAll(() => {
-    app = createTestApp();
-  });
-
   beforeEach(async () => {
+    app = createTestApp();
     // Create and authenticate test user
     testUser = testDataFactory.createUserData();
 

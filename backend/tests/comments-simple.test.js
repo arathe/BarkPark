@@ -13,7 +13,7 @@ jest.mock('../middleware/auth', () => {
       }
       const token = authHeader.substring(7);
       try {
-        const decoded = mockJwt.verify(token, process.env.JWT_SECRET || 'test_secret');
+        const decoded = mockJwt.verify(token, process.env.JWT_SECRET || 'test-jwt-secret-key');
         req.user = { id: decoded.userId };
         next();
       } catch (error) {
@@ -41,7 +41,7 @@ describe('Comments API - Simple Test', () => {
     userId = userResult.rows[0].id;
 
     // Generate auth token
-    authToken = jwt.sign({ userId }, process.env.JWT_SECRET || 'test_secret');
+    authToken = jwt.sign({ userId }, process.env.JWT_SECRET || 'test-jwt-secret-key');
 
     // Create a test post
     const postResult = await pool.query(`

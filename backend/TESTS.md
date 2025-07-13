@@ -210,5 +210,41 @@ npm test -- tests/auth.test.js --runInBand
 npm test -- tests/posts.test.js --runInBand --verbose
 ```
 
+## 🔧 Session 2025-07-13 - Permanent Fix for Test Regression Cycle
+
+### Root Cause Identified
+The test suite kept regressing from 95% to 20% success rate because:
+1. **Jest defaults to parallel execution** but our test infrastructure requires sequential
+2. **No enforcement** - Developers would run `npm test` and see failures
+3. **Documentation buried** - The `--runInBand` flag requirement wasn't prominent
+
+### Permanent Solutions Implemented
+
+1. **Updated package.json**
+   ```json
+   "test": "jest --runInBand",          // Now the default
+   "test:parallel": "jest",             // If someone needs parallel
+   ```
+
+2. **Updated CLAUDE.md**
+   - Added prominent "Running Tests - CRITICAL FOR CLAUDE SESSIONS" section
+   - Placed at the top of test documentation
+   - Clear DO/DON'T examples
+
+3. **Created TESTING_GUIDE.md**
+   - Root-level visibility
+   - Explains WHY sequential execution is required
+   - Common patterns and solutions
+
+### Why This Fixes the Cycle
+- Future Claude sessions will see the test instructions immediately
+- Default `npm test` now works correctly
+- Clear documentation prevents developers from "fixing" what isn't broken
+
+### Current Status
+- **Sequential execution**: ~60-70% pass rate (125 failures)
+- These are legitimate test failures, not infrastructure issues
+- Next step: Fix the actual failing tests
+
 ---
-*Last updated: 2025-07-11*
+*Last updated: 2025-07-13*

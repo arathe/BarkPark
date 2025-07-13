@@ -463,6 +463,42 @@ curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/jso
 - **Profile Image Display**: Must use AsyncImage with proper URL handling for S3 images
 - **Update Sequencing**: Upload photo first, then update profile to avoid overwriting photo URL
 
+## 🧪 Running Tests - CRITICAL FOR CLAUDE SESSIONS
+
+### ⚠️ ALWAYS USE SEQUENTIAL TEST EXECUTION ⚠️
+The test infrastructure assumes sequential execution. Parallel tests will fail with deadlocks and foreign key violations.
+
+```bash
+# CORRECT - Always use these commands:
+cd backend && npm test              # Runs with --runInBand (sequential)
+cd backend && npm test -- --verbose # For detailed output
+
+# WRONG - Never use these:
+cd backend && jest                  # Will run in parallel and fail
+cd backend && npm test:parallel     # Only for debugging parallel issues
+```
+
+### Quick Test Commands
+```bash
+# Run all backend tests (sequential)
+cd backend && npm test
+
+# Run specific test file
+cd backend && npm test -- tests/auth.test.js
+
+# Run with verbose output for debugging
+cd backend && npm test -- --verbose
+
+# Run iOS tests
+cd ios && xcodebuild test -project BarkPark.xcodeproj -scheme BarkPark -destination 'platform=iOS Simulator,name=iPhone 15,OS=18.5'
+```
+
+### Expected Test Results
+- **Target Success Rate**: >90%
+- **Current Best**: 95.4% (achieved in Session 12)
+- **Sequential Execution**: ~60-70% pass rate expected
+- **Parallel Execution**: ~20% pass rate (DO NOT USE)
+
 ## 🧪 Test Infrastructure Patterns
 
 ### Critical Test Setup Rules
@@ -538,6 +574,37 @@ curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/jso
    - PostGIS tests: Skip gracefully when PostGIS not available
    - Use conditional returns: `if (!hasPostGIS) return;`
    - Document why tests are skipped for future reference
+
+### Session 25 - Test Infrastructure Permanent Fix & 92% Pass Rate
+
+#### Key Discovery: Jest Parallel Execution Root Cause
+- **Problem**: Jest defaults to parallel execution, but our test infrastructure requires sequential
+- **Impact**: Test pass rate would cycle between 95% (when fixed) → 20% (next session)
+- **Root Cause**: Developers running `npm test` would see failures and "fix" already-working tests
+
+#### Permanent Solutions Implemented
+1. **Updated package.json**: Default `npm test` now uses `--runInBand`
+2. **Created TESTING_GUIDE.md**: Root-level comprehensive testing documentation
+3. **Updated CLAUDE.md**: Moved test instructions to prominent position
+4. **Documented Pattern**: Always use `beforeEach`, never `beforeAll`
+
+#### Application Bugs Discovered
+- **Gallery Upload Race Condition**: `Dog.addGalleryImage` uses read-modify-write pattern
+  - Multiple concurrent uploads result in lost images
+  - Test correctly identified this production bug
+  - TODO: Fix with atomic array operations
+
+#### Technical Patterns Learned
+- **Mixed Database Schemas**: Test DB has both PostGIS `location` AND `latitude`/`longitude` columns
+  - Solution: DogPark models now populate both for compatibility
+- **S3 Mock Pattern**: Global mock should use dynamic URLs based on params
+  - Fixed: `Location: \`https://\${params.Bucket}.s3.amazonaws.com/\${params.Key}\``
+- **Multer Error Handling**: Exceeding file limit returns "Unexpected field" not custom message
+
+#### Test Success Metrics
+- **Session Start**: 297 failed, 76 passed (19.3% pass rate)
+- **Session End**: 10 failed, 363 passed (92.1% pass rate)
+- **Fixed**: 287 failing tests (96.6% of failures resolved)
 
 ---
 *For detailed session history, see git commits. This file maintains current project state and essential protocols.*

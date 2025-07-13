@@ -214,6 +214,43 @@ class PostComment {
       client.release();
     }
   }
+
+  static async getFormattedComment(commentId) {
+    const query = `
+      SELECT 
+        pc.*,
+        u.first_name,
+        u.last_name,
+        u.profile_image_url
+      FROM post_comments pc
+      JOIN users u ON u.id = pc.user_id
+      WHERE pc.id = $1
+    `;
+    
+    const result = await pool.query(query, [commentId]);
+    
+    if (result.rows.length === 0) {
+      return null;
+    }
+    
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      post_id: row.post_id,
+      user_id: row.user_id,
+      parent_comment_id: row.parent_comment_id,
+      content: row.content,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      user: {
+        id: row.user_id,
+        first_name: row.first_name,
+        last_name: row.last_name,
+        profile_image_url: row.profile_image_url
+      },
+      replies: []
+    };
+  }
 }
 
 module.exports = PostComment;
