@@ -10,6 +10,7 @@ This file provides guidance for AI assistants working with the BarkPark codebase
 - **Frontend**: iOS SwiftUI app (iOS 17+)
 - **Deployment**: Railway PaaS (backend), TestFlight (iOS)
 - **Production API**: `https://barkpark-production.up.railway.app/api`
+- **Staging API**: `https://barkpark-barkpark-staging.up.railway.app/api`
 - **Local/Dev API**: Development is done on a locally hosted API
 
 ### Current Features
@@ -605,6 +606,43 @@ cd ios && xcodebuild test -project BarkPark.xcodeproj -scheme BarkPark -destinat
 - **Session Start**: 297 failed, 76 passed (19.3% pass rate)
 - **Session End**: 10 failed, 363 passed (92.1% pass rate)
 - **Fixed**: 287 failing tests (96.6% of failures resolved)
+
+### Session 26 - Multi-Environment Setup for Real Device Testing
+
+#### Features Implemented
+- **Environment Structure**: Created three-environment setup (Local, Staging, Production)
+- **iOS Dynamic Configuration**: 
+  - `APIConfiguration.swift` now supports environment detection - ios/BarkPark/BarkPark/Core/Network/APIService.swift:11-58
+  - Automatic environment selection based on build configuration
+  - Environment variable overrides for flexibility
+- **Backend Staging Support**:
+  - Updated database and migration configs for staging SSL - backend/config/database.js:13, backend/scripts/unified-migrate.js:32
+  - Created deployment helper script - backend/scripts/deploy-helper.sh
+- **Railway Staging Setup**: Complete guide for creating staging environment
+
+#### Technical Discoveries
+- **Xcode Build Error**: "Multiple commands produce Info.plist"
+  - Cause: TestResults directories containing Info.plist files
+  - Solution: Remove `/ios/TestResults` and `/ios/BarkPark/TestResults` directories
+  - These directories are auto-generated and should not be in version control
+- **Railway URL Format**: Staging URLs follow pattern `https://[project]-[service].up.railway.app`
+  - Example: `https://barkpark-barkpark-staging.up.railway.app`
+- **Environment Detection**: iOS uses conditional compilation (#if DEBUG) combined with ProcessInfo
+
+#### Deployment Workflow
+- **Branch Strategy**:
+  - `main` → Production (future)
+  - `staging` → Staging (TestFlight testing)
+  - Feature branches → Local development
+- **Automatic Deployments**: Railway deploys on push to configured branch
+- **Migration Consistency**: Same migration system ensures database sync across environments
+
+#### Key Configuration Patterns
+- **iOS Environment Override**: Use Xcode scheme environment variables
+  - `BARKPARK_ENVIRONMENT`: Force specific environment
+  - `LOCAL_API_URL`: Override local development URL
+- **Backend SSL**: Both staging and production require SSL in database connections
+- **Shared Xcode Schemes**: Store in `xcshareddata/xcschemes/` for team sharing
 
 ---
 *For detailed session history, see git commits. This file maintains current project state and essential protocols.*
