@@ -10,7 +10,7 @@ console.log('[Database] DATABASE_URL exists:', !!process.env.DATABASE_URL);
 const connectionConfig = process.env.DATABASE_URL
   ? {
       connectionString: process.env.DATABASE_URL,
-      ssl: process.env.NODE_ENV === 'production' 
+      ssl: ['production', 'staging'].includes(process.env.NODE_ENV) 
         ? { rejectUnauthorized: false }
         : false
     }

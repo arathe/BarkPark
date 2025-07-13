@@ -9,6 +9,13 @@ import SwiftUI
 
 @main
 struct BarkParkApp: App {
+    init() {
+        // Log environment configuration on app startup
+        #if DEBUG
+        APIConfiguration.logEnvironment()
+        #endif
+    }
+    
     var body: some Scene {
         WindowGroup {
             RootView()

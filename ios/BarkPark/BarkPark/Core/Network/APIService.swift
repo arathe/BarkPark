@@ -9,9 +9,52 @@ import Foundation
 
 // MARK: - API Configuration
 struct APIConfiguration {
-    // Use your Mac's IP address for iOS Simulator
-    // localhost doesn't work in the simulator
-    static let baseURL = "http://192.168.86.67:3000/api"
+    enum Environment: String {
+        case local
+        case staging
+        case production
+        
+        var baseURL: String {
+            switch self {
+            case .local:
+                // For local development - update with your machine's IP
+                return ProcessInfo.processInfo.environment["LOCAL_API_URL"] ?? "http://192.168.86.67:3000/api"
+            case .staging:
+                return "https://barkpark-staging.up.railway.app/api"
+            case .production:
+                return "https://barkpark-production.up.railway.app/api"
+            }
+        }
+    }
+    
+    static var currentEnvironment: Environment {
+        #if DEBUG
+        // Check if running in SwiftUI Preview
+        if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1" {
+            return .local
+        }
+        // Check for environment override
+        if let envString = ProcessInfo.processInfo.environment["BARKPARK_ENVIRONMENT"],
+           let env = Environment(rawValue: envString) {
+            return env
+        }
+        // Default to local for debug builds
+        return .local
+        #else
+        // Release builds use staging for now (will change to production later)
+        return .staging
+        #endif
+    }
+    
+    static var baseURL: String {
+        return currentEnvironment.baseURL
+    }
+    
+    // Helper to log current environment
+    static func logEnvironment() {
+        print("🌍 BarkPark Environment: \(currentEnvironment.rawValue)")
+        print("🔗 API Base URL: \(baseURL)")
+    }
 }
 
 // MARK: - Network Errors

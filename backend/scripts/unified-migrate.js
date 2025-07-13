@@ -23,15 +23,17 @@ const flags = {
 
 // Database connection configuration
 const getDbConfig = () => {
+  const environment = process.env.NODE_ENV || 'development';
+  
   if (process.env.DATABASE_URL) {
-    console.log('[Migration] Using DATABASE_URL for connection');
+    console.log(`[Migration] Using DATABASE_URL for connection (${environment} environment)`);
     return {
       connectionString: process.env.DATABASE_URL,
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+      ssl: ['production', 'staging'].includes(environment) ? { rejectUnauthorized: false } : false
     };
   }
   
-  console.log('[Migration] Using individual environment variables');
+  console.log(`[Migration] Using individual environment variables (${environment} environment)`);
   return {
     host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 5432,
