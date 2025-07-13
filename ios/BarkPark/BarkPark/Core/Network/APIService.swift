@@ -20,7 +20,7 @@ struct APIConfiguration {
                 // For local development - update with your machine's IP
                 return ProcessInfo.processInfo.environment["LOCAL_API_URL"] ?? "http://192.168.86.67:3000/api"
             case .staging:
-                return "https://barkpark-staging.up.railway.app/api"
+                return "https://barkpark-barkpark-staging.up.railway.app/api"
             case .production:
                 return "https://barkpark-production.up.railway.app/api"
             }
