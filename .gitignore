@@ -39,10 +39,16 @@ test-tokens.json
 *.xcuserstate
 xcuserdata/
 
-# Database backups
-*.sql
-barkpark_backup_*
+# Database backups (but not migration files)
+barkpark_backup_*.sql
+backend/backups/*.sql
+
+# iOS build artifacts
+ios/build/
+ios/DerivedData/
+ios/*.xcarchive
 
 # iOS test results
 ios/TestResults/
 ios/BarkPark/TestResults/
+ios-test-results.log

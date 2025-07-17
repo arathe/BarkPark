@@ -321,6 +321,10 @@ When user says **"wrap this session"**:
 
 ### Quick Reference
 ```bash
+# Test API health endpoints (note: health is at root, not under /api)
+curl https://barkpark-production.up.railway.app/health
+curl https://barkpark-barkpark-staging.up.railway.app/health
+
 # Test production API endpoints
 curl -H "Authorization: Bearer $TOKEN" https://barkpark-production.up.railway.app/api/parks
 curl -H "Authorization: Bearer $TOKEN" https://barkpark-production.up.railway.app/api/posts/feed
@@ -643,6 +647,28 @@ cd ios && xcodebuild test -project BarkPark.xcodeproj -scheme BarkPark -destinat
   - `LOCAL_API_URL`: Override local development URL
 - **Backend SSL**: Both staging and production require SSL in database connections
 - **Shared Xcode Schemes**: Store in `xcshareddata/xcschemes/` for team sharing
+
+### Session 27 - TestFlight Deployment Readiness
+
+#### Key Discoveries
+- **Health Endpoint Path**: Railway services expose health check at root path `/health`, not `/api/health`
+- **TestFlight Ready**: Project is fully configured for TestFlight deployment with staging environment
+  - Staging scheme "BarkPark (Staging)" already created and shared
+  - APIConfiguration.swift properly routes Release builds to staging
+  - No code changes needed for TestFlight deployment
+- **iOS Build Artifacts**: Added `ios/build/` to .gitignore to exclude Xcode build artifacts
+- **Project Configuration**: Found existing TestFlight-related changes:
+  - Bundle ID: `us.barkpark.ios.staging`
+  - Development Team: Configured
+  - App Display Name: "Bark Park"
+  - Target: iPhone only
+
+#### Technical Notes
+- **Environment URLs**:
+  - Production: `https://barkpark-production.up.railway.app`
+  - Staging: `https://barkpark-barkpark-staging.up.railway.app`
+- **API Endpoints**: All API calls use `/api` prefix after base URL
+- **Build Process**: iOS app builds successfully with staging configuration
 
 ---
 *For detailed session history, see git commits. This file maintains current project state and essential protocols.*

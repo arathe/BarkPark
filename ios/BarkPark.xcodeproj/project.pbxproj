@@ -393,11 +393,15 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"BarkPark/Preview Content\"";
+				DEVELOPMENT_TEAM = 3A5DAKPC69;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Bark Park";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
 				INFOPLIST_KEY_NSCameraUsageDescription = "BarkPark needs access to your camera to scan QR codes and connect with other dog owners instantly. You can also use the camera to take photos of your dogs for their profiles.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "BarkPark uses your location to show nearby dog parks and help you discover great places to take your dog.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "BarkPark needs access to your photo library to let you select photos for your dog profiles and park check-ins.";
@@ -411,11 +415,11 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = BarkPark.BarkPark;
+				PRODUCT_BUNDLE_IDENTIFIER = us.barkpark.ios.staging;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -424,11 +428,15 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"BarkPark/Preview Content\"";
+				DEVELOPMENT_TEAM = 3A5DAKPC69;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Bark Park";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
 				INFOPLIST_KEY_NSCameraUsageDescription = "BarkPark needs access to your camera to scan QR codes and connect with other dog owners instantly. You can also use the camera to take photos of your dogs for their profiles.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "BarkPark uses your location to show nearby dog parks and help you discover great places to take your dog.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "BarkPark needs access to your photo library to let you select photos for your dog profiles and park check-ins.";
@@ -442,11 +450,11 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = BarkPark.BarkPark;
+				PRODUCT_BUNDLE_IDENTIFIER = us.barkpark.ios.staging;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
