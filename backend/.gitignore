@@ -28,7 +28,8 @@ tmp/
 
 # Database backups (contain sensitive data)
 backups/
-*.sql
+# Only ignore SQL files in the root backend directory, not in migrations/
+/*.sql
 *.dump
 
 # Security audit files (contain vulnerability details)

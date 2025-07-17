@@ -184,6 +184,23 @@ npm run db:schema:sync:verbose  # Detailed schema comparison
 - Test migrations with fresh database and existing data
 - Document rollback procedures for each migration
 
+### ⚠️ WARNING: Manual Database Changes
+**NEVER make manual schema changes to the database outside of migrations!**
+
+In the past, manual ALTER TABLE commands were run on the development database without creating corresponding migrations. This caused staging/production deployments to fail with column mismatch errors. 
+
+**Always follow this process:**
+1. Create a migration file in `migrations/`
+2. Add it to `scripts/unified-migrate.js`
+3. Run `npm run db:migrate` locally
+4. Test thoroughly before deployment
+5. Run `npm test -- tests/database-integrity.test.js` to verify schema
+
+If you discover manual changes were made:
+1. Create a migration that captures those changes (see migration 010)
+2. Test the migration is idempotent (can run multiple times safely)
+3. Deploy to all environments to sync schemas
+
 ## 🐛 Debugging Methodology
 
 ### Systematic Debugging Approach

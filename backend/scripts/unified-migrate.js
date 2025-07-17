@@ -86,6 +86,16 @@ const migrations = [
     id: '008_add_password_reset',
     file: '008_add_password_reset.sql',
     description: 'Add password reset functionality'
+  },
+  {
+    id: '009_add_password_reset_attempts',
+    file: '009_add_password_reset_attempts.sql',
+    description: 'Add password reset attempt tracking'
+  },
+  {
+    id: '010_fix_column_names',
+    file: '010_fix_column_names.sql',
+    description: 'Fix column names to match application code'
   }
 ];
 
