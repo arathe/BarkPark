@@ -216,7 +216,7 @@ async function recordMigration(client, migration, checksum, executionTime) {
 async function verifySchema(client) {
   console.log('\n🔍 Verifying Database Schema...\n');
   
-  const tables = ['users', 'dogs', 'dog_parks', 'friendships', 'checkins', 'messages', 'park_notices'];
+  const tables = ['users', 'dogs', 'dog_parks', 'friendships', 'checkins', 'posts', 'post_likes', 'post_comments', 'notifications'];
   const issues = [];
   
   for (const table of tables) {

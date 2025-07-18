@@ -22,7 +22,12 @@
     "db:schema:sync:verbose": "node scripts/schema-sync.js --verbose",
     "generate-test-token": "node scripts/generate-test-token.js",
     "migrate": "node scripts/unified-migrate.js",
-    "migrate:seed": "node scripts/unified-migrate.js --seed"
+    "migrate:seed": "node scripts/unified-migrate.js --seed",
+    "precommit": "npm run db:migrate:status && npm test -- tests/database-integrity.test.js",
+    "deploy-staging": "./scripts/deploy-staging.sh",
+    "monitor-staging": "echo 'Monitoring staging deployment...' && sleep 30 && curl -s https://barkpark-barkpark-staging.up.railway.app/health | python3 -m json.tool",
+    "sync-check": "npm run db:migrate:status && echo '---' && npm run db:schema:compare",
+    "quick-check": "npm test -- tests/database-integrity.test.js tests/auth.test.js --silent"
   },
   "keywords": [
     "dogs",
