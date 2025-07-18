@@ -92,6 +92,7 @@ This file provides guidance for AI assistants working with the BarkPark codebase
 3. **Security First**: Never expose secrets, validate all input
 4. **Match Patterns**: Follow existing code conventions
 5. **Test based development**: We are following a test-based development approach. tests should be written for all new functionality and used through the development process to ensure functionality.
+6. **Environment Synchronization**: Always consider impact on ALL environments (local, staging, production) before making changes
 
 
 ### Production Database Testing Patterns
@@ -130,6 +131,8 @@ Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
 - 🧹 Remove debug logs (console.log, print statements) unless specifically needed
 - ✅ Ensure no test data or mock values remain in production code
 - 🚫 If too many files staged accidentally, use `git reset HEAD` to unstage all
+- 🔒 **Check .gitignore**: Use `git check-ignore <file>` to verify important files aren't ignored
+- 🧪 **Run integrity tests**: Execute `npm test -- tests/database-integrity.test.js` before deployment
 
 ## 🗄️ Database Management
 
@@ -183,6 +186,9 @@ npm run db:schema:sync:verbose  # Detailed schema comparison
 - Handle both development and production scenarios
 - Test migrations with fresh database and existing data
 - Document rollback procedures for each migration
+- **Check migration numbering**: List existing migrations with `ls migrations/*.sql | sort` before creating new ones
+- **Verify all environments**: Consider impact on local, staging, AND production databases
+- **Test migration idempotency**: Ensure migrations can run multiple times safely using DO blocks
 
 ### ⚠️ WARNING: Manual Database Changes
 **NEVER make manual schema changes to the database outside of migrations!**
@@ -230,6 +236,16 @@ Example from Session 17:
 4. **Schema verification**: Always compare local vs production schemas
 5. **Migration state**: Check schema_migrations table consistency
 6. **Test startup locally**: Simulate production startup command
+
+### Debugging Staging/Production Errors
+When encountering deployment errors (like column mismatches):
+1. **Don't assume** - Get exact error messages from logs
+2. **Check schema differences** - Compare local vs deployed database schemas
+3. **Verify migration history** - Use `npm run db:migrate:status` on both environments
+4. **Look for manual changes** - Check if local DB was altered outside migrations
+5. **Create fixing migration** - Capture any manual changes in a new migration
+6. **Test idempotency** - Ensure migration works on both altered and fresh databases
+7. **Use TodoWrite** - Track multi-step debugging process for visibility
 
 ### Environment Variables
 **Required for Production:**
@@ -304,6 +320,9 @@ Example from Session 17:
 - ✅ When implementing new features, first study existing similar implementations
 - ✅ Use Task tool to explore codebase when uncertain about patterns
 - ✅ In future when we make changes to the ios app, you should test the build succeeds
+- ✅ Use TodoWrite tool for complex multi-step tasks and debugging sessions
+- ✅ Run database integrity tests before suggesting deployments
+- ✅ Verify schema synchronization across ALL environments before migrations
 
 ### Don'ts
 - ❌ Modify production data directly
@@ -319,6 +338,16 @@ When facing architectural choices:
 3. **Ask for strategic direction** when multiple valid paths exist
 4. **Document the decision** and reasoning in code comments
 5. **Prefer established patterns** (e.g., PostGIS for geo data)
+
+### Task Tracking with TodoWrite
+Use the TodoWrite tool proactively for:
+- **Multi-step debugging**: Track investigation steps and findings
+- **Complex implementations**: Break down features into subtasks
+- **Deployment issues**: Track environments checked and fixes applied
+- **Schema changes**: List all migration steps needed
+- **Test failures**: Track which tests fixed and which pending
+
+Mark tasks as `in_progress` BEFORE starting work, and `completed` IMMEDIATELY after finishing.
 
 ### Session Management
 When user says **"wrap this session"**:
@@ -686,6 +715,33 @@ cd ios && xcodebuild test -project BarkPark.xcodeproj -scheme BarkPark -destinat
   - Staging: `https://barkpark-barkpark-staging.up.railway.app`
 - **API Endpoints**: All API calls use `/api` prefix after base URL
 - **Build Process**: iOS app builds successfully with staging configuration
+
+### Session 28 - Staging Database Schema Synchronization Fix
+
+#### Critical Discovery: Manual Database Changes
+- **Root Cause**: Development database had manual schema changes not captured in migrations
+  - `checkins.dogs_present` was manually renamed to `checkins.dogs`
+  - `friendships.requester_id/addressee_id` were manually renamed to `user_id/friend_id`
+- **Impact**: Staging deployment failed with column mismatch errors after TestFlight release
+- **Lesson**: Manual database changes MUST be captured in migrations immediately
+
+#### Technical Solution
+- **Migration 010**: Created idempotent migration to sync column names across environments
+  - Uses DO blocks with conditional logic to check column existence
+  - Safe to run on both altered and fresh databases
+  - Provides detailed NOTICE output for debugging
+- **Database Integrity Test**: Created `tests/database-integrity.test.js` to verify schema consistency
+  - Checks critical column names match application expectations
+  - Verifies required tables and indexes exist
+  - Should be run before all deployments
+- **Gitignore Fix**: Changed `*.sql` to `/*.sql` to allow migration files while blocking root SQL dumps
+
+#### Key Patterns for Future Sessions
+1. **Always verify schema sync**: Run `npm run db:migrate:status` on ALL environments
+2. **Check for manual changes**: Compare actual database columns with migration history
+3. **Use idempotent migrations**: Wrap ALTER TABLE in DO blocks with existence checks
+4. **Test before deploying**: Run database integrity tests to catch schema drift
+5. **Track complex debugging**: Use TodoWrite tool for multi-step investigations
 
 ---
 *For detailed session history, see git commits. This file maintains current project state and essential protocols.*
