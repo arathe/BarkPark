@@ -52,3 +52,10 @@ ios/*.xcarchive
 ios/TestResults/
 ios/BarkPark/TestResults/
 ios-test-results.log
+
+# Temporary backend debug/test scripts
+backend/check-staging*.js
+backend/migrate-staging.js
+backend/test-pg.js
+backend/scripts/import-parks-simple.sql
+backend/scripts/import-nyc-parks.sql

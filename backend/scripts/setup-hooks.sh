@@ -19,7 +19,8 @@ cd backend 2>/dev/null || { echo "❌ ERROR: backend directory not found"; exit 
 
 # 1. Check for database schema drift
 echo "📊 Checking database migration status..."
-if ! npm run db:migrate:status | grep -q "All migrations applied"; then
+MIGRATION_OUTPUT=$(npm run db:migrate:status 2>&1)
+if echo "$MIGRATION_OUTPUT" | grep -q "Pending Migrations:" && ! echo "$MIGRATION_OUTPUT" | grep -q "(none)"; then
     echo "❌ ERROR: Unapplied migrations detected!"
     echo "👉 Run: npm run db:migrate"
     exit 1

@@ -350,23 +350,81 @@ Use the TodoWrite tool proactively for:
 Mark tasks as `in_progress` BEFORE starting work, and `completed` IMMEDIATELY after finishing.
 
 ### Session Management
-When user says **"wrap this session"**:
-1. Update session notes with:
+
+#### Development Workflow
+**IMPORTANT**: The automated workflow prevents database sync issues while supporting flexible deployment:
+
+1. **Before starting work**:
+   ```bash
+   git checkout staging
+   git pull origin staging
+   npm run sync-check      # Verify DB is in sync
+   ```
+
+2. **During development**:
+   - Work directly on staging branch
+   - Commit regularly - pre-commit hooks will catch issues automatically
+   - For DB changes: Create migration, add to unified-migrate.js, run `npm run db:migrate`
+   - **Backend changes stay local** until you explicitly deploy
+
+3. **When to deploy to staging**:
+   - Only when iOS app changes are ready for TestFlight
+   - When backend changes are backward-compatible
+   - When explicitly requested by user
+   - **NOT automatically at session end**
+
+#### When user says **"wrap this session"**:
+1. **Commit any uncommitted work**:
+   ```bash
+   git add -p
+   git commit -m "feat: description"
+   ```
+   Pre-commit hooks ensure database integrity automatically.
+
+2. **Update session notes** with:
    - Key problems solved
    - Technical decisions made
    - Files modified (with line numbers)
    - Next steps or pending tasks
-2. Create descriptive git commit:
-   - List all changes in commit body
-   - Reference issue numbers if applicable
-   - Include migration warnings if schema changed
-3. Update known issues or features
-4. Clear completed todos from session
+   - Whether changes need staging deployment
+
+3. **Update CLAUDE.md** if needed with new learnings
+
+4. **Clear completed todos** from session
+
+#### When user explicitly says **"deploy to staging"**:
+1. **Verify backward compatibility**:
+   - Check if API changes will break current TestFlight app
+   - Consider if iOS app update is needed
+
+2. **Run automated deployment**:
+   ```bash
+   cd backend
+   npm run deploy-staging
+   ```
+   This handles all checks, tests, and deployment automatically.
+
+3. **If iOS update needed**:
+   - Note that TestFlight update will be required
+   - Document any breaking changes
+
+**Note**: Keep backend changes local during development. Only deploy to staging when coordinating with iOS app updates to avoid breaking TestFlight testers.
 
 ## 📋 Session Notes
 
 ### Quick Reference
 ```bash
+# AUTOMATED DEPLOYMENT (only when explicitly requested)
+cd backend
+npm run deploy-staging     # One-command deployment with all checks
+# WARNING: Only deploy when iOS app is ready for backend changes!
+
+# Daily development commands
+npm run sync-check         # Check DB sync status  
+npm run quick-check        # Run critical tests only
+npm run monitor-staging    # Check staging health
+git commit -m "..."        # Pre-commit hooks run automatically
+
 # Test API health endpoints (note: health is at root, not under /api)
 curl https://barkpark-production.up.railway.app/health
 curl https://barkpark-barkpark-staging.up.railway.app/health
@@ -742,6 +800,41 @@ cd ios && xcodebuild test -project BarkPark.xcodeproj -scheme BarkPark -destinat
 3. **Use idempotent migrations**: Wrap ALTER TABLE in DO blocks with existence checks
 4. **Test before deploying**: Run database integrity tests to catch schema drift
 5. **Track complex debugging**: Use TodoWrite tool for multi-step investigations
+
+### Session 29 - Automated Deployment Workflow Implementation
+
+#### Features Implemented
+- **Pre-commit Hook**: Git hook that automatically runs before every commit
+  - Checks database migration status - .git/hooks/pre-commit
+  - Runs database integrity tests
+  - Scans for console.logs and credentials
+  - Blocks .env files from being committed
+  - Runs critical test subset for speed
+
+- **Deployment Automation**: One-command staging deployment
+  - Script: backend/scripts/deploy-staging.sh
+  - Verifies staging branch, runs tests, deploys, monitors health
+  - NPM command: `npm run deploy-staging`
+  
+- **Helper Scripts**: Added to package.json
+  - `sync-check`: Database synchronization status
+  - `quick-check`: Fast critical tests
+  - `monitor-staging`: Health check monitoring
+  - `precommit`: Manual pre-commit verification
+
+- **Setup Script**: backend/scripts/setup-hooks.sh for team onboarding
+
+#### Technical Decisions
+- **Simplified Workflow**: Direct work on staging branch instead of feature branches
+- **Automated Safeguards**: Pre-commit hooks prevent database sync issues
+- **One-Command Deploy**: Reduces human error with `npm run deploy-staging`
+- **Fixed Migration Check**: Updated to handle "(none)" output correctly
+
+#### Key Learnings
+- Pre-commit hooks must check for exact output strings
+- Migration status shows "Pending Migrations: (none)" not "All migrations applied"
+- Git hooks in .git/hooks/ aren't tracked - need setup script for team
+- Automated checks catch issues early, preventing Session 28-style problems
 
 ---
 *For detailed session history, see git commits. This file maintains current project state and essential protocols.*
