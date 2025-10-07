@@ -21,6 +21,8 @@ struct AccountSettingsView: View {
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var profileImageData: Data?
     @State private var profileImage: UIImage?
+    @State private var imageToCrop: UIImage?
+    @State private var showingCropper = false
     
     @State private var showingChangePassword = false
     @State private var showingDeleteAccount = false
@@ -214,14 +216,40 @@ struct AccountSettingsView: View {
                 Task {
                     if let newValue = newValue {
                         print("📸 Photo selected, loading data...")
-                        if let data = try? await newValue.loadTransferable(type: Data.self) {
-                            profileImageData = data
-                            profileImage = UIImage(data: data)
+                        if let data = try? await newValue.loadTransferable(type: Data.self),
+                           let uiImage = UIImage(data: data) {
+                            await MainActor.run {
+                                imageToCrop = uiImage
+                                showingCropper = true
+                            }
                             print("📸 Photo data loaded: \(data.count) bytes")
                         } else {
                             print("❌ Failed to load photo data")
                         }
                     }
+                }
+            }
+            .sheet(isPresented: $showingCropper, onDismiss: {
+                imageToCrop = nil
+            }) {
+                if let imageToCrop = imageToCrop {
+                    ImageCropperView(
+                        image: imageToCrop,
+                        onCancel: {
+                            profileImageData = nil
+                            profileImage = nil
+                            selectedPhoto = nil
+                            imageToCrop = nil
+                        },
+                        onCrop: { croppedImage in
+                            profileImage = croppedImage
+                            profileImageData = croppedImage.jpegData(compressionQuality: 0.9) ?? croppedImage.pngData()
+                            selectedPhoto = nil
+                            imageToCrop = nil
+                        }
+                    )
+                } else {
+                    EmptyView()
                 }
             }
         }
@@ -290,7 +318,9 @@ struct AccountSettingsView: View {
         selectedPhoto = nil
         profileImageData = nil
         profileImage = nil
-        
+        imageToCrop = nil
+        showingCropper = false
+
         Task {
             await viewModel.deleteProfilePhoto()
             if let updatedUser = viewModel.updatedUser {

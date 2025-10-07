@@ -310,7 +310,9 @@ struct ProfilePhotoSection: View {
     @Binding var selectedPhoto: PhotosPickerItem?
     @Binding var profileImageData: Data?
     @State private var profileImage: UIImage?
-    
+    @State private var imageToCrop: UIImage?
+    @State private var showingCropper = false
+
     var body: some View {
         Section("Profile Photo") {
             HStack {
@@ -367,19 +369,47 @@ struct ProfilePhotoSection: View {
         .onChange(of: selectedPhoto) { oldValue, newValue in
             Task {
                 if let newValue = newValue {
-                    if let data = try? await newValue.loadTransferable(type: Data.self) {
-                        profileImageData = data
-                        profileImage = UIImage(data: data)
+                    if let data = try? await newValue.loadTransferable(type: Data.self),
+                       let uiImage = UIImage(data: data) {
+                        await MainActor.run {
+                            imageToCrop = uiImage
+                            showingCropper = true
+                        }
                     }
                 }
             }
         }
+        .sheet(isPresented: $showingCropper, onDismiss: {
+            imageToCrop = nil
+        }) {
+            if let imageToCrop = imageToCrop {
+                ImageCropperView(
+                    image: imageToCrop,
+                    onCancel: {
+                        profileImageData = nil
+                        profileImage = nil
+                        selectedPhoto = nil
+                        imageToCrop = nil
+                    },
+                    onCrop: { croppedImage in
+                        profileImage = croppedImage
+                        profileImageData = croppedImage.jpegData(compressionQuality: 0.9) ?? croppedImage.pngData()
+                        selectedPhoto = nil
+                        imageToCrop = nil
+                    }
+                )
+            } else {
+                EmptyView()
+            }
+        }
     }
-    
+
     private func resetPhoto() {
         selectedPhoto = nil
         profileImageData = nil
         profileImage = nil
+        imageToCrop = nil
+        showingCropper = false
     }
 }
 
