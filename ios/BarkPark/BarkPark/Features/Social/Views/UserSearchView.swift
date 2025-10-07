@@ -38,7 +38,7 @@ struct UserSearchView: View {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(BarkParkDesign.Colors.secondaryText)
                 
-                TextField("Search by name or email", text: $viewModel.searchQuery)
+                TextField("Search owners, dogs, or emails", text: $viewModel.searchQuery)
                     .textFieldStyle(PlainTextFieldStyle())
                 
                 if !viewModel.searchQuery.isEmpty {
@@ -95,7 +95,7 @@ struct UserSearchView: View {
                     .font(BarkParkDesign.Typography.title2)
                     .foregroundColor(BarkParkDesign.Colors.primaryText)
                 
-                Text("Enter a name or email address to find other dog owners to connect with.")
+                Text("Search for owners, their dogs, or email addresses to find new friends at the park.")
                     .font(BarkParkDesign.Typography.body)
                     .foregroundColor(BarkParkDesign.Colors.secondaryText)
                     .multilineTextAlignment(.center)
@@ -115,7 +115,7 @@ struct UserSearchView: View {
                 .font(BarkParkDesign.Typography.headline)
                 .foregroundColor(BarkParkDesign.Colors.primaryText)
             
-            Text("Enter at least 2 characters to search")
+            Text("Enter at least 2 characters to search owners, dogs, or emails")
                 .font(BarkParkDesign.Typography.body)
                 .foregroundColor(BarkParkDesign.Colors.secondaryText)
         }
@@ -133,7 +133,7 @@ struct UserSearchView: View {
                     .font(BarkParkDesign.Typography.title2)
                     .foregroundColor(BarkParkDesign.Colors.primaryText)
                 
-                Text("No users match your search for \"\(viewModel.searchQuery)\". Try a different search term.")
+                Text("No owners, dogs, or emails match your search for \"\(viewModel.searchQuery)\". Try a different search term.")
                     .font(BarkParkDesign.Typography.body)
                     .foregroundColor(BarkParkDesign.Colors.secondaryText)
                     .multilineTextAlignment(.center)
@@ -158,6 +158,12 @@ struct UserSearchRowView: View {
     @State private var friendshipStatus: String = "Loading..."
     @State private var canSendRequest = false
     @State private var isLoading = false
+
+    private var dogNamesText: String? {
+        guard let dogs = user.dogs, !dogs.isEmpty else { return nil }
+        let names = dogs.map { $0.name }.joined(separator: ", ")
+        return "Dogs: \(names)"
+    }
     
     var body: some View {
         HStack(spacing: BarkParkDesign.Spacing.md) {
@@ -176,11 +182,17 @@ struct UserSearchRowView: View {
                 Text(user.fullName)
                     .font(BarkParkDesign.Typography.headline)
                     .foregroundColor(BarkParkDesign.Colors.primaryText)
-                
+
                 Text(user.email)
                     .font(BarkParkDesign.Typography.caption)
                     .foregroundColor(BarkParkDesign.Colors.secondaryText)
-                
+
+                if let dogNamesText = dogNamesText {
+                    Text(dogNamesText)
+                        .font(BarkParkDesign.Typography.caption)
+                        .foregroundColor(BarkParkDesign.Colors.secondaryText)
+                }
+
                 Text(friendshipStatus)
                     .font(BarkParkDesign.Typography.caption)
                     .foregroundColor(statusColor)
