@@ -67,7 +67,7 @@ struct AddDogView: View {
                     TextField("Dog's name", text: $name)
                     TextField("Breed", text: $breed)
                     
-                    DatePicker("Birthday", selection: $birthday, displayedComponents: .date)
+                    BirthdayPicker(date: $birthday)
                     
                     HStack {
                         TextField("Weight (optional)", text: $weight)
@@ -380,6 +380,121 @@ struct ProfilePhotoSection: View {
         selectedPhoto = nil
         profileImageData = nil
         profileImage = nil
+    }
+}
+
+struct BirthdayPicker: View {
+    @Binding var date: Date
+
+    @State private var selectedMonth: Int = 1
+    @State private var selectedDay: Int = 1
+    @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
+
+    private let calendar = Calendar.current
+    private let monthSymbols = Calendar.current.monthSymbols
+    init(date: Binding<Date>) {
+        self._date = date
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: BarkParkDesign.Spacing.xs) {
+            Text("Birthday")
+                .font(BarkParkDesign.Typography.caption)
+                .foregroundColor(BarkParkDesign.Colors.secondaryText)
+
+            HStack(spacing: BarkParkDesign.Spacing.sm) {
+                Picker("Month", selection: $selectedMonth) {
+                    ForEach(Array(monthSymbols.enumerated()), id: \.offset) { index, symbol in
+                        Text(symbol).tag(index + 1)
+                    }
+                }
+                .pickerStyle(.wheel)
+                .frame(maxWidth: .infinity)
+
+                Picker("Day", selection: $selectedDay) {
+                    ForEach(availableDays, id: \.self) { day in
+                        Text("\(day)").tag(day)
+                    }
+                }
+                .pickerStyle(.wheel)
+                .frame(maxWidth: .infinity)
+
+                Picker("Year", selection: $selectedYear) {
+                    ForEach(yearOptions, id: \.self) { year in
+                        Text("\(year)").tag(year)
+                    }
+                }
+                .pickerStyle(.wheel)
+                .frame(maxWidth: .infinity)
+            }
+            .frame(height: 160)
+        }
+        .onAppear {
+            updateSelections(from: date)
+        }
+        .onChange(of: date) { _, newValue in
+            updateSelections(from: newValue)
+        }
+        .onChange(of: selectedMonth) { _, _ in
+            clampDaySelection()
+            updateDateFromSelections()
+        }
+        .onChange(of: selectedYear) { _, _ in
+            clampDaySelection()
+            updateDateFromSelections()
+        }
+        .onChange(of: selectedDay) { _, _ in
+            updateDateFromSelections()
+        }
+    }
+
+    private var availableDays: [Int] {
+        guard
+            let referenceDate = calendar.date(from: DateComponents(year: selectedYear, month: selectedMonth)),
+            let daysRange = calendar.range(of: .day, in: .month, for: referenceDate)
+        else {
+            return Array(1...31)
+        }
+
+        return Array(daysRange)
+    }
+
+    private var yearOptions: [Int] {
+        let currentYear = calendar.component(.year, from: Date())
+        let baseStartYear = max(currentYear - 30, 1990)
+        let earliestYear = min(baseStartYear, selectedYear)
+        return Array(stride(from: currentYear, through: earliestYear, by: -1))
+    }
+
+    private func clampDaySelection() {
+        let maxDay = availableDays.max() ?? 31
+        if selectedDay > maxDay {
+            selectedDay = maxDay
+        }
+    }
+
+    private func updateSelections(from date: Date) {
+        let components = calendar.dateComponents([.day, .month, .year], from: date)
+        if let month = components.month {
+            selectedMonth = month
+        }
+        if let day = components.day {
+            selectedDay = day
+        }
+        if let year = components.year {
+            selectedYear = year
+        }
+    }
+
+    private func updateDateFromSelections() {
+        guard
+            let newDate = calendar.date(from: DateComponents(year: selectedYear, month: selectedMonth, day: selectedDay)),
+            !calendar.isDate(newDate, inSameDayAs: date)
+        else {
+            return
+        }
+
+        date = newDate
     }
 }
 
