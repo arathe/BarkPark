@@ -313,11 +313,20 @@ struct ChangePasswordView: View {
             Form {
                 Section("Current Password") {
                     SecureField("Current Password", text: $currentPassword)
+                        .textContentType(.password)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled(true)
                 }
-                
+
                 Section("New Password") {
                     SecureField("New Password", text: $newPassword)
+                        .textContentType(.newPassword)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled(true)
                     SecureField("Confirm New Password", text: $confirmPassword)
+                        .textContentType(.newPassword)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled(true)
                 }
                 
                 Section {

@@ -66,9 +66,15 @@ struct ResetPasswordView: View {
                                 HStack {
                                     if showPassword {
                                         TextField("At least 6 characters", text: $viewModel.newPassword)
+                                            .textContentType(.newPassword)
+                                            .textInputAutocapitalization(.never)
+                                            .autocorrectionDisabled(true)
                                             .textFieldStyle(BarkParkTextFieldStyle())
                                     } else {
                                         SecureField("At least 6 characters", text: $viewModel.newPassword)
+                                            .textContentType(.newPassword)
+                                            .textInputAutocapitalization(.never)
+                                            .autocorrectionDisabled(true)
                                             .textFieldStyle(BarkParkTextFieldStyle())
                                     }
                                     
@@ -89,9 +95,15 @@ struct ResetPasswordView: View {
                                 HStack {
                                     if showConfirmPassword {
                                         TextField("Re-enter password", text: $viewModel.confirmPassword)
+                                            .textContentType(.newPassword)
+                                            .textInputAutocapitalization(.never)
+                                            .autocorrectionDisabled(true)
                                             .textFieldStyle(BarkParkTextFieldStyle())
                                     } else {
                                         SecureField("Re-enter password", text: $viewModel.confirmPassword)
+                                            .textContentType(.newPassword)
+                                            .textInputAutocapitalization(.never)
+                                            .autocorrectionDisabled(true)
                                             .textFieldStyle(BarkParkTextFieldStyle())
                                     }
                                     

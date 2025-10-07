@@ -60,8 +60,14 @@ struct LoginView: View {
                             HStack {
                                 if showPassword {
                                     TextField("Enter your password", text: $password)
+                                        .textContentType(.password)
+                                        .textInputAutocapitalization(.never)
+                                        .autocorrectionDisabled(true)
                                 } else {
                                     SecureField("Enter your password", text: $password)
+                                        .textContentType(.password)
+                                        .textInputAutocapitalization(.never)
+                                        .autocorrectionDisabled(true)
                                 }
                                 
                                 Button {
