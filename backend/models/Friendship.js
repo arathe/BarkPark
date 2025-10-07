@@ -34,7 +34,7 @@ class Friendship {
       UPDATE friendships 
       SET status = 'accepted', updated_at = CURRENT_TIMESTAMP
       WHERE id = $1 AND friend_id = $2 AND status = 'pending'
-      RETURNING id, user_id, friend_id, status, updated_at
+      RETURNING id, user_id, friend_id, status, created_at, updated_at
     `;
     
     const values = [friendshipId, userId];
@@ -52,7 +52,7 @@ class Friendship {
     const query = `
       DELETE FROM friendships 
       WHERE id = $1 AND friend_id = $2 AND status = 'pending'
-      RETURNING id, user_id, friend_id, 'declined' as status, NOW() as updated_at
+      RETURNING id, user_id, friend_id, 'declined' as status, created_at, NOW() as updated_at
     `;
     
     const values = [friendshipId, userId];

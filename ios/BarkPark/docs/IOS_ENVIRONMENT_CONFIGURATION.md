@@ -36,7 +36,7 @@ For local development with different IP addresses:
 
 1. Add environment variable:
    - Name: `LOCAL_API_URL`
-   - Value: `http://YOUR_IP:3000/api`
+   - Value: `http://YOUR_IP:4000/api`
 
 This is useful when:
 - Your machine's IP changes
@@ -47,7 +47,7 @@ This is useful when:
 
 ### Debug Configuration (Development)
 - Default environment: `local`
-- API URL: `http://192.168.86.67:3000/api` (or custom via `LOCAL_API_URL`)
+- API URL: `http://192.168.86.67:4000/api` (or custom via `LOCAL_API_URL`)
 - Can override with `BARKPARK_ENVIRONMENT`
 
 ### Release Configuration (TestFlight/App Store)
@@ -79,7 +79,7 @@ This is useful when:
    - Name it "BarkPark (Local - Custom IP)"
 
 2. **Add Environment Variables**
-   - `LOCAL_API_URL` = `http://YOUR_IP:3000/api`
+   - `LOCAL_API_URL` = `http://YOUR_IP:4000/api`
 
 ## Verifying Configuration
 
@@ -87,7 +87,7 @@ The app logs the current environment on startup:
 
 ```
 🌍 BarkPark Environment: local
-🔗 API Base URL: http://192.168.86.67:3000/api
+🔗 API Base URL: http://192.168.86.67:4000/api
 ```
 
 Check Xcode console to verify the correct environment is being used.
@@ -131,7 +131,7 @@ Each developer can:
 
 3. **Verify Backend is Running**
    ```bash
-   curl http://YOUR_IP:3000/api/health
+   curl http://YOUR_IP:4000/api/health
    ```
 
 ### Wrong Environment in TestFlight

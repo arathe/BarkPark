@@ -80,7 +80,7 @@ cd backend
 ## 🔍 Environment URLs
 
 After setup completion:
-- **Local**: http://YOUR_IP:3000/api
+- **Local**: http://YOUR_IP:4000/api
 - **Staging**: https://barkpark-staging.up.railway.app/api
 - **Production**: https://barkpark-production.up.railway.app/api (future)
 

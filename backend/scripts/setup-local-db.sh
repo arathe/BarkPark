@@ -264,5 +264,5 @@ else
     echo "Next steps:"
     echo "1. To seed park data, run: cd backend && node scripts/seed-parks-local.js"
     echo "2. Start the backend: cd backend && npm run dev"
-    echo "3. Update iOS app to use http://localhost:3000/api"
+    echo "3. Update iOS app to use http://localhost:4000/api"
 fi

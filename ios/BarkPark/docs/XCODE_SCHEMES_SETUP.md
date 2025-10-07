@@ -25,7 +25,7 @@ This is typically your default scheme, but let's ensure it's properly configured
 2. Go to **Run → Arguments → Environment Variables**
 3. Add these variables (click + button):
    - `BARKPARK_ENVIRONMENT` = `local`
-   - `LOCAL_API_URL` = `http://YOUR_IP:3000/api` (replace YOUR_IP)
+   - `LOCAL_API_URL` = `http://YOUR_IP:4000/api` (replace YOUR_IP)
 
 ### 3. Create Staging Scheme
 
@@ -91,7 +91,7 @@ To view/edit build configurations:
 # Use when developing with local backend
 Scheme: BarkPark (Local)
 Backend: npm run dev
-URL: http://YOUR_IP:3000/api
+URL: http://YOUR_IP:4000/api
 ```
 
 ### For Staging Testing
@@ -186,7 +186,7 @@ Check Xcode console for:
 ### Can't Connect to Backend
 1. Verify backend is running
 2. Check IP address is correct
-3. Test with curl: `curl http://YOUR_IP:3000/api/health`
+3. Test with curl: `curl http://YOUR_IP:4000/api/health`
 4. Check firewall settings
 
 ## CI/CD Integration

@@ -9,7 +9,7 @@ This checklist ensures database schema consistency between local development and
 - [ ] Apply any pending migrations: `npm run db:migrate --seed`
 - [ ] Verify schema is complete: `npm run db:migrate:verify`
 - [ ] Test all API endpoints locally
-- [ ] Check schema validation endpoint: `curl localhost:3000/api/schema/validate`
+- [ ] Check schema validation endpoint: `curl localhost:4000/api/schema/validate`
 
 ### 2. Before Railway Deployment
 - [ ] Commit all migration files to git
@@ -110,7 +110,7 @@ Currently not automated. To rollback:
 Use the schema comparison endpoint to diagnose differences:
 ```bash
 # Local schema
-curl localhost:3000/api/schema/compare > local-schema.json
+curl localhost:4000/api/schema/compare > local-schema.json
 
 # Production schema  
 curl https://barkpark-production.up.railway.app/api/schema/compare > prod-schema.json

@@ -41,7 +41,7 @@ npm run dev
 
 ```bash
 # Register a new user
-curl -X POST http://localhost:3000/api/auth/register \
+curl -X POST http://localhost:4000/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "test@example.com",
@@ -52,7 +52,7 @@ curl -X POST http://localhost:3000/api/auth/register \
   }'
 
 # Login
-curl -X POST http://localhost:3000/api/auth/login \
+curl -X POST http://localhost:4000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "test@example.com",
@@ -60,6 +60,6 @@ curl -X POST http://localhost:3000/api/auth/login \
   }'
 
 # Get profile (use token from login response)
-curl -X GET http://localhost:3000/api/auth/me \
+curl -X GET http://localhost:4000/api/auth/me \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```

@@ -182,7 +182,7 @@ git push origin main
 
 After setup, you'll have:
 
-- **Local**: http://localhost:3000/api
+- **Local**: http://localhost:4000/api
 - **Staging**: https://barkpark-staging.up.railway.app/api
 - **Production**: https://barkpark-production.up.railway.app/api
 

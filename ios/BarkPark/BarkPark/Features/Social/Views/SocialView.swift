@@ -378,4 +378,5 @@ struct FriendRequestRowView: View {
 
 #Preview {
     SocialView()
+        .environmentObject(DogParksViewModel())
 }

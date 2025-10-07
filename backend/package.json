@@ -27,7 +27,8 @@
     "deploy-staging": "./scripts/deploy-staging.sh",
     "monitor-staging": "echo 'Monitoring staging deployment...' && sleep 30 && curl -s https://barkpark-barkpark-staging.up.railway.app/health | python3 -m json.tool",
     "sync-check": "npm run db:migrate:status && echo '---' && npm run db:schema:compare",
-    "quick-check": "npm test -- tests/database-integrity.test.js tests/auth.test.js --silent"
+    "quick-check": "npm test -- tests/database-integrity.test.js tests/auth.test.js --silent",
+    "dev:start": "bash ./scripts/start-local.sh"
   },
   "keywords": [
     "dogs",

@@ -23,7 +23,6 @@ struct MainTabView: View {
                 .tag(0)
             
             DogParksView()
-                .environmentObject(dogParksViewModel)
                 .tabItem {
                     Image(systemName: "map.fill")
                     Text("Parks")
@@ -31,7 +30,6 @@ struct MainTabView: View {
                 .tag(1)
             
             SocialView()
-                .environmentObject(dogParksViewModel)
                 .tabItem {
                     Image(systemName: "person.2.fill")
                     Text("Social")
@@ -46,6 +44,7 @@ struct MainTabView: View {
                 .environmentObject(dogProfileViewModel)
                 .tag(3)
         }
+        .environmentObject(dogParksViewModel)
         .accentColor(BarkParkDesign.Colors.dogPrimary)
         .onAppear {
             // For new users, automatically navigate to Profile tab

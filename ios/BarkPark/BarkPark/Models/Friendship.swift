@@ -60,6 +60,64 @@ struct Friendship: Codable, Identifiable {
         case isRequester
     }
     
+    // Support legacy snake_case keys from older backend responses
+    enum LegacyKeys: String, CodingKey {
+        case user_id
+        case friend_id
+        case requester_id
+        case addressee_id
+        case created_at
+        case updated_at
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let legacy = try? decoder.container(keyedBy: LegacyKeys.self)
+        
+        self.id = try container.decodeIfPresent(Int.self, forKey: .id)
+            ?? 0
+        
+        if let requester = try container.decodeIfPresent(Int.self, forKey: .requesterId) {
+            self.requesterId = requester
+        } else if let legacyRequester = try legacy?.decodeIfPresent(Int.self, forKey: .user_id) {
+            self.requesterId = legacyRequester
+        } else if let legacyRequester2 = try legacy?.decodeIfPresent(Int.self, forKey: .requester_id) {
+            self.requesterId = legacyRequester2
+        } else {
+            throw DecodingError.keyNotFound(CodingKeys.requesterId, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Missing requesterId/user_id"))
+        }
+        
+        if let addressee = try container.decodeIfPresent(Int.self, forKey: .addresseeId) {
+            self.addresseeId = addressee
+        } else if let legacyAddressee = try legacy?.decodeIfPresent(Int.self, forKey: .friend_id) {
+            self.addresseeId = legacyAddressee
+        } else if let legacyAddressee2 = try legacy?.decodeIfPresent(Int.self, forKey: .addressee_id) {
+            self.addresseeId = legacyAddressee2
+        } else {
+            throw DecodingError.keyNotFound(CodingKeys.addresseeId, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Missing addresseeId/friend_id"))
+        }
+        
+        self.status = try container.decode(FriendshipStatus.self, forKey: .status)
+        
+        if let created = try container.decodeIfPresent(String.self, forKey: .createdAt) {
+            self.createdAt = created
+        } else if let legacyCreated = try legacy?.decodeIfPresent(String.self, forKey: .created_at) {
+            self.createdAt = legacyCreated
+        } else {
+            throw DecodingError.keyNotFound(CodingKeys.createdAt, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Missing createdAt/created_at"))
+        }
+        
+        if let updated = try container.decodeIfPresent(String.self, forKey: .updatedAt) {
+            self.updatedAt = updated
+        } else if let legacyUpdated = try legacy?.decodeIfPresent(String.self, forKey: .updated_at) {
+            self.updatedAt = legacyUpdated
+        } else {
+            self.updatedAt = nil
+        }
+        
+        self.isRequester = try container.decodeIfPresent(Bool.self, forKey: .isRequester)
+    }
+    
     var formattedCreatedDate: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"

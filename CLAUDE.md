@@ -64,18 +64,18 @@ This file provides guidance for AI assistants working with the BarkPark codebase
 - **Running in background**: `npm run dev > server.log 2>&1 &`
 - **Checking server status**: `ps aux | grep "node.*server" | grep -v grep`
 - **Viewing logs**: `tail -f server.log` (if running in background)
-- **Default port**: 3000 (configurable via PORT env variable)
+- **Default port**: 4000 (configurable via PORT env variable)
 
 ### iOS Development Configuration
 - **IP Address Setup**:
   1. Find your machine's IP: `ifconfig | grep -E "inet.*broadcast" | awk '{print $2}'`
-  2. Update `APIService.swift` baseURL: `http://YOUR_IP:3000/api`
+  2. Update `APIService.swift` baseURL: `http://YOUR_IP:4000/api`
   3. Rebuild iOS app after IP changes (Clean Build: Cmd+Shift+K)
 - **Common Issues**:
   - iOS Simulator can't reach localhost - must use machine IP
   - IP addresses change when switching networks
-  - Firewall may block port 3000 - check system preferences
-- **Testing Connection**: `curl http://YOUR_IP:3000/health`
+  - Firewall may block port 4000 - check system preferences
+- **Testing Connection**: `curl http://YOUR_IP:4000/health`
 
 ### Development Workflow Best Practices
 1. Always start backend server before iOS development

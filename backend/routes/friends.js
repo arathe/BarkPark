@@ -23,12 +23,13 @@ router.post('/request', [
 
     const friendship = await Friendship.sendFriendRequest(requesterId, userId);
 
+    // Standardize response keys to camelCase expected by iOS
     res.status(201).json({
       message: 'Friend request sent successfully',
       friendship: {
         id: friendship.id,
-        user_id: friendship.user_id,
-        friend_id: friendship.friend_id,
+        requesterId: friendship.user_id,
+        addresseeId: friendship.friend_id,
         status: friendship.status,
         createdAt: friendship.created_at
       }
@@ -63,8 +64,8 @@ router.put('/:id/accept', [
       message: 'Friend request accepted successfully',
       friendship: {
         id: friendship.id,
-        requesterId: friendship.requester_id,
-        addresseeId: friendship.addressee_id,
+        requesterId: friendship.user_id,
+        addresseeId: friendship.friend_id,
         status: friendship.status,
         createdAt: friendship.created_at,
         updatedAt: friendship.updated_at
@@ -99,9 +100,10 @@ router.put('/:id/decline', [
       message: 'Friend request declined successfully',
       friendship: {
         id: friendship.id,
-        requesterId: friendship.requester_id,
-        addresseeId: friendship.addressee_id,
+        requesterId: friendship.user_id,
+        addresseeId: friendship.friend_id,
         status: friendship.status,
+        createdAt: friendship.created_at,
         updatedAt: friendship.updated_at
       }
     });
@@ -323,8 +325,8 @@ router.post('/qr-connect', [
       message: 'Friend request sent successfully via QR code',
       friendship: {
         id: friendship.id,
-        requesterId: friendship.requester_id,
-        addresseeId: friendship.addressee_id,
+        requesterId: friendship.user_id,
+        addresseeId: friendship.friend_id,
         status: friendship.status,
         createdAt: friendship.created_at
       },

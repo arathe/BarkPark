@@ -286,7 +286,7 @@ struct APIServiceAuthTests {
     
     @Test("Authentication endpoint URLs")
     func testAuthenticationEndpointURLs() {
-        let baseURL = "http://127.0.0.1:3000/api"
+        let baseURL = "http://127.0.0.1:4000/api"
         
         let loginURL = "\(baseURL)/auth/login"
         let registerURL = "\(baseURL)/auth/register"
@@ -296,9 +296,9 @@ struct APIServiceAuthTests {
         #expect(URL(string: registerURL) != nil)
         #expect(URL(string: meURL) != nil)
         
-        #expect(loginURL == "http://127.0.0.1:3000/api/auth/login")
-        #expect(registerURL == "http://127.0.0.1:3000/api/auth/register")
-        #expect(meURL == "http://127.0.0.1:3000/api/auth/me")
+        #expect(loginURL == "http://127.0.0.1:4000/api/auth/login")
+        #expect(registerURL == "http://127.0.0.1:4000/api/auth/register")
+        #expect(meURL == "http://127.0.0.1:4000/api/auth/me")
     }
     
     // MARK: - Content Type Header Tests

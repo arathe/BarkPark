@@ -65,7 +65,7 @@ struct APIServicePhotoTests {
     @Test("Constructs correct profile image upload URL")
     func testProfileImageUploadURL() {
         let apiService = APIService.shared
-        let expectedURL = "http://localhost:3000/api/dogs/123/profile-image"
+        let expectedURL = "http://localhost:4000/api/dogs/123/profile-image"
         let actualURL = apiService.profileImageUploadURL(dogId: 123)
         
         #expect(actualURL == expectedURL)
@@ -74,7 +74,7 @@ struct APIServicePhotoTests {
     @Test("Constructs correct gallery upload URL")
     func testGalleryUploadURL() {
         let apiService = APIService.shared
-        let expectedURL = "http://localhost:3000/api/dogs/456/gallery"
+        let expectedURL = "http://localhost:4000/api/dogs/456/gallery"
         let actualURL = apiService.galleryUploadURL(dogId: 456)
         
         #expect(actualURL == expectedURL)
@@ -179,10 +179,10 @@ extension APIService {
     }
     
     func profileImageUploadURL(dogId: Int) -> String {
-        return "http://localhost:3000/api/dogs/\(dogId)/profile-image"
+        return "http://localhost:4000/api/dogs/\(dogId)/profile-image"
     }
     
     func galleryUploadURL(dogId: Int) -> String {
-        return "http://localhost:3000/api/dogs/\(dogId)/gallery"
+        return "http://localhost:4000/api/dogs/\(dogId)/gallery"
     }
 }

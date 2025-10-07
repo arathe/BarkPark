@@ -18,7 +18,7 @@ struct APIConfiguration {
             switch self {
             case .local:
                 // For local development - update with your machine's IP
-                return ProcessInfo.processInfo.environment["LOCAL_API_URL"] ?? "http://192.168.86.67:3000/api"
+                return ProcessInfo.processInfo.environment["LOCAL_API_URL"] ?? "http://192.168.86.67:4000/api"
             case .staging:
                 return "https://barkpark-barkpark-staging.up.railway.app/api"
             case .production:
