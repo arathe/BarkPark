@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const authRoutes = require('../routes/auth');
 const User = require('../models/User');
+const Dog = require('../models/Dog');
 
 // Create test app
 const createTestApp = () => {
@@ -286,6 +287,67 @@ describe('Authentication API', () => {
         .expect(400);
 
       expect(response.body).toHaveProperty('errors');
+    });
+  });
+
+  describe('GET /api/auth/search', () => {
+    let authToken;
+
+    beforeEach(async () => {
+      const searchUser = {
+        email: 'searcher@example.com',
+        password: 'password123',
+        firstName: 'Search',
+        lastName: 'User'
+      };
+
+      const registerResponse = await request(app)
+        .post('/api/auth/register')
+        .send(searchUser)
+        .expect(201);
+
+      authToken = registerResponse.body.token;
+    });
+
+    it('should return users when a dog name matches the query', async () => {
+      const ownerUser = {
+        email: 'owner@example.com',
+        password: 'password123',
+        firstName: 'Dog',
+        lastName: 'Owner'
+      };
+
+      const ownerRegisterResponse = await request(app)
+        .post('/api/auth/register')
+        .send(ownerUser)
+        .expect(201);
+
+      const ownerId = ownerRegisterResponse.body.user.id;
+      const dogName = 'Fido Searchable';
+
+      await Dog.create({
+        userId: ownerId,
+        name: dogName,
+        breed: 'Beagle'
+      });
+
+      const response = await request(app)
+        .get('/api/auth/search')
+        .set('Authorization', `Bearer ${authToken}`)
+        .query({ q: 'Fido' })
+        .expect(200);
+
+      expect(response.body.count).toBeGreaterThanOrEqual(1);
+      const matchedUser = response.body.users.find(user => user.id === ownerId);
+      expect(matchedUser).toBeDefined();
+      expect(matchedUser.dogs).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: dogName,
+            id: expect.any(Number)
+          })
+        ])
+      );
     });
   });
 });
