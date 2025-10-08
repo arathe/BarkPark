@@ -172,7 +172,10 @@ struct DogCard: View {
             HStack(spacing: BarkParkDesign.Spacing.lg) {
                 StatItem(title: "Energy", value: dog.displayEnergyLevel)
                 StatItem(title: "Training", value: dog.displayTrainingLevel)
-                StatItem(title: "Social", value: "\(dog.friendlinessDogs)/5")
+                VStack(alignment: .leading, spacing: BarkParkDesign.Spacing.xs) {
+                    SocialChip(kind: .dogs, score: dog.friendlinessDogs)
+                    SocialChip(kind: .people, score: dog.friendlinessPeople)
+                }
             }
             
             // Bio (if available)
@@ -191,18 +194,60 @@ struct DogCard: View {
 struct StatItem: View {
     let title: String
     let value: String
-    
+
     var body: some View {
         VStack(spacing: BarkParkDesign.Spacing.xs) {
             Text(title)
                 .font(BarkParkDesign.Typography.caption)
                 .foregroundColor(BarkParkDesign.Colors.secondaryText)
-            
+
             Text(value)
                 .font(BarkParkDesign.Typography.caption2)
                 .foregroundColor(BarkParkDesign.Colors.primaryText)
                 .fontWeight(.medium)
         }
+    }
+}
+
+struct SocialChip: View {
+    enum Kind {
+        case dogs
+        case people
+    }
+
+    let kind: Kind
+    let score: Int
+
+    private var iconName: String {
+        switch kind {
+        case .dogs:
+            return "pawprint.fill"
+        case .people:
+            return "person.2.fill"
+        }
+    }
+
+    private var labelText: String {
+        switch kind {
+        case .dogs:
+            return "Dogs"
+        case .people:
+            return "People"
+        }
+    }
+
+    var body: some View {
+        Label {
+            Text("\(labelText) \(score)/5")
+                .font(BarkParkDesign.Typography.caption2)
+        } icon: {
+            Image(systemName: iconName)
+        }
+        .padding(.horizontal, BarkParkDesign.Spacing.sm)
+        .padding(.vertical, BarkParkDesign.Spacing.xs)
+        .background(BarkParkDesign.Colors.dogPrimary.opacity(0.15))
+        .foregroundColor(BarkParkDesign.Colors.primaryText)
+        .clipShape(Capsule())
     }
 }
 
