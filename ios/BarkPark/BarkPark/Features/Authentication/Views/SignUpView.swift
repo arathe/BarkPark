@@ -95,8 +95,14 @@ struct SignUpView: View {
                             HStack {
                                 if showPassword {
                                     TextField("Enter your password", text: $password)
+                                        .textContentType(.newPassword)
+                                        .textInputAutocapitalization(.never)
+                                        .autocorrectionDisabled(true)
                                 } else {
                                     SecureField("Enter your password", text: $password)
+                                        .textContentType(.newPassword)
+                                        .textInputAutocapitalization(.never)
+                                        .autocorrectionDisabled(true)
                                 }
                                 
                                 Button {
@@ -122,8 +128,14 @@ struct SignUpView: View {
                             HStack {
                                 if showConfirmPassword {
                                     TextField("Confirm your password", text: $confirmPassword)
+                                        .textContentType(.newPassword)
+                                        .textInputAutocapitalization(.never)
+                                        .autocorrectionDisabled(true)
                                 } else {
                                     SecureField("Confirm your password", text: $confirmPassword)
+                                        .textContentType(.newPassword)
+                                        .textInputAutocapitalization(.never)
+                                        .autocorrectionDisabled(true)
                                 }
                                 
                                 Button {
