@@ -14,11 +14,17 @@ struct User: Codable, Identifiable {
     let lastName: String
     let phone: String?
     let profileImageUrl: String?
-    let isSearchable: Bool?
-    
+    let isSearchable: Bool? = nil
+    let dogs: [UserDogSummary]? = nil
+
     var fullName: String {
         "\(firstName) \(lastName)"
     }
+}
+
+struct UserDogSummary: Codable, Identifiable {
+    let id: Int
+    let name: String
 }
 
 // MARK: - Authentication Response Models
