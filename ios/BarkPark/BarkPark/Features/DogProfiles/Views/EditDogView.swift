@@ -635,7 +635,7 @@ struct GalleryManagementSection: View {
                 .foregroundColor(BarkParkDesign.Colors.primaryText)
 
             LazyVGrid(columns: gridColumns, spacing: BarkParkDesign.Spacing.md) {
-                ForEach(galleryImages, id: \.self) { imageUrl in
+                ForEach(Array(galleryImages.enumerated()), id: \.offset) { _, imageUrl in
                     existingGalleryImageCell(for: imageUrl)
                 }
             }
