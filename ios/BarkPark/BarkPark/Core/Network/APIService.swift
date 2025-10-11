@@ -259,26 +259,122 @@ class APIService {
         var request = URLRequest(url: url)
         request.httpMethod = "PUT"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
+
         if let token = UserDefaults.standard.string(forKey: "auth_token") {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
-        
+
         request.httpBody = try JSONEncoder().encode(updateRequest)
-        
+
         let (data, response) = try await session.data(for: request)
-        
+
         guard let httpResponse = response as? HTTPURLResponse,
               httpResponse.statusCode == 200 else {
             throw APIError.invalidResponse
         }
-        
+
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let dogResponse = try decoder.decode(DogResponse.self, from: data)
         return dogResponse.dog
     }
-    
+
+    func getDogMembers(dogId: Int) async throws -> DogMembersResponse {
+        let url = URL(string: "\(baseURL)/dogs/\(dogId)/members")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        let (data, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw APIError.invalidResponse
+        }
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(DogMembersResponse.self, from: data)
+    }
+
+    func inviteDogMember(dogId: Int, userId: Int, role: DogOwnershipRole) async throws -> DogMembershipMutationResponse {
+        let url = URL(string: "\(baseURL)/dogs/\(dogId)/members/invite")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        let body: [String: Any] = [
+            "userId": userId,
+            "role": role.rawValue
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            throw APIError.invalidResponse
+        }
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(DogMembershipMutationResponse.self, from: data)
+    }
+
+    func respondToDogInvite(dogId: Int, membershipId: Int, accept: Bool) async throws -> DogMembershipMutationResponse {
+        let action = accept ? "accept" : "decline"
+        let url = URL(string: "\(baseURL)/dogs/\(dogId)/members/\(membershipId)/respond")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        let body: [String: Any] = ["action": action]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            throw APIError.invalidResponse
+        }
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(DogMembershipMutationResponse.self, from: data)
+    }
+
+    func removeDogMember(dogId: Int, memberId: Int) async throws -> DogMembershipMutationResponse {
+        let url = URL(string: "\(baseURL)/dogs/\(dogId)/members/\(memberId)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+
+        if let token = UserDefaults.standard.string(forKey: "auth_token") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        let (data, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            throw APIError.invalidResponse
+        }
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(DogMembershipMutationResponse.self, from: data)
+    }
+
     // MARK: - Photo Upload Methods
     
     func uploadProfileImage(dogId: Int, imageData: Data) async throws -> Dog {

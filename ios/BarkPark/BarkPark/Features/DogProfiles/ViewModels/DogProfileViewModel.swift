@@ -14,8 +14,16 @@ class DogProfileViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var isUploading = false
     @Published var errorMessage: String?
-    
+    @Published var membershipErrorMessage: String?
+    @Published var shareSearchResults: [User] = []
+    @Published var isManagingMembers = false
+
     private let apiService = APIService.shared
+
+    private var currentUserId: Int? {
+        let value = UserDefaults.standard.integer(forKey: "user_id")
+        return value == 0 ? nil : value
+    }
     
     init() {
         // Don't load dogs in init - wait for authentication
@@ -45,6 +53,14 @@ class DogProfileViewModel: ObservableObject {
                 errorMessage = error.localizedDescription
             }
             isLoading = false
+        }
+    }
+
+    private func updateDogList(with updatedDog: Dog) {
+        if let index = dogs.firstIndex(where: { $0.id == updatedDog.id }) {
+            dogs[index] = updatedDog
+        } else {
+            dogs.append(updatedDog)
         }
     }
     
@@ -127,10 +143,7 @@ class DogProfileViewModel: ObservableObject {
     func refreshDog(_ dog: Dog) async {
         do {
             let updatedDog = try await apiService.getDog(id: dog.id)
-            
-            if let index = dogs.firstIndex(where: { $0.id == dog.id }) {
-                dogs[index] = updatedDog
-            }
+            updateDogList(with: updatedDog)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -142,12 +155,8 @@ class DogProfileViewModel: ObservableObject {
         
         do {
             let updatedDog = try await apiService.updateDog(dogId: dogId, updateRequest: updateRequest)
-            
-            // Update the dog in our local array
-            if let index = dogs.firstIndex(where: { $0.id == dogId }) {
-                dogs[index] = updatedDog
-            }
-            
+            updateDogList(with: updatedDog)
+
             isLoading = false
             return true
         } catch {
@@ -163,12 +172,8 @@ class DogProfileViewModel: ObservableObject {
         
         do {
             let updatedDog = try await apiService.setProfileImageFromGallery(dogId: dogId, imageUrl: imageUrl)
-            
-            // Update the dog in our local array
-            if let index = dogs.firstIndex(where: { $0.id == dogId }) {
-                dogs[index] = updatedDog
-            }
-            
+            updateDogList(with: updatedDog)
+
             isLoading = false
             return true
         } catch {
@@ -184,12 +189,8 @@ class DogProfileViewModel: ObservableObject {
         
         do {
             let updatedDog = try await apiService.removeGalleryImage(dogId: dogId, imageUrl: imageUrl)
-            
-            // Update the dog in our local array
-            if let index = dogs.firstIndex(where: { $0.id == dogId }) {
-                dogs[index] = updatedDog
-            }
-            
+            updateDogList(with: updatedDog)
+
             isLoading = false
             return true
         } catch {
@@ -202,19 +203,153 @@ class DogProfileViewModel: ObservableObject {
     func deleteDog(_ dog: Dog) async -> Bool {
         isLoading = true
         errorMessage = nil
-        
+
         do {
             try await apiService.deleteDog(id: dog.id)
-            
+
             // Remove the dog from our local array
             dogs.removeAll { $0.id == dog.id }
-            
+
             isLoading = false
             return true
         } catch {
             errorMessage = error.localizedDescription
             isLoading = false
             return false
+        }
+    }
+
+    // MARK: - Ownership Helpers
+
+    func owners(for dog: Dog) -> [DogOwnerSummary] {
+        dog.owners
+    }
+
+    func canEdit(dog: Dog) -> Bool {
+        guard !isPendingInvite(for: dog), let role = dog.currentUserRole else { return false }
+        return role.canEditProfile
+    }
+
+    func canDelete(dog: Dog) -> Bool {
+        guard !isPendingInvite(for: dog), let role = dog.currentUserRole else { return false }
+        return role.canDeleteProfile
+    }
+
+    func canManageMembers(dog: Dog) -> Bool {
+        guard !isPendingInvite(for: dog), let role = dog.currentUserRole else { return false }
+        return role.canManageMembers
+    }
+
+    func isPendingInvite(for dog: Dog) -> Bool {
+        guard let currentUserId else { return false }
+        return dog.ownerSummary(for: currentUserId)?.isPending ?? false
+    }
+
+    func membershipIdForCurrentUser(for dog: Dog) -> Int? {
+        guard let currentUserId else { return nil }
+        return dog.ownerSummary(for: currentUserId)?.membershipId
+    }
+
+    func canRemove(member: DogOwnerSummary, from dog: Dog) -> Bool {
+        guard canManageMembers(dog: dog) else { return false }
+        guard let currentUserId else { return false }
+
+        if member.id == currentUserId {
+            return false
+        }
+
+        switch member.role {
+        case .owner:
+            // Only owners can remove other owners
+            return dog.ownerSummary(for: currentUserId)?.role == .owner
+        case .coOwner, .caretaker, .viewer, .unknown:
+            return true
+        }
+    }
+
+    func isMemberActive(_ member: DogOwnerSummary) -> Bool {
+        member.status == .active
+    }
+
+    // MARK: - Membership Management
+
+    func refreshMembers(for dog: Dog) async {
+        membershipErrorMessage = nil
+        isManagingMembers = true
+
+        do {
+            let response = try await apiService.getDogMembers(dogId: dog.id)
+            updateDogList(with: response.dog)
+        } catch {
+            membershipErrorMessage = error.localizedDescription
+        }
+
+        isManagingMembers = false
+    }
+
+    func inviteMember(to dog: Dog, userId: Int, role: DogOwnershipRole) async -> Bool {
+        membershipErrorMessage = nil
+        isManagingMembers = true
+
+        do {
+            let response = try await apiService.inviteDogMember(dogId: dog.id, userId: userId, role: role)
+            updateDogList(with: response.dog)
+            isManagingMembers = false
+            return true
+        } catch {
+            membershipErrorMessage = error.localizedDescription
+            isManagingMembers = false
+            return false
+        }
+    }
+
+    func respondToInvite(for dog: Dog, membershipId: Int, accept: Bool) async -> Bool {
+        membershipErrorMessage = nil
+        isManagingMembers = true
+
+        do {
+            let response = try await apiService.respondToDogInvite(dogId: dog.id, membershipId: membershipId, accept: accept)
+            updateDogList(with: response.dog)
+            isManagingMembers = false
+            return true
+        } catch {
+            membershipErrorMessage = error.localizedDescription
+            isManagingMembers = false
+            return false
+        }
+    }
+
+    func removeMember(_ member: DogOwnerSummary, from dog: Dog) async -> Bool {
+        membershipErrorMessage = nil
+        isManagingMembers = true
+
+        do {
+            let targetMembershipId = member.membershipId ?? member.id
+            let response = try await apiService.removeDogMember(dogId: dog.id, memberId: targetMembershipId)
+            updateDogList(with: response.dog)
+            isManagingMembers = false
+            return true
+        } catch {
+            membershipErrorMessage = error.localizedDescription
+            isManagingMembers = false
+            return false
+        }
+    }
+
+    func searchShareableUsers(query: String) async {
+        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            shareSearchResults = []
+            return
+        }
+
+        membershipErrorMessage = nil
+
+        do {
+            let response = try await apiService.searchUsers(query: query)
+            shareSearchResults = response.users
+        } catch {
+            membershipErrorMessage = error.localizedDescription
+            shareSearchResults = []
         }
     }
 }
