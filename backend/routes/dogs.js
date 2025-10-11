@@ -1,14 +1,23 @@
 const express = require('express');
-const { body, validationResult } = require('express-validator');
+const { body, param, validationResult } = require('express-validator');
 const Dog = require('../models/Dog');
 const { verifyToken } = require('../middleware/auth');
 const { uploadSingle, uploadMultiple } = require('../middleware/upload');
 const { uploadToS3, deleteFromS3, generateFilename } = require('../config/s3');
+const { DogMembership, MembershipError } = require('../models/DogMembership');
 
 const router = express.Router();
 
 // All routes require authentication
 router.use(verifyToken);
+
+const handleMembershipError = (res, error) => {
+  if (error instanceof MembershipError) {
+    res.status(error.statusCode || 400).json({ error: error.message });
+    return true;
+  }
+  return false;
+};
 
 // Get all dogs for current user
 router.get('/', async (req, res) => {
@@ -149,6 +158,7 @@ router.put('/:id', [
     });
 
   } catch (error) {
+    if (handleMembershipError(res, error)) return;
     console.error('Update dog error:', error);
     res.status(500).json({ error: 'Failed to update dog profile' });
   }
@@ -157,17 +167,17 @@ router.put('/:id', [
 // Delete dog profile
 router.delete('/:id', async (req, res) => {
   try {
-    const dog = await Dog.findByIdAndUser(req.params.id, req.user.id);
-    
+    await DogMembership.authorize(req.user.id, req.params.id, 'delete');
+    const dog = await Dog.findById(req.params.id);
+
     if (!dog) {
       return res.status(404).json({ error: 'Dog not found' });
     }
 
-    // Delete images from S3
     if (dog.profileImageUrl) {
       await deleteFromS3(dog.profileImageUrl);
     }
-    
+
     if (dog.galleryImages && dog.galleryImages.length > 0) {
       for (const imageUrl of dog.galleryImages) {
         await deleteFromS3(imageUrl);
@@ -179,6 +189,7 @@ router.delete('/:id', async (req, res) => {
     res.json({ message: 'Dog profile deleted successfully' });
 
   } catch (error) {
+    if (handleMembershipError(res, error)) return;
     console.error('Delete dog error:', error);
     res.status(500).json({ error: 'Failed to delete dog profile' });
   }
@@ -191,7 +202,8 @@ router.post('/:id/profile-image', uploadSingle('image'), async (req, res) => {
       return res.status(400).json({ error: 'No image file provided' });
     }
 
-    const dog = await Dog.findByIdAndUser(req.params.id, req.user.id);
+    await DogMembership.authorize(req.user.id, req.params.id, 'edit');
+    const dog = await Dog.findById(req.params.id);
     if (!dog) {
       return res.status(404).json({ error: 'Dog not found' });
     }
@@ -217,6 +229,7 @@ router.post('/:id/profile-image', uploadSingle('image'), async (req, res) => {
     });
 
   } catch (error) {
+    if (handleMembershipError(res, error)) return;
     console.error('Upload profile image error:', error);
     res.status(500).json({ error: 'Failed to upload profile image' });
   }
@@ -229,7 +242,8 @@ router.post('/:id/gallery', uploadMultiple('images', 5), async (req, res) => {
       return res.status(400).json({ error: 'No image files provided' });
     }
 
-    const dog = await Dog.findByIdAndUser(req.params.id, req.user.id);
+    await DogMembership.authorize(req.user.id, req.params.id, 'edit');
+    const dog = await Dog.findById(req.params.id);
     if (!dog) {
       return res.status(404).json({ error: 'Dog not found' });
     }
@@ -255,6 +269,7 @@ router.post('/:id/gallery', uploadMultiple('images', 5), async (req, res) => {
     });
 
   } catch (error) {
+    if (handleMembershipError(res, error)) return;
     console.error('Upload gallery images error:', error);
     res.status(500).json({ error: 'Failed to upload gallery images' });
   }
@@ -270,7 +285,8 @@ router.put('/:id/profile-image-from-gallery', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const dog = await Dog.findByIdAndUser(req.params.id, req.user.id);
+    await DogMembership.authorize(req.user.id, req.params.id, 'edit');
+    const dog = await Dog.findById(req.params.id);
     if (!dog) {
       return res.status(404).json({ error: 'Dog not found' });
     }
@@ -298,6 +314,7 @@ router.put('/:id/profile-image-from-gallery', [
     });
 
   } catch (error) {
+    if (handleMembershipError(res, error)) return;
     console.error('Set profile image from gallery error:', error);
     res.status(500).json({ error: 'Failed to set profile image from gallery' });
   }
@@ -313,7 +330,8 @@ router.delete('/:id/gallery', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const dog = await Dog.findByIdAndUser(req.params.id, req.user.id);
+    await DogMembership.authorize(req.user.id, req.params.id, 'edit');
+    const dog = await Dog.findById(req.params.id);
     if (!dog) {
       return res.status(404).json({ error: 'Dog not found' });
     }
@@ -332,8 +350,147 @@ router.delete('/:id/gallery', [
     });
 
   } catch (error) {
+    if (handleMembershipError(res, error)) return;
     console.error('Delete gallery image error:', error);
     res.status(500).json({ error: 'Failed to delete gallery image' });
+  }
+});
+
+// Membership management
+router.get('/:id/members', async (req, res) => {
+  try {
+    await DogMembership.authorize(req.user.id, req.params.id, 'view');
+    const data = await DogMembership.listMembers(req.params.id);
+    res.json(data);
+  } catch (error) {
+    if (handleMembershipError(res, error)) return;
+    console.error('List dog members error:', error);
+    res.status(500).json({ error: 'Failed to fetch dog members' });
+  }
+});
+
+router.post('/:id/members', [
+  body('role').optional().isIn(['primary_owner', 'co_owner', 'viewer']),
+  body('userId').optional().isInt({ min: 1 }),
+  body('email').optional().isEmail().normalizeEmail()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    await DogMembership.authorize(req.user.id, req.params.id, 'manage');
+
+    const role = req.body.role || 'co_owner';
+    const userId = req.body.userId ? parseInt(req.body.userId, 10) : null;
+    const email = req.body.email || null;
+
+    if (!userId && !email) {
+      return res.status(400).json({ error: 'Provide a userId or email to invite a member' });
+    }
+
+    const dog = await Dog.findById(req.params.id);
+    if (!dog) {
+      return res.status(404).json({ error: 'Dog not found' });
+    }
+
+    const inviterName = [req.user.first_name, req.user.last_name].filter(Boolean).join(' ').trim() || req.user.email;
+
+    const invitation = await DogMembership.inviteMember({
+      dogId: req.params.id,
+      inviterId: req.user.id,
+      role,
+      targetUserId: userId,
+      email,
+      dogName: dog.name,
+      inviterName
+    });
+
+    res.status(201).json({
+      message: 'Invitation sent successfully',
+      invitation
+    });
+  } catch (error) {
+    if (handleMembershipError(res, error)) return;
+    console.error('Invite dog member error:', error);
+    res.status(500).json({ error: 'Failed to invite dog member' });
+  }
+});
+
+router.post('/:id/members/:invitationId/respond', [
+  param('invitationId').isInt({ min: 1 }).withMessage('Valid invitation ID is required'),
+  body('action').isIn(['accept', 'decline']).withMessage('Action must be accept or decline'),
+  body('token').isString().trim().notEmpty().withMessage('Invitation token is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const result = await DogMembership.respondToInvitation({
+      dogId: req.params.id,
+      invitationId: parseInt(req.params.invitationId, 10),
+      userId: req.user.id,
+      token: req.body.token,
+      action: req.body.action
+    });
+
+    res.json({
+      message: req.body.action === 'accept' ? 'Invitation accepted' : 'Invitation declined',
+      ...result
+    });
+  } catch (error) {
+    if (handleMembershipError(res, error)) return;
+    console.error('Respond to invitation error:', error);
+    res.status(500).json({ error: 'Failed to respond to invitation' });
+  }
+});
+
+router.patch('/:id/members/:memberId', [
+  param('memberId').isInt({ min: 1 }).withMessage('Valid member ID is required'),
+  body('role').isIn(['primary_owner', 'co_owner', 'viewer']).withMessage('Invalid role')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const member = await DogMembership.updateRole({
+      dogId: req.params.id,
+      memberId: parseInt(req.params.memberId, 10),
+      role: req.body.role,
+      actingUserId: req.user.id
+    });
+
+    res.json({
+      message: 'Member role updated successfully',
+      member
+    });
+  } catch (error) {
+    if (handleMembershipError(res, error)) return;
+    console.error('Update member role error:', error);
+    res.status(500).json({ error: 'Failed to update member role' });
+  }
+});
+
+router.delete('/:id/members/:memberId', [
+  param('memberId').isInt({ min: 1 }).withMessage('Valid member ID is required')
+], async (req, res) => {
+  try {
+    await DogMembership.removeMember({
+      dogId: req.params.id,
+      memberId: parseInt(req.params.memberId, 10),
+      actingUserId: req.user.id
+    });
+
+    res.json({ message: 'Member removed successfully' });
+  } catch (error) {
+    if (handleMembershipError(res, error)) return;
+    console.error('Remove dog member error:', error);
+    res.status(500).json({ error: 'Failed to remove dog member' });
   }
 });
 

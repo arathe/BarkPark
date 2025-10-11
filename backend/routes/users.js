@@ -70,9 +70,12 @@ router.get('/:userId/profile', [
         age: dog.age,
         gender: dog.gender,
         weight: dog.weight,
-        description: dog.description,
-        profileImageUrl: dog.profile_image_url,
-        createdAt: dog.created_at
+        sizeCategory: dog.sizeCategory,
+        bio: dog.bio,
+        profileImageUrl: dog.profileImageUrl,
+        owners: dog.owners || [],
+        currentUserRole: dog.currentUserRole || null,
+        createdAt: dog.createdAt
       })),
       recentCheckIns: recentCheckIns.map(checkIn => ({
         id: checkIn.id,

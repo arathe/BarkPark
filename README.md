@@ -37,6 +37,16 @@ npm run dev
 - `GET /api/auth/me` - Get current user profile (requires JWT)
 - `PUT /api/auth/me` - Update user profile (requires JWT)
 
+### Dogs & Memberships
+- `GET /api/dogs` - List dogs for the authenticated user. Responses now include an `owners` array describing active members and their roles.
+- `GET /api/dogs/:id/members` - View active members and pending invitations for a dog you belong to.
+- `POST /api/dogs/:id/members` - Invite a co-owner/viewer (by `userId` or email). Primary owners only.
+- `POST /api/dogs/:id/members/:invitationId/respond` - Accept or decline an invitation using the emailed token.
+- `PATCH /api/dogs/:id/members/:memberId` - Update a member's role (primary owners only).
+- `DELETE /api/dogs/:id/members/:memberId` - Remove a member (primary owners only, at least one primary must remain).
+
+Roles determine permissions: `primary_owner` can perform destructive actions and manage membership; `co_owner` can edit profiles and media; `viewer` has read-only access. Invitations remain `pending` until accepted or declined and are delivered via email with a tokenized link that callers must provide when responding.
+
 ### Testing Authentication
 
 ```bash

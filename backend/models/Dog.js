@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const { DogMembership, MembershipError } = require('./DogMembership');
 
 class Dog {
   static async create(dogData) {
@@ -22,47 +23,195 @@ class Dog {
       profileImageUrl
     } = dogData;
 
-    const query = `
-      INSERT INTO dogs (
-        user_id, name, breed, birthday, weight, gender, size_category,
-        energy_level, friendliness_dogs, friendliness_people, training_level,
-        favorite_activities, is_vaccinated, is_spayed_neutered, special_needs,
-        bio, profile_image_url
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-      RETURNING *
-    `;
+    const client = await pool.connect();
 
-    const values = [
-      userId, name, breed, birthday, weight, gender, sizeCategory,
-      energyLevel, friendlinessDogs, friendlinessPeople, trainingLevel,
-      JSON.stringify(favoriteActivities || []), isVaccinated, isSpayedNeutered,
-      specialNeeds, bio, profileImageUrl
-    ];
+    try {
+      await client.query('BEGIN');
 
-    const result = await pool.query(query, values);
-    return this.formatDog(result.rows[0]);
+      const insertQuery = `
+        INSERT INTO dogs (
+          user_id, name, breed, birthday, weight, gender, size_category,
+          energy_level, friendliness_dogs, friendliness_people, training_level,
+          favorite_activities, is_vaccinated, is_spayed_neutered, special_needs,
+          bio, profile_image_url
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+        RETURNING *
+      `;
+
+      const values = [
+        userId, name, breed, birthday, weight, gender, sizeCategory,
+        energyLevel, friendlinessDogs, friendlinessPeople, trainingLevel,
+        JSON.stringify(favoriteActivities || []), isVaccinated, isSpayedNeutered,
+        specialNeeds, bio, profileImageUrl
+      ];
+
+      const result = await client.query(insertQuery, values);
+      const dogRow = result.rows[0];
+
+      await DogMembership.addMembership({
+        dogId: dogRow.id,
+        userId,
+        role: 'primary_owner',
+        invitedBy: userId
+      }, client);
+
+      await client.query('COMMIT');
+
+      const owners = await DogMembership.getOwners(dogRow.id);
+
+      return this.formatDog({ ...dogRow, owners });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   static async findByUserId(userId) {
-    const query = 'SELECT * FROM dogs WHERE user_id = $1 ORDER BY created_at DESC';
+    const query = `
+      SELECT
+        d.*,
+        member.role AS current_user_role,
+        owners.members AS owners
+      FROM dogs d
+      JOIN dog_memberships member
+        ON member.dog_id = d.id
+       AND member.user_id = $1
+       AND member.status = 'active'
+      LEFT JOIN LATERAL (
+        SELECT json_agg(
+          json_build_object(
+            'membershipId', dm2.id,
+            'userId', dm2.user_id,
+            'role', dm2.role,
+            'status', dm2.status,
+            'invitedBy', dm2.invited_by,
+            'isPrimaryOwner', dm2.role = 'primary_owner',
+            'joinedAt', dm2.created_at,
+            'updatedAt', dm2.updated_at,
+            'user', json_build_object(
+              'id', u2.id,
+              'email', u2.email,
+              'firstName', u2.first_name,
+              'lastName', u2.last_name,
+              'fullName', CONCAT(u2.first_name, ' ', u2.last_name),
+              'profileImageUrl', u2.profile_image_url
+            )
+          )
+          ORDER BY CASE dm2.role WHEN 'primary_owner' THEN 0 WHEN 'co_owner' THEN 1 ELSE 2 END,
+            u2.first_name,
+            u2.last_name
+        ) AS members
+        FROM dog_memberships dm2
+        JOIN users u2 ON u2.id = dm2.user_id
+        WHERE dm2.dog_id = d.id AND dm2.status = 'active'
+      ) owners ON TRUE
+      ORDER BY d.created_at DESC
+    `;
+
     const result = await pool.query(query, [userId]);
-    return result.rows.map(dog => this.formatDog(dog));
+    return result.rows.map(row => this.formatDog(row));
   }
 
   static async findById(dogId) {
-    const query = 'SELECT * FROM dogs WHERE id = $1';
+    const query = `
+      SELECT
+        d.*,
+        owners.members AS owners
+      FROM dogs d
+      LEFT JOIN LATERAL (
+        SELECT json_agg(
+          json_build_object(
+            'membershipId', dm2.id,
+            'userId', dm2.user_id,
+            'role', dm2.role,
+            'status', dm2.status,
+            'invitedBy', dm2.invited_by,
+            'isPrimaryOwner', dm2.role = 'primary_owner',
+            'joinedAt', dm2.created_at,
+            'updatedAt', dm2.updated_at,
+            'user', json_build_object(
+              'id', u2.id,
+              'email', u2.email,
+              'firstName', u2.first_name,
+              'lastName', u2.last_name,
+              'fullName', CONCAT(u2.first_name, ' ', u2.last_name),
+              'profileImageUrl', u2.profile_image_url
+            )
+          )
+          ORDER BY CASE dm2.role WHEN 'primary_owner' THEN 0 WHEN 'co_owner' THEN 1 ELSE 2 END,
+            u2.first_name,
+            u2.last_name
+        ) AS members
+        FROM dog_memberships dm2
+        JOIN users u2 ON u2.id = dm2.user_id
+        WHERE dm2.dog_id = d.id AND dm2.status = 'active'
+      ) owners ON TRUE
+      WHERE d.id = $1
+    `;
+
     const result = await pool.query(query, [dogId]);
     return result.rows[0] ? this.formatDog(result.rows[0]) : null;
   }
 
   static async findByIdAndUser(dogId, userId) {
-    const query = 'SELECT * FROM dogs WHERE id = $1 AND user_id = $2';
+    const query = `
+      SELECT
+        d.*,
+        member.role AS current_user_role,
+        owners.members AS owners
+      FROM dogs d
+      JOIN dog_memberships member
+        ON member.dog_id = d.id
+       AND member.user_id = $2
+       AND member.status = 'active'
+      LEFT JOIN LATERAL (
+        SELECT json_agg(
+          json_build_object(
+            'membershipId', dm2.id,
+            'userId', dm2.user_id,
+            'role', dm2.role,
+            'status', dm2.status,
+            'invitedBy', dm2.invited_by,
+            'isPrimaryOwner', dm2.role = 'primary_owner',
+            'joinedAt', dm2.created_at,
+            'updatedAt', dm2.updated_at,
+            'user', json_build_object(
+              'id', u2.id,
+              'email', u2.email,
+              'firstName', u2.first_name,
+              'lastName', u2.last_name,
+              'fullName', CONCAT(u2.first_name, ' ', u2.last_name),
+              'profileImageUrl', u2.profile_image_url
+            )
+          )
+          ORDER BY CASE dm2.role WHEN 'primary_owner' THEN 0 WHEN 'co_owner' THEN 1 ELSE 2 END,
+            u2.first_name,
+            u2.last_name
+        ) AS members
+        FROM dog_memberships dm2
+        JOIN users u2 ON u2.id = dm2.user_id
+        WHERE dm2.dog_id = d.id AND dm2.status = 'active'
+      ) owners ON TRUE
+      WHERE d.id = $1
+    `;
+
     const result = await pool.query(query, [dogId, userId]);
     return result.rows[0] ? this.formatDog(result.rows[0]) : null;
   }
 
   static async update(dogId, userId, updates) {
+    await DogMembership.authorize(userId, dogId, 'edit');
+    const updated = await this.updateById(dogId, updates);
+    if (!updated) {
+      throw new MembershipError('Dog not found', 404);
+    }
+    return updated;
+  }
+
+  static async updateById(dogId, updates) {
     const allowedFields = [
       'name', 'breed', 'birthday', 'weight', 'gender', 'size_category',
       'energy_level', 'friendliness_dogs', 'friendliness_people', 'training_level',
@@ -77,8 +226,7 @@ class Dog {
     Object.keys(updates).forEach(key => {
       if (allowedFields.includes(key) && updates[key] !== undefined) {
         fields.push(`${key} = $${paramCount}`);
-        
-        // Handle JSON fields
+
         if (key === 'favorite_activities' || key === 'gallery_images') {
           values.push(JSON.stringify(updates[key]));
         } else {
@@ -93,51 +241,55 @@ class Dog {
     }
 
     fields.push('updated_at = CURRENT_TIMESTAMP');
-    values.push(dogId, userId);
+    values.push(dogId);
 
     const query = `
-      UPDATE dogs 
+      UPDATE dogs
       SET ${fields.join(', ')}
-      WHERE id = $${paramCount} AND user_id = $${paramCount + 1}
+      WHERE id = $${paramCount}
       RETURNING *
     `;
 
     const result = await pool.query(query, values);
-    return result.rows[0] ? this.formatDog(result.rows[0]) : null;
+    if (!result.rows[0]) {
+      return null;
+    }
+
+    const owners = await DogMembership.getOwners(dogId);
+    return this.formatDog({ ...result.rows[0], owners });
   }
 
   static async delete(dogId, userId) {
-    const query = 'DELETE FROM dogs WHERE id = $1 AND user_id = $2 RETURNING *';
-    const result = await pool.query(query, [dogId, userId]);
+    await DogMembership.authorize(userId, dogId, 'delete');
+    const result = await pool.query('DELETE FROM dogs WHERE id = $1 RETURNING *', [dogId]);
     return result.rows[0] ? this.formatDog(result.rows[0]) : null;
   }
 
   static async addGalleryImage(dogId, userId, imageUrl) {
-    // Get current gallery images
-    const dog = await this.findByIdAndUser(dogId, userId);
+    await DogMembership.authorize(userId, dogId, 'edit');
+    const dog = await this.findById(dogId);
     if (!dog) return null;
 
     const currentGallery = dog.galleryImages || [];
     const updatedGallery = [...currentGallery, imageUrl];
 
-    return await this.update(dogId, userId, { gallery_images: updatedGallery });
+    return this.updateById(dogId, { gallery_images: updatedGallery });
   }
 
   static async removeGalleryImage(dogId, userId, imageUrl) {
-    const dog = await this.findByIdAndUser(dogId, userId);
+    await DogMembership.authorize(userId, dogId, 'edit');
+    const dog = await this.findById(dogId);
     if (!dog) return null;
 
     const currentGallery = dog.galleryImages || [];
     const updatedGallery = currentGallery.filter(url => url !== imageUrl);
 
-    return await this.update(dogId, userId, { gallery_images: updatedGallery });
+    return this.updateById(dogId, { gallery_images: updatedGallery });
   }
 
-  // Helper method to format dog data for API responses
   static formatDog(dog) {
     if (!dog) return null;
 
-    // Calculate age from birthday
     const age = dog.birthday ? this.calculateAge(dog.birthday) : null;
 
     return {
@@ -146,7 +298,7 @@ class Dog {
       name: dog.name,
       breed: dog.breed,
       birthday: dog.birthday,
-      age: age,
+      age,
       weight: dog.weight,
       gender: dog.gender,
       sizeCategory: dog.size_category,
@@ -161,6 +313,8 @@ class Dog {
       bio: dog.bio,
       profileImageUrl: dog.profile_image_url,
       galleryImages: this.parseJSON(dog.gallery_images),
+      owners: this.parseOwners(dog.owners),
+      currentUserRole: dog.current_user_role || null,
       createdAt: dog.created_at,
       updatedAt: dog.updated_at
     };
@@ -181,15 +335,27 @@ class Dog {
 
   static parseJSON(jsonData) {
     if (!jsonData) return [];
-    
-    // If it's already an object/array, return it
+
     if (typeof jsonData === 'object') {
       return jsonData;
     }
-    
-    // If it's a string, try to parse it
+
     try {
       return JSON.parse(jsonData);
+    } catch (error) {
+      return [];
+    }
+  }
+
+  static parseOwners(ownerData) {
+    if (!ownerData) return [];
+
+    if (typeof ownerData === 'object') {
+      return ownerData;
+    }
+
+    try {
+      return JSON.parse(ownerData);
     } catch (error) {
       return [];
     }

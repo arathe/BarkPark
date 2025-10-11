@@ -313,15 +313,18 @@ router.get('/search', verifyToken, [
         u.phone,
         u.profile_image_url,
         u.is_searchable,
-        COALESCE(
-          json_agg(
-            json_build_object('id', d.id, 'name', d.name)
-            ORDER BY d.name
-          ) FILTER (WHERE d.id IS NOT NULL),
-          '[]'::json
-        ) AS dogs
+        COALESCE(dogs.members, '[]'::json) AS dogs
       FROM users u
-      LEFT JOIN dogs d ON d.user_id = u.id
+      LEFT JOIN LATERAL (
+        SELECT json_agg(
+          json_build_object('id', d.id, 'name', d.name)
+          ORDER BY d.name
+        ) AS members
+        FROM dog_memberships dm
+        JOIN dogs d ON d.id = dm.dog_id
+        WHERE dm.user_id = u.id
+          AND dm.status = 'active'
+      ) dogs ON true
       WHERE u.id != $1
         AND u.is_searchable = true
         AND (
@@ -331,20 +334,23 @@ router.get('/search', verifyToken, [
           LOWER(u.email) LIKE LOWER($2) OR
           EXISTS (
             SELECT 1
-            FROM dogs d2
-            WHERE d2.user_id = u.id
+            FROM dog_memberships dm2
+            JOIN dogs d2 ON d2.id = dm2.dog_id
+            WHERE dm2.user_id = u.id
+              AND dm2.status = 'active'
               AND LOWER(d2.name) LIKE LOWER($2)
           )
         )
-      GROUP BY u.id, u.email, u.first_name, u.last_name, u.phone, u.profile_image_url, u.is_searchable
       ORDER BY
         CASE
           WHEN LOWER(CONCAT(u.first_name, ' ', u.last_name)) LIKE LOWER($3) THEN 1
           WHEN LOWER(u.first_name) LIKE LOWER($3) OR LOWER(u.last_name) LIKE LOWER($3) THEN 2
           WHEN EXISTS (
             SELECT 1
-            FROM dogs d3
-            WHERE d3.user_id = u.id
+            FROM dog_memberships dm3
+            JOIN dogs d3 ON d3.id = dm3.dog_id
+            WHERE dm3.user_id = u.id
+              AND dm3.status = 'active'
               AND LOWER(d3.name) LIKE LOWER($3)
           ) THEN 3
           ELSE 4
