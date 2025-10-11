@@ -682,6 +682,11 @@ class APIService {
         
         let (data, response) = try await session.data(for: request)
         
+        // Debug: dump raw payload for troubleshooting dogs in search results
+        if let raw = String(data: data, encoding: .utf8) {
+            print("🔎 APIService.searchUsers raw: \(raw)")
+        }
+
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }

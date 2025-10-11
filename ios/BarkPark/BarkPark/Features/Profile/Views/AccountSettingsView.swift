@@ -26,144 +26,220 @@ struct AccountSettingsView: View {
     
     @State private var showingChangePassword = false
     @State private var showingDeleteAccount = false
+
+    @ViewBuilder
+    private var profilePhotoSection: some View {
+        Section("Profile Photo") {
+            HStack {
+                profileImageView()
+                
+                VStack(alignment: .leading, spacing: BarkParkDesign.Spacing.sm) {
+                    PhotosPicker(
+                        selection: $selectedPhoto,
+                        matching: .images
+                    ) {
+                        Text(profileImage == nil && authManager.currentUser?.profileImageUrl == nil ? "Add Profile Photo" : "Change Photo")
+                            .font(BarkParkDesign.Typography.callout)
+                            .foregroundColor(BarkParkDesign.Colors.dogPrimary)
+                    }
+                    
+                    if profileImage != nil || authManager.currentUser?.profileImageUrl != nil {
+                        Button("Remove Photo") {
+                            resetPhoto()
+                        }
+                        .font(BarkParkDesign.Typography.caption)
+                        .foregroundColor(BarkParkDesign.Colors.error)
+                    }
+                }
+                
+                Spacer()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func profileImageView() -> some View {
+        if let profileImage = profileImage {
+            Image(uiImage: profileImage)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: 80, height: 80)
+                .clipShape(Circle())
+                .overlay(
+                    Circle()
+                        .stroke(BarkParkDesign.Colors.dogPrimary, lineWidth: 2)
+                )
+        } else if let currentUser = authManager.currentUser,
+                  let profileImageUrl = currentUser.profileImageUrl,
+                  !profileImageUrl.isEmpty,
+                  let url = URL(string: profileImageUrl) {
+            AsyncImage(url: url) { image in
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } placeholder: {
+                ProgressView()
+            }
+            .frame(width: 80, height: 80)
+            .clipShape(Circle())
+            .overlay(
+                Circle()
+                    .stroke(BarkParkDesign.Colors.dogPrimary, lineWidth: 2)
+            )
+        } else {
+            Image(systemName: "person.circle.fill")
+                .font(.system(size: 40))
+                .foregroundColor(BarkParkDesign.Colors.dogPrimary.opacity(0.5))
+                .frame(width: 80, height: 80)
+                .background(BarkParkDesign.Colors.tertiaryBackground)
+                .clipShape(Circle())
+                .overlay(
+                    Circle()
+                        .stroke(BarkParkDesign.Colors.dogPrimary.opacity(0.3), lineWidth: 2)
+                )
+        }
+    }
+
+    @ViewBuilder
+    private var profileInfoSection: some View {
+        Section("Profile Information") {
+            HStack {
+                Text("First Name")
+                    .foregroundColor(BarkParkDesign.Colors.secondaryText)
+                    .frame(width: 100, alignment: .leading)
+                TextField("First Name", text: $firstName)
+                    .textContentType(.givenName)
+            }
+            
+            HStack {
+                Text("Last Name")
+                    .foregroundColor(BarkParkDesign.Colors.secondaryText)
+                    .frame(width: 100, alignment: .leading)
+                TextField("Last Name", text: $lastName)
+                    .textContentType(.familyName)
+            }
+            
+            HStack {
+                Text("Email")
+                    .foregroundColor(BarkParkDesign.Colors.secondaryText)
+                    .frame(width: 100, alignment: .leading)
+                TextField("Email", text: $email)
+                    .textContentType(.emailAddress)
+                    .keyboardType(.emailAddress)
+                    .autocapitalization(.none)
+            }
+            
+            HStack {
+                Text("Phone")
+                    .foregroundColor(BarkParkDesign.Colors.secondaryText)
+                    .frame(width: 100, alignment: .leading)
+                TextField("Phone (optional)", text: $phone)
+                    .textContentType(.telephoneNumber)
+                    .keyboardType(.phonePad)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var accountSecuritySection: some View {
+        Section("Account Security") {
+            Button(action: {
+                showingChangePassword = true
+            }) {
+                HStack {
+                    Text("Change Password")
+                        .foregroundColor(BarkParkDesign.Colors.primaryText)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundColor(BarkParkDesign.Colors.secondaryText)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var dangerZoneSection: some View {
+        Section {
+            Button(action: {
+                showingDeleteAccount = true
+            }) {
+                Text("Delete Account")
+                    .foregroundColor(BarkParkDesign.Colors.error)
+            }
+        } header: {
+            Text("Danger Zone")
+        } footer: {
+            dangerZoneFooter
+        }
+    }
+    
+    @ViewBuilder
+    private var dangerZoneFooter: some View {
+        Text("Deleting your account is permanent and cannot be undone.")
+            .font(BarkParkDesign.Typography.caption)
+    }
+    
+    @ViewBuilder
+    private var formContent: some View {
+        profilePhotoSection
+        profileInfoSection
+        accountSecuritySection
+        dangerZoneSection
+    }
+
+    @ViewBuilder
+    private var loadingOverlay: some View {
+        Group {
+            if viewModel.isLoading {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.black.opacity(0.3))
+            }
+        }
+    }
+
+    private func loadSelectedPhoto(_ item: PhotosPickerItem) async {
+        print("📸 Photo selected, loading data...")
+        if let data = try? await item.loadTransferable(type: Data.self),
+           let uiImage = UIImage(data: data) {
+            await MainActor.run {
+                imageToCrop = uiImage
+                showingCropper = true
+            }
+            print("📸 Photo data loaded: \(data.count) bytes")
+        } else {
+            print("❌ Failed to load photo data")
+        }
+    }
+
+    @ViewBuilder
+    private func cropperSheetView() -> some View {
+        if let image = imageToCrop {
+            ImageCropperView(
+                image: image,
+                onCancel: {
+                    profileImageData = nil
+                    profileImage = nil
+                    selectedPhoto = nil
+                    self.imageToCrop = nil
+                },
+                onCrop: { croppedImage in
+                    profileImage = croppedImage
+                    profileImageData = croppedImage.jpegData(compressionQuality: 0.9) ?? croppedImage.pngData()
+                    selectedPhoto = nil
+                    self.imageToCrop = nil
+                }
+            )
+        } else {
+            EmptyView()
+        }
+    }
     
     var body: some View {
         NavigationView {
             Form {
-                // Profile Photo Section
-                Section("Profile Photo") {
-                    HStack {
-                        // Photo Display
-                        if let profileImage = profileImage {
-                            Image(uiImage: profileImage)
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: 80, height: 80)
-                                .clipShape(Circle())
-                                .overlay(
-                                    Circle()
-                                        .stroke(BarkParkDesign.Colors.dogPrimary, lineWidth: 2)
-                                )
-                        } else if let currentUser = authManager.currentUser,
-                                  let profileImageUrl = currentUser.profileImageUrl,
-                                  !profileImageUrl.isEmpty {
-                            AsyncImage(url: URL(string: profileImageUrl)) { image in
-                                image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                            } placeholder: {
-                                ProgressView()
-                            }
-                            .frame(width: 80, height: 80)
-                            .clipShape(Circle())
-                            .overlay(
-                                Circle()
-                                    .stroke(BarkParkDesign.Colors.dogPrimary, lineWidth: 2)
-                            )
-                        } else {
-                            Image(systemName: "person.circle.fill")
-                                .font(.system(size: 40))
-                                .foregroundColor(BarkParkDesign.Colors.dogPrimary.opacity(0.5))
-                                .frame(width: 80, height: 80)
-                                .background(BarkParkDesign.Colors.tertiaryBackground)
-                                .clipShape(Circle())
-                                .overlay(
-                                    Circle()
-                                        .stroke(BarkParkDesign.Colors.dogPrimary.opacity(0.3), lineWidth: 2)
-                                )
-                        }
-                        
-                        VStack(alignment: .leading, spacing: BarkParkDesign.Spacing.sm) {
-                            PhotosPicker(
-                                selection: $selectedPhoto,
-                                matching: .images
-                            ) {
-                                Text(profileImage == nil && authManager.currentUser?.profileImageUrl == nil ? "Add Profile Photo" : "Change Photo")
-                                    .font(BarkParkDesign.Typography.callout)
-                                    .foregroundColor(BarkParkDesign.Colors.dogPrimary)
-                            }
-                            
-                            if profileImage != nil || authManager.currentUser?.profileImageUrl != nil {
-                                Button("Remove Photo") {
-                                    resetPhoto()
-                                }
-                                .font(BarkParkDesign.Typography.caption)
-                                .foregroundColor(BarkParkDesign.Colors.error)
-                            }
-                        }
-                        
-                        Spacer()
-                    }
-                }
-                
-                // Profile Information Section
-                Section("Profile Information") {
-                    HStack {
-                        Text("First Name")
-                            .foregroundColor(BarkParkDesign.Colors.secondaryText)
-                            .frame(width: 100, alignment: .leading)
-                        TextField("First Name", text: $firstName)
-                            .textContentType(.givenName)
-                    }
-                    
-                    HStack {
-                        Text("Last Name")
-                            .foregroundColor(BarkParkDesign.Colors.secondaryText)
-                            .frame(width: 100, alignment: .leading)
-                        TextField("Last Name", text: $lastName)
-                            .textContentType(.familyName)
-                    }
-                    
-                    HStack {
-                        Text("Email")
-                            .foregroundColor(BarkParkDesign.Colors.secondaryText)
-                            .frame(width: 100, alignment: .leading)
-                        TextField("Email", text: $email)
-                            .textContentType(.emailAddress)
-                            .keyboardType(.emailAddress)
-                            .autocapitalization(.none)
-                    }
-                    
-                    HStack {
-                        Text("Phone")
-                            .foregroundColor(BarkParkDesign.Colors.secondaryText)
-                            .frame(width: 100, alignment: .leading)
-                        TextField("Phone (optional)", text: $phone)
-                            .textContentType(.telephoneNumber)
-                            .keyboardType(.phonePad)
-                    }
-                }
-                
-                // Account Security Section
-                Section("Account Security") {
-                    Button(action: {
-                        showingChangePassword = true
-                    }) {
-                        HStack {
-                            Text("Change Password")
-                                .foregroundColor(BarkParkDesign.Colors.primaryText)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(BarkParkDesign.Colors.secondaryText)
-                        }
-                    }
-                }
-                
-                // Danger Zone Section
-                Section {
-                    Button(action: {
-                        showingDeleteAccount = true
-                    }) {
-                        Text("Delete Account")
-                            .foregroundColor(BarkParkDesign.Colors.error)
-                    }
-                } header: {
-                    Text("Danger Zone")
-                } footer: {
-                    Text("Deleting your account is permanent and cannot be undone.")
-                        .font(BarkParkDesign.Typography.caption)
-                }
+                formContent
             }
             .navigationTitle("Account Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -185,13 +261,7 @@ struct AccountSettingsView: View {
                 }
             }
             .overlay(
-                Group {
-                    if viewModel.isLoading {
-                        ProgressView()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(Color.black.opacity(0.3))
-                    }
-                }
+                loadingOverlay
             )
             .alert("Error", isPresented: $viewModel.showError) {
                 Button("OK", role: .cancel) { }
@@ -214,43 +284,31 @@ struct AccountSettingsView: View {
             }
             .onChange(of: selectedPhoto) { oldValue, newValue in
                 Task {
-                    if let newValue = newValue {
-                        print("📸 Photo selected, loading data...")
-                        if let data = try? await newValue.loadTransferable(type: Data.self),
-                           let uiImage = UIImage(data: data) {
-                            await MainActor.run {
-                                imageToCrop = uiImage
-                                showingCropper = true
-                            }
-                            print("📸 Photo data loaded: \(data.count) bytes")
-                        } else {
-                            print("❌ Failed to load photo data")
-                        }
+                    if let item = newValue {
+                        await loadSelectedPhoto(item)
                     }
                 }
             }
             .sheet(isPresented: $showingCropper, onDismiss: {
                 imageToCrop = nil
             }) {
-                if let imageToCrop = imageToCrop {
-                    ImageCropperView(
-                        image: imageToCrop,
-                        onCancel: {
-                            profileImageData = nil
-                            profileImage = nil
-                            selectedPhoto = nil
-                            imageToCrop = nil
-                        },
-                        onCrop: { croppedImage in
-                            profileImage = croppedImage
-                            profileImageData = croppedImage.jpegData(compressionQuality: 0.9) ?? croppedImage.pngData()
-                            selectedPhoto = nil
-                            imageToCrop = nil
-                        }
-                    )
-                } else {
-                    EmptyView()
-                }
+                ImageCropperSheetHost(
+                    image: $imageToCrop,
+                    onCancel: {
+                        profileImageData = nil
+                        profileImage = nil
+                        selectedPhoto = nil
+                        self.imageToCrop = nil
+                        showingCropper = false
+                    },
+                    onCrop: { croppedImage in
+                        profileImage = croppedImage
+                        profileImageData = croppedImage.jpegData(compressionQuality: 0.9) ?? croppedImage.pngData()
+                        selectedPhoto = nil
+                        self.imageToCrop = nil
+                        showingCropper = false
+                    }
+                )
             }
         }
     }
@@ -277,7 +335,7 @@ struct AccountSettingsView: View {
     private func saveChanges() async {
         print("💾 Starting save changes...")
         
-        var photoUploadSuccess = true
+        _ = true
         
         // First update profile photo if changed
         if let profileImageData = profileImageData {

@@ -315,10 +315,8 @@ router.get('/search', verifyToken, [
         u.is_searchable,
         COALESCE(
           json_agg(
-            json_build_object(
-              'id', d.id,
-              'name', d.name
-            )
+            json_build_object('id', d.id, 'name', d.name)
+            ORDER BY d.name
           ) FILTER (WHERE d.id IS NOT NULL),
           '[]'::json
         ) AS dogs
@@ -362,17 +360,35 @@ router.get('/search', verifyToken, [
     const pool = require('../config/database');
     const result = await pool.query(query, values);
 
-    const users = result.rows.map(user => ({
-      id: user.id,
-      email: user.email,
-      firstName: user.first_name,
-      lastName: user.last_name,
-      phone: user.phone,
-      profileImageUrl: user.profile_image_url,
-      isSearchable: user.is_searchable,
-      fullName: `${user.first_name} ${user.last_name}`,
-      dogs: Array.isArray(user.dogs) ? user.dogs : []
-    }));
+    const users = result.rows.map(row => {
+      let dogs = [];
+      try {
+        if (Array.isArray(row.dogs)) {
+          dogs = row.dogs;
+        } else if (typeof row.dogs === 'string') {
+          // Some PG drivers/environments serialize json aggregates as strings
+          dogs = JSON.parse(row.dogs);
+        } else if (row.dogs && typeof row.dogs === 'object') {
+          // Already parsed JSON object/array
+          dogs = row.dogs;
+        }
+      } catch (e) {
+        console.warn('Warning: failed to parse dogs json for user', row.id, e);
+        dogs = [];
+      }
+
+      return {
+        id: row.id,
+        email: row.email,
+        firstName: row.first_name,
+        lastName: row.last_name,
+        phone: row.phone,
+        profileImageUrl: row.profile_image_url,
+        isSearchable: row.is_searchable,
+        fullName: `${row.first_name} ${row.last_name}`,
+        dogs
+      };
+    });
 
     res.json({
       message: 'Users found successfully',

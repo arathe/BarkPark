@@ -14,6 +14,8 @@ class SocialViewModel: ObservableObject {
     @Published var friends: [Friend] = []
     @Published var friendRequests: [FriendRequest] = []
     @Published var searchResults: [User] = []
+    // Fallback cache for dog summaries when search response omits them
+    @Published var dogSummariesByUserId: [Int: [UserDogSummary]] = [:]
     @Published var isLoading = false
     @Published var isSearching = false
     @Published var errorMessage: String?
@@ -183,7 +185,15 @@ class SocialViewModel: ObservableObject {
         do {
             let response = try await apiService.searchUsers(query: searchQuery)
             searchResults = response.users
-            print("✅ SocialViewModel: Found \(searchResults.count) users for query '\(searchQuery)'")
+            let dogCounts = searchResults.map { $0.dogs?.count ?? 0 }
+            if let first = searchResults.first {
+                print("✅ SocialViewModel: Found \(searchResults.count) users for query '\(searchQuery)'. First user: \(first.fullName), dogs: \(first.dogs?.count ?? 0)")
+            } else {
+                print("✅ SocialViewModel: Found 0 users for query '\(searchQuery)'")
+            }
+
+            // Proactively fetch dog summaries for results missing dogs
+            await prefetchDogSummaries(for: searchResults)
         } catch {
             print("❌ SocialViewModel: Search failed: \(error)")
             errorMessage = error.localizedDescription
@@ -191,6 +201,49 @@ class SocialViewModel: ObservableObject {
         }
         
         isSearching = false
+    }
+
+    // MARK: - Dog summaries fallback
+    private func prefetchDogSummaries(for users: [User]) async {
+        // Only fetch for a small number of top results to reduce churn
+        let missing = users
+            .prefix(10)
+            .filter { ($0.dogs?.isEmpty ?? true) && dogSummariesByUserId[$0.id] == nil }
+
+        guard !missing.isEmpty else { return }
+
+        await withTaskGroup(of: (Int, [UserDogSummary]?).self) { group in
+            for user in missing {
+                group.addTask { [weak self] in
+                    guard let self = self else { return (user.id, nil) }
+                    do {
+                        let profile = try await self.apiService.getUserProfile(userId: user.id)
+                        let summaries = profile.dogs.map { UserDogSummary(id: $0.id, name: $0.name) }
+                        return (user.id, summaries)
+                    } catch {
+                        print("ℹ️ SocialViewModel: Could not fetch profile for userId=\(user.id): \(error)")
+                        return (user.id, nil)
+                    }
+                }
+            }
+
+            for await (userId, summaries) in group {
+                if let summaries = summaries, !summaries.isEmpty {
+                    dogSummariesByUserId[userId] = summaries
+                }
+            }
+        }
+    }
+
+    func fetchDogSummariesIfNeeded(for userId: Int) async {
+        if dogSummariesByUserId[userId] != nil { return }
+        do {
+            let profile = try await apiService.getUserProfile(userId: userId)
+            let summaries = profile.dogs.map { UserDogSummary(id: $0.id, name: $0.name) }
+            dogSummariesByUserId[userId] = summaries
+        } catch {
+            // No-op; keep silent
+        }
     }
     
     // MARK: - Utility Methods

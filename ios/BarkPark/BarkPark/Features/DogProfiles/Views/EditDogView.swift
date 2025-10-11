@@ -446,27 +446,25 @@ struct ProfilePhotoEditSection: View {
             }
         }
         .sheet(isPresented: $showingCropper, onDismiss: {
-            imageToCrop = nil
+            self.imageToCrop = nil
         }) {
-            if let imageToCrop = imageToCrop {
-                ImageCropperView(
-                    image: imageToCrop,
-                    onCancel: {
-                        profileImageData = nil
-                        profileImage = nil
-                        selectedPhoto = nil
-                        imageToCrop = nil
-                    },
-                    onCrop: { croppedImage in
-                        profileImage = croppedImage
-                        profileImageData = croppedImage.jpegData(compressionQuality: 0.9) ?? croppedImage.pngData()
-                        selectedPhoto = nil
-                        imageToCrop = nil
-                    }
-                )
-            } else {
-                EmptyView()
-            }
+            ImageCropperSheetHost(
+                image: $imageToCrop,
+                onCancel: {
+                    profileImageData = nil
+                    profileImage = nil
+                    selectedPhoto = nil
+                    self.imageToCrop = nil
+                    showingCropper = false
+                },
+                onCrop: { croppedImage in
+                    profileImage = croppedImage
+                    profileImageData = croppedImage.jpegData(compressionQuality: 0.9) ?? croppedImage.pngData()
+                    selectedPhoto = nil
+                    self.imageToCrop = nil
+                    showingCropper = false
+                }
+            )
         }
     }
 

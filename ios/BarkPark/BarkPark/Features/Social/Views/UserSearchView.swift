@@ -159,52 +159,102 @@ struct UserSearchRowView: View {
     @State private var canSendRequest = false
     @State private var isLoading = false
 
-    private var dogNamesText: String? {
-        guard let dogs = user.dogs, !dogs.isEmpty else { return nil }
-        let names = dogs.map { $0.name }.joined(separator: ", ")
-        return "Dogs: \(names)"
+    private var resolvedDogs: [UserDogSummary] {
+        user.dogs ?? viewModel.dogSummariesByUserId[user.id] ?? []
     }
+    private var hasDogs: Bool { !resolvedDogs.isEmpty }
     
     var body: some View {
-        HStack(spacing: BarkParkDesign.Spacing.md) {
-            // Profile Image Placeholder
-            Circle()
-                .fill(BarkParkDesign.Colors.dogPrimary.opacity(0.2))
-                .frame(width: 50, height: 50)
-                .overlay(
-                    Text(user.firstName.prefix(1))
-                        .font(BarkParkDesign.Typography.title2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(BarkParkDesign.Colors.dogPrimary)
-                )
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(user.fullName)
-                    .font(BarkParkDesign.Typography.headline)
-                    .foregroundColor(BarkParkDesign.Colors.primaryText)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: BarkParkDesign.Spacing.md) {
+                // Owner profile (tappable)
+                NavigationLink(destination: UserProfileView(userId: user.id)) {
+                    HStack(spacing: BarkParkDesign.Spacing.md) {
+                        profileImageView
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(user.fullName)
+                                .font(BarkParkDesign.Typography.headline)
+                                .foregroundColor(BarkParkDesign.Colors.primaryText)
 
-                Text(user.email)
+                            Text(user.email)
+                                .font(BarkParkDesign.Typography.caption)
+                                .foregroundColor(BarkParkDesign.Colors.secondaryText)
+                        }
+                    }
+                }
+                .buttonStyle(PlainButtonStyle())
+
+                Spacer()
+
+                actionButton
+            }
+
+            if hasDogs {
+                // Simple text line for visibility and debugging
+                let names = resolvedDogs.map { $0.name }.joined(separator: ", ")
+                Text("Dogs: \(names)")
                     .font(BarkParkDesign.Typography.caption)
                     .foregroundColor(BarkParkDesign.Colors.secondaryText)
-
-                if let dogNamesText = dogNamesText {
-                    Text(dogNamesText)
-                        .font(BarkParkDesign.Typography.caption)
-                        .foregroundColor(BarkParkDesign.Colors.secondaryText)
-                }
-
-                Text(friendshipStatus)
-                    .font(BarkParkDesign.Typography.caption)
-                    .foregroundColor(statusColor)
+                dogChips
             }
-            
-            Spacer()
-            
-            actionButton
+
+            Text(friendshipStatus)
+                .font(BarkParkDesign.Typography.caption)
+                .foregroundColor(statusColor)
         }
         .padding(.vertical, BarkParkDesign.Spacing.xs)
         .onAppear {
             updateFriendshipStatus()
+            // Fetch dog summaries if server didn't include them
+            if user.dogs?.isEmpty ?? true {
+                Task { await viewModel.fetchDogSummariesIfNeeded(for: user.id) }
+            }
+        }
+    }
+
+    // MARK: - Dog Chips
+    private var dogChips: some View {
+        let dogs = resolvedDogs
+        // Highlight chips that match current search query
+        let query = viewModel.searchQuery.lowercased()
+        let highlighted = dogs.filter { $0.name.lowercased().contains(query) }
+        let nonHighlighted = dogs.filter { !$0.name.lowercased().contains(query) }
+
+        // Limit visible chips to avoid overflow
+        let maxChips = 4
+        let ordered = highlighted + nonHighlighted
+        let visible = Array(ordered.prefix(maxChips))
+        let remaining = max(dogs.count - visible.count, 0)
+
+        return HStack(spacing: 6) {
+            ForEach(visible) { dog in
+                let isMatch = dog.name.lowercased().contains(query) && !query.isEmpty
+                Text(dog.name)
+                    .font(BarkParkDesign.Typography.caption)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule()
+                            .fill(isMatch ? BarkParkDesign.Colors.dogPrimary.opacity(0.15) : BarkParkDesign.Colors.tertiaryBackground)
+                    )
+                    .overlay(
+                        Capsule()
+                            .stroke(isMatch ? BarkParkDesign.Colors.dogPrimary : BarkParkDesign.Colors.secondaryText.opacity(0.3), lineWidth: 1)
+                    )
+                    .foregroundColor(isMatch ? BarkParkDesign.Colors.dogPrimary : BarkParkDesign.Colors.secondaryText)
+            }
+
+            if remaining > 0 {
+                Text("+\(remaining)")
+                    .font(BarkParkDesign.Typography.caption)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule()
+                            .fill(BarkParkDesign.Colors.tertiaryBackground)
+                    )
+                    .foregroundColor(BarkParkDesign.Colors.secondaryText)
+            }
         }
     }
     
@@ -237,6 +287,39 @@ struct UserSearchRowView: View {
             return .blue
         default:
             return BarkParkDesign.Colors.secondaryText
+        }
+    }
+
+    // MARK: - Profile Image
+    private var profileImageView: some View {
+        Group {
+            if let urlString = user.profileImageUrl, !urlString.isEmpty, let url = URL(string: urlString) {
+                AsyncImage(url: url) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    ProgressView()
+                }
+                .frame(width: 50, height: 50)
+                .clipShape(Circle())
+                .overlay(
+                    Circle().stroke(BarkParkDesign.Colors.dogPrimary.opacity(0.3), lineWidth: 1)
+                )
+            } else {
+                Circle()
+                    .fill(BarkParkDesign.Colors.dogPrimary.opacity(0.15))
+                    .frame(width: 50, height: 50)
+                    .overlay(
+                        Text(user.firstName.prefix(1))
+                            .font(BarkParkDesign.Typography.title2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(BarkParkDesign.Colors.dogPrimary)
+                    )
+                    .overlay(
+                        Circle().stroke(BarkParkDesign.Colors.dogPrimary.opacity(0.3), lineWidth: 1)
+                    )
+            }
         }
     }
     

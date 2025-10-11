@@ -177,3 +177,35 @@ struct ImageCropperView: View {
         return CGSize(width: baseWidth * scale, height: baseHeight * scale)
     }
 }
+
+// A stable sheet host to avoid blank presentation while the image loads
+struct ImageCropperSheetHost: View {
+    @Binding var image: UIImage?
+    let onCancel: () -> Void
+    let onCrop: (UIImage) -> Void
+
+    var body: some View {
+        Group {
+            if let img = image {
+                ImageCropperView(
+                    image: img,
+                    onCancel: onCancel,
+                    onCrop: onCrop
+                )
+            } else {
+                ZStack {
+                    Color.black.opacity(0.95)
+                        .ignoresSafeArea()
+                    VStack(spacing: 12) {
+                        ProgressView()
+                            .tint(.white)
+                        Text("Loading photo…")
+                            .font(.footnote)
+                            .foregroundColor(.white.opacity(0.8))
+                    }
+                }
+                .preferredColorScheme(.dark)
+            }
+        }
+    }
+}
