@@ -449,7 +449,7 @@ class DogParkCompat {
         ) FILTER (WHERE d.id IS NOT NULL) as dog_details
       FROM checkins c
       LEFT JOIN users u ON c.user_id = u.id
-      LEFT JOIN dogs d ON d.id = ANY(c.dogs) AND d.user_id = c.user_id
+      LEFT JOIN dogs d ON d.id = ANY(c.dogs) AND d.primary_owner_id = c.user_id
       WHERE c.dog_park_id = $1 AND c.checked_out_at IS NULL
       GROUP BY c.id, u.id
       ORDER BY c.checked_in_at DESC

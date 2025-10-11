@@ -47,7 +47,7 @@ async function checkDogsTableSchema() {
     
     // Check what the Dog model expects
     const expectedColumns = [
-      'id', 'user_id', 'name', 'breed', 'birthday', 'weight', 'gender',
+      'id', 'primary_owner_id', 'name', 'breed', 'birthday', 'weight', 'gender',
       'size_category', 'energy_level', 'friendliness_dogs', 'friendliness_people',
       'training_level', 'favorite_activities', 'is_vaccinated', 'is_spayed_neutered',
       'special_needs', 'bio', 'profile_image_url', 'gallery_images', 
@@ -87,7 +87,36 @@ async function checkDogsTableSchema() {
     constraints.rows.forEach(con => {
       console.log(`- ${con.conname}: ${con.constraint_def}`);
     });
-    
+
+    console.log('\n\nDog memberships table overview:');
+    console.log('===============================');
+    const membershipColumns = await pool.query(`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_name = 'dog_memberships'
+      ORDER BY ordinal_position;
+    `);
+
+    if (membershipColumns.rows.length === 0) {
+      console.log('❌ dog_memberships table not found');
+    } else {
+      membershipColumns.rows.forEach(col => console.log(`- ${col.column_name}`));
+
+      const membershipConstraints = await pool.query(`
+        SELECT conname, pg_get_constraintdef(oid) as constraint_def
+        FROM pg_constraint
+        WHERE conrelid = (SELECT oid FROM pg_class WHERE relname = 'dog_memberships')
+        ORDER BY conname;
+      `);
+
+      if (membershipConstraints.rows.length > 0) {
+        console.log('\nConstraints:');
+        membershipConstraints.rows.forEach(con => {
+          console.log(`- ${con.conname}: ${con.constraint_def}`);
+        });
+      }
+    }
+
   } catch (error) {
     console.error('Error checking schema:', error.message);
     if (error.code === 'ECONNREFUSED') {

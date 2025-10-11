@@ -20,7 +20,7 @@ CREATE TABLE users (
 -- Dogs table
 CREATE TABLE dogs (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    primary_owner_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     name VARCHAR(100) NOT NULL,
     breed VARCHAR(100),
     age INTEGER,
@@ -31,6 +31,18 @@ CREATE TABLE dogs (
     is_vaccinated BOOLEAN DEFAULT false,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE dog_memberships (
+    id SERIAL PRIMARY KEY,
+    dog_id INTEGER NOT NULL REFERENCES dogs(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role VARCHAR(50) NOT NULL DEFAULT 'owner',
+    status VARCHAR(50) NOT NULL DEFAULT 'active',
+    invited_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (dog_id, user_id)
 );
 
 -- Dog parks table
@@ -94,7 +106,9 @@ CREATE TABLE park_notices (
 
 -- Create indexes for better performance
 CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_dogs_user_id ON dogs(user_id);
+CREATE INDEX idx_dogs_primary_owner_id ON dogs(primary_owner_id);
+CREATE INDEX idx_dog_memberships_dog_id ON dog_memberships(dog_id);
+CREATE INDEX idx_dog_memberships_user_id ON dog_memberships(user_id);
 CREATE INDEX idx_dog_parks_location ON dog_parks USING GIST(location);
 CREATE INDEX idx_friendships_users ON friendships(requester_id, addressee_id);
 CREATE INDEX idx_checkins_user_park ON checkins(user_id, dog_park_id);

@@ -28,6 +28,44 @@ app.use(express.json());
 const dogRoutes = require('../routes/dogs');
 app.use('/api/dogs', dogRoutes);
 
+const createDogForUser = async (ownerId, overrides = {}) => {
+  const data = {
+    name: 'TestDog',
+    breed: 'Mixed',
+    birthday: '2020-01-01',
+    weight: 30,
+    bio: null,
+    friendlinessDogs: 3,
+    isVaccinated: true,
+    ...overrides
+  };
+
+  const insertResult = await pool.query(`
+    INSERT INTO dogs (primary_owner_id, name, breed, birthday, weight, bio, friendliness_dogs, is_vaccinated)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    RETURNING id
+  `, [
+    ownerId,
+    data.name,
+    data.breed,
+    data.birthday,
+    data.weight,
+    data.bio,
+    data.friendlinessDogs,
+    data.isVaccinated
+  ]);
+
+  const dogId = insertResult.rows[0].id;
+
+  await pool.query(`
+    INSERT INTO dog_memberships (dog_id, user_id, role, status, invited_by)
+    VALUES ($1, $2, 'owner', 'active', $2)
+    ON CONFLICT (dog_id, user_id) DO NOTHING
+  `, [dogId, ownerId]);
+
+  return dogId;
+};
+
 describe('Dogs API', () => {
   let authToken;
   let userId;
@@ -67,13 +105,35 @@ describe('Dogs API', () => {
   describe('GET /api/dogs', () => {
     beforeEach(async () => {
       // Create test dogs with new schema
-      await pool.query(`
-        INSERT INTO dogs (user_id, name, breed, birthday, weight, bio, friendliness_dogs, is_vaccinated)
-        VALUES 
-          ($1, 'Buddy', 'Golden Retriever', '2021-01-01', 65.5, 'Friendly golden', 5, true),
-          ($1, 'Max', 'German Shepherd', '2019-01-01', 75.0, 'Protective but gentle', 4, true),
-          ($2, 'Luna', 'Husky', '2022-01-01', 45.0, 'Energetic husky', 5, false)
-      `, [userId, otherUserId]);
+      await createDogForUser(userId, {
+        name: 'Buddy',
+        breed: 'Golden Retriever',
+        birthday: '2021-01-01',
+        weight: 65.5,
+        bio: 'Friendly golden',
+        friendlinessDogs: 5,
+        isVaccinated: true
+      });
+
+      await createDogForUser(userId, {
+        name: 'Max',
+        breed: 'German Shepherd',
+        birthday: '2019-01-01',
+        weight: 75.0,
+        bio: 'Protective but gentle',
+        friendlinessDogs: 4,
+        isVaccinated: true
+      });
+
+      await createDogForUser(otherUserId, {
+        name: 'Luna',
+        breed: 'Husky',
+        birthday: '2022-01-01',
+        weight: 45.0,
+        bio: 'Energetic husky',
+        friendlinessDogs: 5,
+        isVaccinated: false
+      });
     });
 
     it('should get all dogs for authenticated user', async () => {
@@ -95,7 +155,10 @@ describe('Dogs API', () => {
       expect(dog).toHaveProperty('weight');
       expect(dog).toHaveProperty('isVaccinated');
       expect(dog).toHaveProperty('friendlinessDogs');
-      
+      expect(dog.owners).toBeInstanceOf(Array);
+      expect(dog.owners.length).toBeGreaterThan(0);
+      expect(dog.owners[0].id).toBe(userId);
+
       // Should only see own dogs
       const dogNames = res.body.dogs.map(d => d.name);
       expect(dogNames).toContain('Buddy');
@@ -133,7 +196,9 @@ describe('Dogs API', () => {
       expect(res.body.dog.age).toBe(3); // Calculated from birthday
       expect(res.body.dog.weight).toBe('55.50');
       expect(res.body.dog.userId).toBe(userId);
-      
+      expect(res.body.dog.owners).toBeInstanceOf(Array);
+      expect(res.body.dog.owners.some(owner => owner.id === userId)).toBe(true);
+
       dogId = res.body.dog.id;
     });
 
@@ -197,12 +262,12 @@ describe('Dogs API', () => {
 
     beforeEach(async () => {
       // Create a test dog
-      const result = await pool.query(`
-        INSERT INTO dogs (user_id, name, breed, birthday, weight)
-        VALUES ($1, 'GetTest', 'Beagle', '2020-01-01', 30.0)
-        RETURNING id
-      `, [userId]);
-      testDogId = result.rows[0].id;
+      testDogId = await createDogForUser(userId, {
+        name: 'GetTest',
+        breed: 'Beagle',
+        birthday: '2020-01-01',
+        weight: 30.0
+      });
     });
 
     it('should get a specific dog', async () => {
@@ -219,12 +284,11 @@ describe('Dogs API', () => {
 
     it('should not get other user dogs', async () => {
       // Create dog for other user
-      const result = await pool.query(`
-        INSERT INTO dogs (user_id, name, breed, birthday)
-        VALUES ($1, 'OtherDog', 'Pug', '2022-01-01')
-        RETURNING id
-      `, [otherUserId]);
-      const otherDogId = result.rows[0].id;
+      const otherDogId = await createDogForUser(otherUserId, {
+        name: 'OtherDog',
+        breed: 'Pug',
+        birthday: '2022-01-01'
+      });
 
       const res = await request(app)
         .get(`/api/dogs/${otherDogId}`)
@@ -254,12 +318,13 @@ describe('Dogs API', () => {
 
     beforeEach(async () => {
       // Create a dog to update
-      const result = await pool.query(`
-        INSERT INTO dogs (user_id, name, breed, birthday, weight, bio)
-        VALUES ($1, 'UpdateMe', 'Corgi', '2021-01-01', 25.0, 'Original description')
-        RETURNING id
-      `, [userId]);
-      updateDogId = result.rows[0].id;
+      updateDogId = await createDogForUser(userId, {
+        name: 'UpdateMe',
+        breed: 'Corgi',
+        birthday: '2021-01-01',
+        weight: 25.0,
+        bio: 'Original description'
+      });
     });
 
     it('should update a dog', async () => {
@@ -301,12 +366,11 @@ describe('Dogs API', () => {
 
     it('should not update other user dogs', async () => {
       // Create dog for other user
-      const result = await pool.query(`
-        INSERT INTO dogs (user_id, name, breed, birthday)
-        VALUES ($1, 'NotYours', 'Dalmatian', '2022-01-01')
-        RETURNING id
-      `, [otherUserId]);
-      const otherDogId = result.rows[0].id;
+      const otherDogId = await createDogForUser(otherUserId, {
+        name: 'NotYours',
+        breed: 'Dalmatian',
+        birthday: '2022-01-01'
+      });
 
       const res = await request(app)
         .put(`/api/dogs/${otherDogId}`)
@@ -345,12 +409,11 @@ describe('Dogs API', () => {
 
     beforeEach(async () => {
       // Create a dog to delete
-      const result = await pool.query(`
-        INSERT INTO dogs (user_id, name, breed, birthday)
-        VALUES ($1, 'DeleteMe', 'Boxer', '2019-01-01')
-        RETURNING id
-      `, [userId]);
-      deleteDogId = result.rows[0].id;
+      deleteDogId = await createDogForUser(userId, {
+        name: 'DeleteMe',
+        breed: 'Boxer',
+        birthday: '2019-01-01'
+      });
     });
 
     it('should delete a dog', async () => {
@@ -371,12 +434,11 @@ describe('Dogs API', () => {
 
     it('should not delete other user dogs', async () => {
       // Create dog for other user
-      const result = await pool.query(`
-        INSERT INTO dogs (user_id, name, breed, birthday)
-        VALUES ($1, 'NotYourDog', 'Poodle', '2021-01-01')
-        RETURNING id
-      `, [otherUserId]);
-      const otherDogId = result.rows[0].id;
+      const otherDogId = await createDogForUser(otherUserId, {
+        name: 'NotYourDog',
+        breed: 'Poodle',
+        birthday: '2021-01-01'
+      });
 
       const res = await request(app)
         .delete(`/api/dogs/${otherDogId}`)
@@ -413,12 +475,11 @@ describe('Dogs API', () => {
 
     beforeEach(async () => {
       // Create a dog for gallery tests
-      const result = await pool.query(`
-        INSERT INTO dogs (user_id, name, breed, birthday)
-        VALUES ($1, 'GalleryDog', 'Shiba Inu', '2022-01-01')
-        RETURNING id
-      `, [userId]);
-      galleryDogId = result.rows[0].id;
+      galleryDogId = await createDogForUser(userId, {
+        name: 'GalleryDog',
+        breed: 'Shiba Inu',
+        birthday: '2022-01-01'
+      });
     });
 
     it('should validate gallery image removal request', async () => {
