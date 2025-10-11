@@ -401,76 +401,25 @@ struct ProfilePhotoEditSection: View {
     @State private var imageToCrop: UIImage?
     @State private var showingCropper = false
 
+    private let profileImageSize: CGFloat = 80
+
     var body: some View {
         Section("Profile Photo") {
             HStack {
-                // Photo Display
-                if let profileImage = profileImage {
-                    Image(uiImage: profileImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 80, height: 80)
-                        .clipShape(Circle())
-                        .overlay(
-                            Circle()
-                                .stroke(BarkParkDesign.Colors.dogPrimary, lineWidth: 2)
-                        )
-                } else if let currentUrl = currentProfileImageUrl {
-                    AsyncImage(url: URL(string: currentUrl)) { image in
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    } placeholder: {
-                        Image(systemName: "pawprint.fill")
-                            .font(.system(size: 40))
-                            .foregroundColor(BarkParkDesign.Colors.dogPrimary.opacity(0.5))
-                    }
-                    .frame(width: 80, height: 80)
-                    .clipShape(Circle())
-                    .overlay(
-                        Circle()
-                            .stroke(BarkParkDesign.Colors.dogPrimary, lineWidth: 2)
-                    )
-                } else {
-                    Image(systemName: "pawprint.fill")
-                        .font(.system(size: 40))
-                        .foregroundColor(BarkParkDesign.Colors.dogPrimary.opacity(0.5))
-                        .frame(width: 80, height: 80)
-                        .background(BarkParkDesign.Colors.tertiaryBackground)
-                        .clipShape(Circle())
-                        .overlay(
-                            Circle()
-                                .stroke(BarkParkDesign.Colors.dogPrimary.opacity(0.3), lineWidth: 2)
-                        )
-                }
-                
+                profileImageContent()
+
                 VStack(alignment: .leading, spacing: BarkParkDesign.Spacing.sm) {
-                    PhotosPicker(
-                        selection: $selectedPhoto,
-                        matching: .images
-                    ) {
-                        Text("Choose New Photo")
-                            .font(BarkParkDesign.Typography.callout)
-                            .foregroundColor(BarkParkDesign.Colors.dogPrimary)
-                    }
-                    
+                    photoPickerButton()
+
                     if !galleryImages.isEmpty {
-                        Button("Choose from Gallery") {
-                            showingProfilePhotoSelector = true
-                        }
-                        .font(BarkParkDesign.Typography.callout)
-                        .foregroundColor(BarkParkDesign.Colors.dogPrimary)
+                        gallerySelectionButton()
                     }
-                    
+
                     if profileImage != nil || currentProfileImageUrl != nil {
-                        Button("Remove Photo") {
-                            resetPhoto()
-                        }
-                        .font(BarkParkDesign.Typography.caption)
-                        .foregroundColor(BarkParkDesign.Colors.error)
+                        removePhotoButton()
                     }
                 }
-                
+
                 Spacer()
             }
         }
@@ -529,6 +478,85 @@ struct ProfilePhotoEditSection: View {
         imageToCrop = nil
         showingCropper = false
     }
+
+    @ViewBuilder
+    private func profileImageContent() -> some View {
+        if let profileImage = profileImage {
+            Image(uiImage: profileImage)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: profileImageSize, height: profileImageSize)
+                .clipShape(Circle())
+                .overlay(circleBorder(color: BarkParkDesign.Colors.dogPrimary))
+        } else if let currentUrl = currentProfileImageUrl {
+            remoteProfileImageView(url: currentUrl)
+        } else {
+            placeholderProfileImage()
+        }
+    }
+
+    @ViewBuilder
+    private func remoteProfileImageView(url: String) -> some View {
+        AsyncImage(url: URL(string: url)) { image in
+            image
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+        } placeholder: {
+            Image(systemName: "pawprint.fill")
+                .font(.system(size: 40))
+                .foregroundColor(BarkParkDesign.Colors.dogPrimary.opacity(0.5))
+        }
+        .frame(width: profileImageSize, height: profileImageSize)
+        .clipShape(Circle())
+        .overlay(circleBorder(color: BarkParkDesign.Colors.dogPrimary))
+    }
+
+    @ViewBuilder
+    private func placeholderProfileImage() -> some View {
+        Image(systemName: "pawprint.fill")
+            .font(.system(size: 40))
+            .foregroundColor(BarkParkDesign.Colors.dogPrimary.opacity(0.5))
+            .frame(width: profileImageSize, height: profileImageSize)
+            .background(BarkParkDesign.Colors.tertiaryBackground)
+            .clipShape(Circle())
+            .overlay(circleBorder(color: BarkParkDesign.Colors.dogPrimary.opacity(0.3)))
+    }
+
+    @ViewBuilder
+    private func circleBorder(color: Color) -> some View {
+        Circle()
+            .stroke(color, lineWidth: 2)
+    }
+
+    @ViewBuilder
+    private func photoPickerButton() -> some View {
+        PhotosPicker(
+            selection: $selectedPhoto,
+            matching: .images
+        ) {
+            Text("Choose New Photo")
+                .font(BarkParkDesign.Typography.callout)
+                .foregroundColor(BarkParkDesign.Colors.dogPrimary)
+        }
+    }
+
+    @ViewBuilder
+    private func gallerySelectionButton() -> some View {
+        Button("Choose from Gallery") {
+            showingProfilePhotoSelector = true
+        }
+        .font(BarkParkDesign.Typography.callout)
+        .foregroundColor(BarkParkDesign.Colors.dogPrimary)
+    }
+
+    @ViewBuilder
+    private func removePhotoButton() -> some View {
+        Button("Remove Photo") {
+            resetPhoto()
+        }
+        .font(BarkParkDesign.Typography.caption)
+        .foregroundColor(BarkParkDesign.Colors.error)
+    }
 }
 
 struct GalleryManagementSection: View {
@@ -540,125 +568,23 @@ struct GalleryManagementSection: View {
     @EnvironmentObject var dogProfileViewModel: DogProfileViewModel
     @State private var isDeleting = false
     
+    private var gridColumns: [GridItem] {
+        Array(
+            repeating: GridItem(
+                .flexible(),
+                spacing: BarkParkDesign.Spacing.md
+            ),
+            count: 3
+        )
+    }
+
     var body: some View {
         Section("Photo Gallery") {
             VStack(alignment: .leading, spacing: BarkParkDesign.Spacing.md) {
-                // Current gallery images
-                if !galleryImages.isEmpty {
-                    Text("Current Photos")
-                        .font(BarkParkDesign.Typography.headline)
-                        .foregroundColor(BarkParkDesign.Colors.primaryText)
-                    
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: BarkParkDesign.Spacing.md), count: 3), spacing: BarkParkDesign.Spacing.md) {
-                        ForEach(Array(galleryImages.enumerated()), id: \.offset) { index, imageUrl in
-                            ZStack(alignment: .topTrailing) {
-                                AsyncImage(url: URL(string: imageUrl)) { image in
-                                    image
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fill)
-                                        .frame(width: 100, height: 100)
-                                        .clipped()
-                                } placeholder: {
-                                    Rectangle()
-                                        .foregroundColor(BarkParkDesign.Colors.tertiaryBackground)
-                                        .frame(width: 100, height: 100)
-                                        .overlay(
-                                            ProgressView()
-                                                .progressViewStyle(CircularProgressViewStyle(tint: BarkParkDesign.Colors.dogPrimary))
-                                        )
-                                }
-                                .clipShape(RoundedRectangle(cornerRadius: BarkParkDesign.CornerRadius.small))
-                                .allowsHitTesting(!galleryImagesToRemove.contains(imageUrl))
-                                
-                                // Show overlay if marked for removal
-                                if galleryImagesToRemove.contains(imageUrl) {
-                                    RoundedRectangle(cornerRadius: BarkParkDesign.CornerRadius.small)
-                                        .fill(Color.red.opacity(0.7))
-                                        .overlay(
-                                            VStack(spacing: 4) {
-                                                Image(systemName: "trash")
-                                                    .foregroundColor(.white)
-                                                    .font(.system(size: 24))
-                                                Text("Tap to delete")
-                                                    .font(BarkParkDesign.Typography.caption2)
-                                                    .foregroundColor(.white)
-                                            }
-                                        )
-                                        .onTapGesture {
-                                            deleteGalleryImage(imageUrl)
-                                        }
-                                }
-                                
-                                if !galleryImagesToRemove.contains(imageUrl) {
-                                    Button {
-                                        markImageForRemoval(imageUrl)
-                                    } label: {
-                                        Image(systemName: "xmark.circle.fill")
-                                            .foregroundColor(.white)
-                                            .background(Circle().fill(Color.red))
-                                            .font(.system(size: 20))
-                                    }
-                                    .buttonStyle(PlainButtonStyle())
-                                    .offset(x: -5, y: 5)
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                // New images to be uploaded
-                if !newGalleryImages.isEmpty {
-                    Text("New Photos to Upload")
-                        .font(BarkParkDesign.Typography.headline)
-                        .foregroundColor(BarkParkDesign.Colors.primaryText)
-                    
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: BarkParkDesign.Spacing.md), count: 3), spacing: BarkParkDesign.Spacing.md) {
-                        ForEach(Array(newGalleryImages.enumerated()), id: \.offset) { index, imageData in
-                            ZStack(alignment: .topTrailing) {
-                                if let uiImage = UIImage(data: imageData) {
-                                    Image(uiImage: uiImage)
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fill)
-                                        .frame(width: 100, height: 100)
-                                        .clipped()
-                                        .clipShape(RoundedRectangle(cornerRadius: BarkParkDesign.CornerRadius.small))
-                                }
-                                
-                                Button {
-                                    removeNewImage(at: index)
-                                } label: {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .foregroundColor(.white)
-                                        .background(Circle().fill(Color.red))
-                                        .font(.system(size: 20))
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                                .offset(x: -5, y: 5)
-                            }
-                        }
-                    }
-                }
-                
-                // Add photos button
-                PhotosPicker(
-                    selection: $selectedGalleryPhotos,
-                    maxSelectionCount: 5 - galleryImages.count - newGalleryImages.count,
-                    matching: .images
-                ) {
-                    HStack {
-                        Image(systemName: "plus.circle")
-                        Text("Add Photos to Gallery")
-                    }
-                    .font(BarkParkDesign.Typography.callout)
-                    .foregroundColor(BarkParkDesign.Colors.dogPrimary)
-                }
-                .disabled(galleryImages.count + newGalleryImages.count >= 5)
-                
-                if galleryImages.count + newGalleryImages.count >= 5 {
-                    Text("Gallery is full (5 photos maximum)")
-                        .font(BarkParkDesign.Typography.caption)
-                        .foregroundColor(BarkParkDesign.Colors.secondaryText)
-                }
+                currentGallerySection()
+                newGallerySection()
+                addPhotosPicker()
+                galleryLimitNotice()
             }
         }
         .onChange(of: selectedGalleryPhotos) { oldValue, newValue in
@@ -672,7 +598,7 @@ struct GalleryManagementSection: View {
             }
         }
     }
-    
+
     private func markImageForRemoval(_ imageUrl: String) {
         if galleryImagesToRemove.contains(imageUrl) {
             galleryImagesToRemove.remove(imageUrl)
@@ -698,6 +624,161 @@ struct GalleryManagementSection: View {
             }
             
             isDeleting = false
+        }
+    }
+
+    @ViewBuilder
+    private func currentGallerySection() -> some View {
+        if !galleryImages.isEmpty {
+            Text("Current Photos")
+                .font(BarkParkDesign.Typography.headline)
+                .foregroundColor(BarkParkDesign.Colors.primaryText)
+
+            LazyVGrid(columns: gridColumns, spacing: BarkParkDesign.Spacing.md) {
+                ForEach(Array(galleryImages.enumerated()), id: \.offset) { _, imageUrl in
+                    existingGalleryImageCell(for: imageUrl)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func newGallerySection() -> some View {
+        if !newGalleryImages.isEmpty {
+            Text("New Photos to Upload")
+                .font(BarkParkDesign.Typography.headline)
+                .foregroundColor(BarkParkDesign.Colors.primaryText)
+
+            LazyVGrid(columns: gridColumns, spacing: BarkParkDesign.Spacing.md) {
+                ForEach(Array(newGalleryImages.enumerated()), id: \.offset) { index, imageData in
+                    newGalleryImageCell(imageData: imageData) {
+                        removeNewImage(at: index)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func addPhotosPicker() -> some View {
+        PhotosPicker(
+            selection: $selectedGalleryPhotos,
+            maxSelectionCount: 5 - galleryImages.count - newGalleryImages.count,
+            matching: .images
+        ) {
+            HStack {
+                Image(systemName: "plus.circle")
+                Text("Add Photos to Gallery")
+            }
+            .font(BarkParkDesign.Typography.callout)
+            .foregroundColor(BarkParkDesign.Colors.dogPrimary)
+        }
+        .disabled(galleryImages.count + newGalleryImages.count >= 5)
+    }
+
+    @ViewBuilder
+    private func galleryLimitNotice() -> some View {
+        if galleryImages.count + newGalleryImages.count >= 5 {
+            Text("Gallery is full (5 photos maximum)")
+                .font(BarkParkDesign.Typography.caption)
+                .foregroundColor(BarkParkDesign.Colors.secondaryText)
+        }
+    }
+
+    @ViewBuilder
+    private func existingGalleryImageCell(for imageUrl: String) -> some View {
+        ZStack(alignment: .topTrailing) {
+            galleryImageView(for: imageUrl)
+                .allowsHitTesting(!galleryImagesToRemove.contains(imageUrl))
+
+            if galleryImagesToRemove.contains(imageUrl) {
+                removalOverlay(for: imageUrl)
+            } else {
+                removalButton(for: imageUrl)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func galleryImageView(for imageUrl: String) -> some View {
+        AsyncImage(url: URL(string: imageUrl)) { image in
+            image
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+        } placeholder: {
+            Rectangle()
+                .foregroundColor(BarkParkDesign.Colors.tertiaryBackground)
+                .overlay(
+                    ProgressView()
+                        .progressViewStyle(
+                            CircularProgressViewStyle(
+                                tint: BarkParkDesign.Colors.dogPrimary
+                            )
+                        )
+                )
+        }
+        .frame(width: 100, height: 100)
+        .clipped()
+        .clipShape(RoundedRectangle(cornerRadius: BarkParkDesign.CornerRadius.small))
+    }
+
+    @ViewBuilder
+    private func removalOverlay(for imageUrl: String) -> some View {
+        RoundedRectangle(cornerRadius: BarkParkDesign.CornerRadius.small)
+            .fill(Color.red.opacity(0.7))
+            .overlay(
+                VStack(spacing: 4) {
+                    Image(systemName: "trash")
+                        .foregroundColor(.white)
+                        .font(.system(size: 24))
+                    Text("Tap to delete")
+                        .font(BarkParkDesign.Typography.caption2)
+                        .foregroundColor(.white)
+                }
+            )
+            .onTapGesture {
+                deleteGalleryImage(imageUrl)
+            }
+    }
+
+    @ViewBuilder
+    private func removalButton(for imageUrl: String) -> some View {
+        Button {
+            markImageForRemoval(imageUrl)
+        } label: {
+            Image(systemName: "xmark.circle.fill")
+                .foregroundColor(.white)
+                .background(Circle().fill(Color.red))
+                .font(.system(size: 20))
+        }
+        .buttonStyle(PlainButtonStyle())
+        .offset(x: -5, y: 5)
+    }
+
+    @ViewBuilder
+    private func newGalleryImageCell(imageData: Data, removeAction: @escaping () -> Void) -> some View {
+        ZStack(alignment: .topTrailing) {
+            if let uiImage = UIImage(data: imageData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 100, height: 100)
+                    .clipped()
+                    .clipShape(
+                        RoundedRectangle(
+                            cornerRadius: BarkParkDesign.CornerRadius.small
+                        )
+                    )
+            }
+
+            Button(action: removeAction) {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(.white)
+                    .background(Circle().fill(Color.red))
+                    .font(.system(size: 20))
+            }
+            .buttonStyle(PlainButtonStyle())
+            .offset(x: -5, y: 5)
         }
     }
 }
