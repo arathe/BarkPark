@@ -43,7 +43,7 @@ async function main() {
         console.log('✅ Schema extended successfully');
         
         // Then import the data
-        await runSQLFile('import-nyc-dog-runs.sql');
+        await runSQLFile('012_import_nyc_dog_runs.sql');
         console.log('✅ NYC dog runs imported successfully');
         
         // Verify the import
