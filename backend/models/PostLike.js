@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const Notification = require('./Notification');
 
 class PostLike {
   static async toggle(postId, userId, reactionType = 'like') {
@@ -46,15 +47,12 @@ class PostLike {
         const postResult = await client.query(postQuery, [postId]);
         
         if (postResult.rows[0] && postResult.rows[0].user_id !== userId) {
-          const data = {
+          await Notification.create({
+            userId: postResult.rows[0].user_id,
+            type: 'like',
             actorId: userId,
-            postId: postId
-          };
-          const notifQuery = `
-            INSERT INTO notifications (user_id, type, data)
-            VALUES ($1, 'like', $2)
-          `;
-          await client.query(notifQuery, [postResult.rows[0].user_id, JSON.stringify(data)]);
+            postId
+          }, client);
         }
       }
       

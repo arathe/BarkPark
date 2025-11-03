@@ -1,21 +1,34 @@
 const pool = require('../config/database');
 
 class Notification {
-  static async create({ userId, type, actorId, postId = null, commentId = null }) {
-    const data = {
-      actorId,
-      postId,
-      commentId
-    };
-    
+  static async create({ userId, type, actorId = null, postId = null, commentId = null }, dbClient = pool) {
+    const payload = {};
+    if (actorId !== undefined && actorId !== null) {
+      payload.actorId = actorId;
+    }
+    if (postId !== undefined && postId !== null) {
+      payload.postId = postId;
+    }
+    if (commentId !== undefined && commentId !== null) {
+      payload.commentId = commentId;
+    }
+
     const query = `
-      INSERT INTO notifications (user_id, type, data)
-      VALUES ($1, $2, $3)
+      INSERT INTO notifications (user_id, type, actor_id, post_id, comment_id, data)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *
     `;
-    
-    const values = [userId, type, JSON.stringify(data)];
-    const result = await pool.query(query, values);
+
+    const values = [
+      userId,
+      type,
+      actorId,
+      postId,
+      commentId,
+      JSON.stringify(payload)
+    ];
+
+    const result = await dbClient.query(query, values);
     return result.rows[0];
   }
 
@@ -23,9 +36,9 @@ class Notification {
     const query = `
       SELECT 
         n.*,
-        n.data->>'actorId' as actor_id,
-        n.data->>'postId' as post_id,
-        n.data->>'commentId' as comment_id,
+        COALESCE(n.data->>'actorId', n.actor_id::text) as actor_id,
+        COALESCE(n.data->>'postId', n.post_id::text) as post_id,
+        COALESCE(n.data->>'commentId', n.comment_id::text) as comment_id,
         u.first_name as actor_first_name,
         u.last_name as actor_last_name,
         u.profile_image_url as actor_profile_image,
@@ -40,14 +53,14 @@ class Notification {
             ) ORDER BY pm.order_index
           )
           FROM post_media pm
-          WHERE pm.post_id = (n.data->>'postId')::int
+          WHERE pm.post_id = COALESCE((n.data->>'postId')::int, n.post_id)
           LIMIT 1
         ) as post_media,
         pc.content as comment_content
       FROM notifications n
-      JOIN users u ON u.id = (n.data->>'actorId')::int
-      LEFT JOIN posts p ON p.id = (n.data->>'postId')::int
-      LEFT JOIN post_comments pc ON pc.id = (n.data->>'commentId')::int
+      JOIN users u ON u.id = COALESCE((n.data->>'actorId')::int, n.actor_id)
+      LEFT JOIN posts p ON p.id = COALESCE((n.data->>'postId')::int, n.post_id)
+      LEFT JOIN post_comments pc ON pc.id = COALESCE((n.data->>'commentId')::int, n.comment_id)
       WHERE n.user_id = $1
       ORDER BY n.created_at DESC
       LIMIT $2 OFFSET $3
@@ -110,8 +123,8 @@ class Notification {
       
       const results = [];
       for (const notif of notifications) {
-        const result = await this.create(notif);
-        results.push(result);
+        const created = await this.create(notif, client);
+        results.push(created);
       }
       
       await client.query('COMMIT');

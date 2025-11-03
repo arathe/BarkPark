@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const Notification = require('./Notification');
 
 class PostComment {
   static async create({ postId, userId, content, parentCommentId = null }) {
@@ -27,16 +28,13 @@ class PostComment {
       const postResult = await client.query(postQuery, [postId]);
       
       if (postResult.rows[0] && postResult.rows[0].user_id !== userId) {
-        const data = {
+        await Notification.create({
+          userId: postResult.rows[0].user_id,
+          type: 'comment',
           actorId: userId,
-          postId: postId,
+          postId,
           commentId: comment.id
-        };
-        const notifQuery = `
-          INSERT INTO notifications (user_id, type, data)
-          VALUES ($1, 'comment', $2)
-        `;
-        await client.query(notifQuery, [postResult.rows[0].user_id, JSON.stringify(data)]);
+        }, client);
       }
       
       // If replying to a comment, notify the parent comment author
@@ -45,16 +43,13 @@ class PostComment {
         const parentResult = await client.query(parentQuery, [parentCommentId]);
         
         if (parentResult.rows[0] && parentResult.rows[0].user_id !== userId) {
-          const data = {
+          await Notification.create({
+            userId: parentResult.rows[0].user_id,
+            type: 'comment',
             actorId: userId,
-            postId: postId,
+            postId,
             commentId: comment.id
-          };
-          const replyNotifQuery = `
-            INSERT INTO notifications (user_id, type, data)
-            VALUES ($1, 'comment', $2)
-          `;
-          await client.query(replyNotifQuery, [parentResult.rows[0].user_id, JSON.stringify(data)]);
+          }, client);
         }
       }
       

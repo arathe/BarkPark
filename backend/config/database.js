@@ -1,6 +1,18 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
+const normalizePassword = () => {
+  if (process.env.DB_PASSWORD === undefined || process.env.DB_PASSWORD === null) {
+    return undefined;
+  }
+
+  return typeof process.env.DB_PASSWORD === 'string'
+    ? process.env.DB_PASSWORD
+    : String(process.env.DB_PASSWORD);
+};
+
+const dbPassword = normalizePassword();
+
 // Log database connection method on startup
 console.log('[Database] Initializing connection...');
 console.log('[Database] NODE_ENV:', process.env.NODE_ENV);
@@ -10,17 +22,24 @@ console.log('[Database] DATABASE_URL exists:', !!process.env.DATABASE_URL);
 const connectionConfig = process.env.DATABASE_URL
   ? {
       connectionString: process.env.DATABASE_URL,
-      ssl: ['production', 'staging'].includes(process.env.NODE_ENV) 
+      ssl: ['production', 'staging'].includes(process.env.NODE_ENV)
         ? { rejectUnauthorized: false }
         : false
     }
-  : {
-      host: process.env.DB_HOST || 'localhost',
-      port: process.env.DB_PORT || 5432,
-      database: process.env.DB_NAME || 'barkpark',
-      user: process.env.DB_USER || 'postgres',
-      password: process.env.DB_PASSWORD,
-    };
+  : (() => {
+      const config = {
+        host: process.env.DB_HOST || 'localhost',
+        port: process.env.DB_PORT || 5432,
+        database: process.env.DB_NAME || 'barkpark',
+        user: process.env.DB_USER || 'postgres'
+      };
+
+      if (dbPassword !== undefined) {
+        config.password = dbPassword;
+      }
+
+      return config;
+    })();
 
 // Log which connection method is being used
 if (process.env.DATABASE_URL) {

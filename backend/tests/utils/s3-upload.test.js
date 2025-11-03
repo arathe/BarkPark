@@ -138,6 +138,24 @@ describe('S3 Upload Utilities - Error Handling & Recovery', () => {
       expect(results).toHaveLength(5);
       expect(mockUpload).toHaveBeenCalledTimes(5);
     });
+
+    test('should pick up bucket overrides set after module load', async () => {
+      process.env.S3_BUCKET_NAME = 'initial-bucket';
+      await uploadToS3(mockFile, 'dogs', 'initial.jpg');
+      expect(mockUpload).toHaveBeenLastCalledWith(expect.objectContaining({
+        Bucket: 'initial-bucket',
+        Key: 'dogs/initial.jpg'
+      }));
+
+      mockUpload.mockClear();
+
+      process.env.S3_BUCKET_NAME = 'override-bucket';
+      await uploadToS3(mockFile, 'dogs', 'override.jpg');
+      expect(mockUpload).toHaveBeenLastCalledWith(expect.objectContaining({
+        Bucket: 'override-bucket',
+        Key: 'dogs/override.jpg'
+      }));
+    });
   });
 
   describe('deleteFromS3', () => {

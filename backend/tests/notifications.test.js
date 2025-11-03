@@ -260,6 +260,82 @@ describe('Notifications API', () => {
   });
 
   describe('Notification Creation Tests', () => {
+    it('should persist JSON payload alongside scalar columns', async () => {
+      const created = await Notification.create({
+        userId,
+        type: 'like',
+        actorId: otherUserId,
+        postId
+      });
+
+      expect(created.user_id).toBe(userId);
+      expect(created.actor_id).toBe(otherUserId);
+      expect(created.post_id).toBe(postId);
+      expect(created.data).toEqual({
+        actorId: otherUserId,
+        postId
+      });
+
+      const check = await pool.query(`
+        SELECT 
+          actor_id,
+          post_id,
+          data->>'actorId' as data_actor_id,
+          data->>'postId' as data_post_id
+        FROM notifications
+        WHERE id = $1
+      `, [created.id]);
+
+      expect(check.rows[0].actor_id).toBe(otherUserId);
+      expect(check.rows[0].post_id).toBe(postId);
+      expect(check.rows[0].data_actor_id).toBe(String(otherUserId));
+      expect(check.rows[0].data_post_id).toBe(String(postId));
+    });
+
+    it('should support bulk notification creation with consistent payloads', async () => {
+      const commentResult = await pool.query(`
+        INSERT INTO post_comments (post_id, user_id, content)
+        VALUES ($1, $2, 'Notification bulk test comment')
+        RETURNING id
+      `, [postId, otherUserId]);
+
+      const commentId = commentResult.rows[0].id;
+
+      const notifications = [
+        {
+          userId,
+          type: 'like',
+          actorId: otherUserId,
+          postId
+        },
+        {
+          userId,
+          type: 'comment',
+          actorId: otherUserId,
+          postId,
+          commentId
+        }
+      ];
+
+      const created = await Notification.createBulk(notifications);
+
+      expect(created).toHaveLength(2);
+      created.forEach(record => {
+        expect(record.user_id).toBe(userId);
+        expect(record.actor_id).toBe(otherUserId);
+      });
+
+      const dbCheck = await pool.query(`
+        SELECT 
+          COUNT(*) FILTER (WHERE data->>'actorId' = $1 AND actor_id = $2) as matching_rows
+        FROM notifications
+        WHERE user_id = $3
+          AND type IN ('like', 'comment')
+      `, [String(otherUserId), otherUserId, userId]);
+
+      expect(parseInt(dbCheck.rows[0].matching_rows)).toBeGreaterThanOrEqual(2);
+    });
+
     it('should create notification when post is liked', async () => {
       // Create a new post
       const postResult = await pool.query(`

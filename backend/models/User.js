@@ -105,9 +105,8 @@ class User {
       resetToken += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     
-    // Token expires in 1 hour
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 1);
+    // Token expires in 1 hour (store as UTC ISO string for TIMESTAMPTZ column)
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
     const query = `
       UPDATE users 

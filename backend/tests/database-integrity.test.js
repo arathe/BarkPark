@@ -48,6 +48,32 @@ describe('Database Schema Integrity', () => {
       expect(columnNames).toContain('created_at');
       expect(columnNames).toContain('updated_at');
     });
+
+    it('should have JSONB payload and read flag in notifications table', async () => {
+      const query = `
+        SELECT column_name, udt_name, column_default
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'notifications'
+      `;
+
+      const result = await pool.query(query);
+      const columns = result.rows.reduce((acc, row) => {
+        acc[row.column_name] = row;
+        return acc;
+      }, {});
+
+      expect(columns.data).toBeDefined();
+      expect(columns.data.udt_name).toBe('jsonb');
+      expect(columns.data.column_default || '').toContain('::jsonb');
+
+      expect(columns.read).toBeDefined();
+      expect(columns.read.udt_name).toBe('bool');
+
+      expect(columns.actor_id).toBeDefined();
+      expect(columns.post_id).toBeDefined();
+      expect(columns.comment_id).toBeDefined();
+    });
   });
 
   describe('Required Tables Exist', () => {
@@ -94,8 +120,8 @@ describe('Database Schema Integrity', () => {
       
       // Verify critical indexes exist
       expect(indexNames).toContain('checkins_pkey');
-      expect(indexNames.some(name => name.includes('user_id'))).toBe(true);
-      expect(indexNames.some(name => name.includes('dog_park_id'))).toBe(true);
+      expect(indexNames).toContain('idx_checkins_user_park');
+      expect(indexNames).toContain('idx_checkins_active');
     });
 
     it('should have proper indexes on friendships table', async () => {
@@ -111,8 +137,8 @@ describe('Database Schema Integrity', () => {
       
       // Verify critical indexes exist
       expect(indexNames).toContain('friendships_pkey');
-      expect(indexNames.some(name => name.includes('user_id'))).toBe(true);
-      expect(indexNames.some(name => name.includes('friend_id'))).toBe(true);
+      expect(indexNames).toContain('idx_friendships_user_friend');
+      expect(indexNames).toContain('friendships_user_id_friend_id_key');
     });
   });
 });

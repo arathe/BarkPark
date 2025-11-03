@@ -205,6 +205,31 @@ describe('Password Reset Flow', () => {
       expect(response.body.errors[0].msg).toContain('Password must be at least 6 characters');
     });
 
+    it('should persist expiration in UTC and respect the one-hour window', async () => {
+      const baseTime = new Date('2024-01-01T12:00:00Z');
+      const dateNowSpy = jest.spyOn(Date, 'now').mockReturnValue(baseTime.getTime());
+
+      try {
+        const generated = await User.generatePasswordResetToken(testUser.email);
+        const { rows } = await pool.query(
+          'SELECT reset_token_expires FROM users WHERE id = $1',
+          [testUser.id]
+        );
+
+        expect(rows[0].reset_token_expires).toBeDefined();
+        const storedExpiryIso = new Date(rows[0].reset_token_expires).toISOString();
+        const expectedExpiry = new Date(baseTime.getTime() + 60 * 60 * 1000).toISOString();
+        expect(storedExpiryIso).toBe(expectedExpiry);
+
+        // Advance past the expiry and ensure token is no longer valid
+        dateNowSpy.mockReturnValue(baseTime.getTime() + 65 * 60 * 1000);
+        const found = await User.findByResetToken(generated.reset_token);
+        expect(found).toBeUndefined();
+      } finally {
+        dateNowSpy.mockRestore();
+      }
+    });
+
     it('should clear token after successful reset', async () => {
       await request(app)
         .post('/api/auth/reset-password')

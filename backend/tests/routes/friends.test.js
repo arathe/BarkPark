@@ -66,9 +66,10 @@ describe('Friends API Routes', () => {
         .expect(201);
 
       expect(response.body.message).toBe('Friend request sent successfully');
+      // Friends API returns camelCase keys to match iOS expectations; keep assertions aligned.
       expect(response.body.friendship).toMatchObject({
-        user_id: user1.id,
-        friend_id: user2.id,
+        requesterId: user1.id,
+        addresseeId: user2.id,
         status: 'pending'
       });
     });
@@ -148,6 +149,10 @@ describe('Friends API Routes', () => {
         .expect(200);
 
       expect(response.body.message).toBe('Friend request accepted successfully');
+      expect(response.body.friendship).toMatchObject({
+        requesterId: user1.id,
+        addresseeId: user2.id
+      });
       expect(response.body.friendship.status).toBe('accepted');
     });
 
@@ -200,6 +205,10 @@ describe('Friends API Routes', () => {
         .expect(200);
 
       expect(response.body.message).toBe('Friend request declined successfully');
+      expect(response.body.friendship).toMatchObject({
+        requesterId: user1.id,
+        addresseeId: user2.id
+      });
       expect(response.body.friendship.status).toBe('declined');
     });
 

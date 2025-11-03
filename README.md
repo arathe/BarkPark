@@ -73,3 +73,7 @@ curl -X POST http://localhost:4000/api/auth/login \
 curl -X GET http://localhost:4000/api/auth/me \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
+
+## PostGIS & Coordinate Fields
+
+Park coordinates are stored in both the PostGIS `geography(Point, 4326)` column (`dog_parks.location`) and the legacy scalar columns (`latitude`, `longitude`). Keep these values in sync on writes: the geography column powers distance queries, while the scalars remain for clients that have not yet migrated to PostGIS-aware payloads. When running migrations locally, make sure the PostGIS extension is enabled so the geography column stays authoritative.

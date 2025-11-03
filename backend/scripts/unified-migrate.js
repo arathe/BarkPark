@@ -34,13 +34,18 @@ const getDbConfig = () => {
   }
   
   console.log(`[Migration] Using individual environment variables (${environment} environment)`);
-  return {
+  const config = {
     host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 5432,
     database: process.env.DB_NAME || 'barkpark',
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || ''
+    user: process.env.DB_USER || 'postgres'
   };
+
+  if (process.env.DB_PASSWORD !== undefined && process.env.DB_PASSWORD !== null) {
+    config.password = String(process.env.DB_PASSWORD);
+  }
+
+  return config;
 };
 
 // Unified migration list with proper ordering
@@ -96,6 +101,32 @@ const migrations = [
     id: '010_fix_column_names',
     file: '010_fix_column_names.sql',
     description: 'Fix column names to match application code'
+  },
+  {
+    id: '011_create_dog_memberships',
+    file: '011_create_dog_memberships.sql',
+    description: 'Create dog_memberships table and backfill primary owners'
+  },
+  {
+    id: '012_import_nyc_dog_runs',
+    file: '012_import_nyc_dog_runs.sql',
+    description: 'Import comprehensive NYC dog run data',
+    isSeed: true
+  },
+  {
+    id: '013_fix_notifications_schema',
+    file: '013_fix_notifications_schema.sql',
+    description: 'Add JSONB payload for notifications while retaining foreign keys'
+  },
+  {
+    id: '014_update_reset_token_expires',
+    file: '014_update_reset_token_expires.sql',
+    description: 'Convert reset_token_expires to TIMESTAMPTZ for accurate expiry handling'
+  },
+  {
+    id: '015_rename_friendship_indexes',
+    file: '015_rename_friendship_indexes.sql',
+    description: 'Rename friendship indexes to align with user_id/friend_id naming'
   }
 ];
 

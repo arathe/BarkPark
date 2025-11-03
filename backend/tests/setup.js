@@ -42,7 +42,11 @@ jest.mock('nodemailer', () => ({
 process.env.NODE_ENV = 'test';
 process.env.DB_NAME = 'barkpark_test';
 process.env.DB_USER = process.env.DB_USER || 'austinrathe';
-process.env.DB_PASSWORD = process.env.DB_PASSWORD || '';
+if (process.env.DB_PASSWORD === undefined || process.env.DB_PASSWORD === null) {
+  delete process.env.DB_PASSWORD;
+} else {
+  process.env.DB_PASSWORD = String(process.env.DB_PASSWORD);
+}
 process.env.DB_HOST = 'localhost';
 process.env.DB_PORT = '5432';
 process.env.JWT_SECRET = 'test-jwt-secret-key';
@@ -55,13 +59,18 @@ beforeAll(async () => {
   
   // For tests, we expect the test database to already exist with proper schema
   // It should be created from the main barkpark database template
-  const testClient = new Client({
+  const clientConfig = {
     user: process.env.DB_USER,
     host: process.env.DB_HOST,
     database: process.env.DB_NAME,
-    password: process.env.DB_PASSWORD,
     port: process.env.DB_PORT,
-  });
+  };
+
+  if (process.env.DB_PASSWORD !== undefined) {
+    clientConfig.password = process.env.DB_PASSWORD;
+  }
+
+  const testClient = new Client(clientConfig);
 
   try {
     await testClient.connect();
