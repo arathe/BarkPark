@@ -30,7 +30,6 @@ struct MyDogsView: View {
                                 .accessibility(identifier: "dogCard")
                         }
                         .buttonStyle(PlainButtonStyle())
-                        .disabled(dogProfileViewModel.isPendingInvite(for: dog))
                     }
                 }
             }

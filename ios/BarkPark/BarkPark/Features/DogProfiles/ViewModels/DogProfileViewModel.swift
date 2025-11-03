@@ -321,11 +321,16 @@ class DogProfileViewModel: ObservableObject {
 
     func removeMember(_ member: DogOwnerSummary, from dog: Dog) async -> Bool {
         membershipErrorMessage = nil
+
+        guard let membershipId = member.membershipId else {
+            membershipErrorMessage = "Unable to remove member. Missing membership identifier."
+            return false
+        }
+
         isManagingMembers = true
 
         do {
-            let targetMembershipId = member.membershipId ?? member.id
-            let response = try await apiService.removeDogMember(dogId: dog.id, memberId: targetMembershipId)
+            let response = try await apiService.removeDogMember(dogId: dog.id, memberId: membershipId)
             updateDogList(with: response.dog)
             isManagingMembers = false
             return true
