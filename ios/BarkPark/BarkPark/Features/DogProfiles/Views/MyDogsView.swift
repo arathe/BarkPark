@@ -22,7 +22,11 @@ struct MyDogsView: View {
                         NavigationLink(destination: DogDetailView(dog: dog)
                             .environmentObject(dogProfileViewModel)
                             .environmentObject(authManager)) {
-                            DogCard(dog: dog)
+                                DogCard(
+                                    dog: dog,
+                                    role: dog.currentUserRole,
+                                    isPending: dogProfileViewModel.isPendingInvite(for: dog)
+                                )
                                 .accessibility(identifier: "dogCard")
                         }
                         .buttonStyle(PlainButtonStyle())
@@ -110,6 +114,8 @@ struct MyDogsView: View {
 
 struct DogCard: View {
     let dog: Dog
+    let role: DogOwnershipRole?
+    let isPending: Bool
     
     var body: some View {
         VStack(alignment: .leading, spacing: BarkParkDesign.Spacing.md) {
@@ -143,7 +149,17 @@ struct DogCard: View {
                     Text(dog.breed ?? "Mixed Breed")
                         .font(BarkParkDesign.Typography.body)
                         .foregroundColor(BarkParkDesign.Colors.secondaryText)
-                    
+
+                    if let role {
+                        Text(role.displayName)
+                            .font(BarkParkDesign.Typography.caption)
+                            .foregroundColor(BarkParkDesign.Colors.dogPrimary)
+                            .padding(.horizontal, BarkParkDesign.Spacing.sm)
+                            .padding(.vertical, 4)
+                            .background(BarkParkDesign.Colors.dogPrimary.opacity(0.12))
+                            .clipShape(Capsule())
+                    }
+
                     HStack(spacing: BarkParkDesign.Spacing.sm) {
                         Text("\(dog.computedAge) years old")
                             .font(BarkParkDesign.Typography.caption)
@@ -185,9 +201,27 @@ struct DogCard: View {
                     .foregroundColor(BarkParkDesign.Colors.primaryText)
                     .lineLimit(3)
             }
+
+            if dog.owners.count > 1 {
+                Text("Shared with \(dog.owners.count) members")
+                    .font(BarkParkDesign.Typography.caption)
+                    .foregroundColor(BarkParkDesign.Colors.secondaryText)
+            }
+
+            if isPending {
+                Text("Access pending approval")
+                    .font(BarkParkDesign.Typography.caption)
+                    .foregroundColor(BarkParkDesign.Colors.dogPrimary)
+                    .padding(.top, BarkParkDesign.Spacing.xs)
+            }
         }
         .padding(BarkParkDesign.Spacing.md)
         .barkParkCard()
+        .overlay(
+            RoundedRectangle(cornerRadius: BarkParkDesign.CornerRadius.medium)
+                .stroke(isPending ? BarkParkDesign.Colors.dogPrimary.opacity(0.4) : Color.clear, lineWidth: 2)
+        )
+        .opacity(isPending ? 0.85 : 1.0)
     }
 }
 

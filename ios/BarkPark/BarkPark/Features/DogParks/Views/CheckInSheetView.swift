@@ -92,10 +92,13 @@ struct CheckInSheetView: View {
         ScrollView {
             LazyVStack(spacing: BarkParkDesign.Spacing.sm) {
                 ForEach(dogProfileViewModel.dogs) { dog in
+                    let isPending = dogProfileViewModel.isPendingInvite(for: dog)
                     DogCheckInCard(
                         dog: dog,
                         isSelected: selectedDogIds.contains(dog.id),
+                        isPending: isPending,
                         onToggle: {
+                            guard !isPending else { return }
                             if selectedDogIds.contains(dog.id) {
                                 selectedDogIds.remove(dog.id)
                             } else {
@@ -103,6 +106,7 @@ struct CheckInSheetView: View {
                             }
                         }
                     )
+                    .disabled(isPending)
                 }
             }
             .padding(.horizontal, BarkParkDesign.Spacing.md)
@@ -168,8 +172,9 @@ struct CheckInSheetView: View {
 struct DogCheckInCard: View {
     let dog: Dog
     let isSelected: Bool
+    let isPending: Bool
     let onToggle: () -> Void
-    
+
     var body: some View {
         Button(action: onToggle) {
             HStack(spacing: BarkParkDesign.Spacing.md) {
@@ -195,7 +200,7 @@ struct DogCheckInCard: View {
                     Text(dog.name)
                         .font(BarkParkDesign.Typography.headline)
                         .foregroundColor(BarkParkDesign.Colors.primaryText)
-                    
+
                     HStack {
                         if let breed = dog.breed {
                             Text(breed)
@@ -213,13 +218,19 @@ struct DogCheckInCard: View {
                             .font(BarkParkDesign.Typography.caption)
                             .foregroundColor(BarkParkDesign.Colors.secondaryText)
                     }
+
+                    if isPending {
+                        Text("Pending access")
+                            .font(BarkParkDesign.Typography.caption)
+                            .foregroundColor(BarkParkDesign.Colors.dogPrimary)
+                    }
                 }
-                
+
                 Spacer()
-                
+
                 // Selection indicator
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(isSelected ? BarkParkDesign.Colors.dogPrimary : BarkParkDesign.Colors.tertiaryText)
+                Image(systemName: indicatorSymbol)
+                    .foregroundColor(indicatorColor)
                     .font(.title2)
             }
             .padding(BarkParkDesign.Spacing.md)
@@ -228,11 +239,27 @@ struct DogCheckInCard: View {
                     .fill(isSelected ? BarkParkDesign.Colors.dogPrimary.opacity(0.1) : BarkParkDesign.Colors.cardBackground)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(isSelected ? BarkParkDesign.Colors.dogPrimary : Color.clear, lineWidth: 2)
+                            .stroke(borderColor, lineWidth: 2)
                     )
             )
         }
         .buttonStyle(PlainButtonStyle())
+        .opacity(isPending ? 0.75 : 1.0)
+    }
+
+    private var indicatorSymbol: String {
+        if isPending { return "clock" }
+        return isSelected ? "checkmark.circle.fill" : "circle"
+    }
+
+    private var borderColor: Color {
+        if isPending { return BarkParkDesign.Colors.dogPrimary.opacity(0.4) }
+        return isSelected ? BarkParkDesign.Colors.dogPrimary : Color.clear
+    }
+
+    private var indicatorColor: Color {
+        if isPending { return BarkParkDesign.Colors.dogPrimary }
+        return isSelected ? BarkParkDesign.Colors.dogPrimary : BarkParkDesign.Colors.tertiaryText
     }
 }
 

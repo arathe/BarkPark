@@ -12,12 +12,30 @@ struct DogDetailView: View {
     @State private var showingEditSheet = false
     @State private var showingDeleteAlert = false
     @State private var isDeleting = false
+    @State private var showingShareSheet = false
+    @State private var membershipActionInFlight = false
     @EnvironmentObject var dogProfileViewModel: DogProfileViewModel
     @Environment(\.dismiss) private var dismiss
+
+    private var currentDog: Dog {
+        dogProfileViewModel.dogs.first(where: { $0.id == dog.id }) ?? dog
+    }
+
+    private var hasManagementActions: Bool {
+        dogProfileViewModel.canManageMembers(dog: currentDog) ||
+        dogProfileViewModel.canEdit(dog: currentDog) ||
+        dogProfileViewModel.canDelete(dog: currentDog)
+    }
     
     var body: some View {
-        ScrollView {
+        let dog = currentDog
+
+        return ScrollView {
             VStack(alignment: .leading, spacing: BarkParkDesign.Spacing.lg) {
+                if dogProfileViewModel.isPendingInvite(for: dog) {
+                    pendingInviteBanner(for: dog)
+                }
+
                 // Header with Photo
                 VStack(spacing: BarkParkDesign.Spacing.md) {
                     AsyncImage(url: dog.profileImageUrl.flatMap(URL.init)) { image in
@@ -119,7 +137,7 @@ struct DogDetailView: View {
                         VStack(alignment: .leading, spacing: BarkParkDesign.Spacing.sm) {
                             DetailRow(label: "Vaccinated", value: dog.isVaccinated ? "Yes" : "No")
                             DetailRow(label: "Spayed/Neutered", value: dog.isSpayedNeutered ? "Yes" : "No")
-                            
+
                             if let specialNeeds = dog.specialNeeds, !specialNeeds.isEmpty {
                                 VStack(alignment: .leading, spacing: BarkParkDesign.Spacing.xs) {
                                     Text("Special Needs")
@@ -134,7 +152,55 @@ struct DogDetailView: View {
                             }
                         }
                     }
-                    
+
+                    if !dog.owners.isEmpty {
+                        DetailSection(title: "Shared Access") {
+                            VStack(alignment: .leading, spacing: BarkParkDesign.Spacing.sm) {
+                                ForEach(dog.owners, id: \.self) { member in
+                                    HStack(spacing: BarkParkDesign.Spacing.md) {
+                                        AsyncImage(url: member.profileImageUrl.flatMap(URL.init)) { image in
+                                            image
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fill)
+                                        } placeholder: {
+                                            Circle()
+                                                .fill(BarkParkDesign.Colors.tertiaryBackground)
+                                                .overlay(
+                                                    Text(member.initials)
+                                                        .font(BarkParkDesign.Typography.caption)
+                                                        .foregroundColor(BarkParkDesign.Colors.dogPrimary)
+                                                )
+                                        }
+                                        .frame(width: 36, height: 36)
+                                        .clipShape(Circle())
+
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(member.fullName)
+                                                .font(BarkParkDesign.Typography.body)
+                                                .foregroundColor(BarkParkDesign.Colors.primaryText)
+
+                                            Text(member.displayRole)
+                                                .font(BarkParkDesign.Typography.caption)
+                                                .foregroundColor(BarkParkDesign.Colors.secondaryText)
+                                        }
+
+                                        Spacer()
+
+                                        if let badge = member.statusBadgeText {
+                                            Text(badge)
+                                                .font(BarkParkDesign.Typography.caption)
+                                                .padding(.horizontal, BarkParkDesign.Spacing.sm)
+                                                .padding(.vertical, 4)
+                                                .background(BarkParkDesign.Colors.dogPrimary.opacity(0.12))
+                                                .foregroundColor(BarkParkDesign.Colors.dogPrimary)
+                                                .clipShape(Capsule())
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     // Gallery (if available)
                     if !dog.galleryImages.isEmpty {
                         DetailSection(title: "Photo Gallery") {
@@ -168,26 +234,44 @@ struct DogDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Menu {
-                    Button {
-                        showingEditSheet = true
+                if hasManagementActions {
+                    Menu {
+                        if dogProfileViewModel.canManageMembers(dog: dog) {
+                            Button {
+                                showingShareSheet = true
+                            } label: {
+                                Label("Share Dog", systemImage: "person.2.circle")
+                            }
+                        }
+
+                        if dogProfileViewModel.canEdit(dog: dog) {
+                            Button {
+                                showingEditSheet = true
+                            } label: {
+                                Label("Edit Profile", systemImage: "pencil")
+                            }
+                        }
+
+                        if dogProfileViewModel.canDelete(dog: dog) {
+                            Button(role: .destructive) {
+                                showingDeleteAlert = true
+                            } label: {
+                                Label("Delete Dog", systemImage: "trash")
+                            }
+                        }
                     } label: {
-                        Label("Edit Profile", systemImage: "pencil")
+                        Image(systemName: "ellipsis.circle")
+                            .foregroundColor(BarkParkDesign.Colors.dogPrimary)
                     }
-                    
-                    Button(role: .destructive) {
-                        showingDeleteAlert = true
-                    } label: {
-                        Label("Delete Dog", systemImage: "trash")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .foregroundColor(BarkParkDesign.Colors.dogPrimary)
                 }
             }
         }
         .sheet(isPresented: $showingEditSheet) {
             EditDogView(dog: dog)
+                .environmentObject(dogProfileViewModel)
+        }
+        .sheet(isPresented: $showingShareSheet) {
+            ShareDogSheet(dog: dog)
                 .environmentObject(dogProfileViewModel)
         }
         .alert("Delete \(dog.name)?", isPresented: $showingDeleteAlert) {
@@ -220,13 +304,76 @@ struct DogDetailView: View {
     }
     
     private func deleteDog() {
+        let dog = currentDog
+        guard dogProfileViewModel.canDelete(dog: dog) else { return }
         isDeleting = true
-        
+
         Task {
             let success = await dogProfileViewModel.deleteDog(dog)
             isDeleting = false
-            
+
             if success {
+                dismiss()
+            }
+        }
+    }
+
+    private func pendingInviteBanner(for dog: Dog) -> some View {
+        VStack(alignment: .leading, spacing: BarkParkDesign.Spacing.sm) {
+            Text("Access Pending")
+                .font(BarkParkDesign.Typography.headline)
+                .foregroundColor(BarkParkDesign.Colors.primaryText)
+
+            Text("You're invited to help manage \(dog.name). Accept the invite to unlock editing and sharing controls.")
+                .font(BarkParkDesign.Typography.body)
+                .foregroundColor(BarkParkDesign.Colors.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: BarkParkDesign.Spacing.sm) {
+                Button(action: { respondToInvite(for: dog, accept: true) }) {
+                    if membershipActionInFlight {
+                        ProgressView()
+                            .tint(.white)
+                    } else {
+                        Text("Accept")
+                            .fontWeight(.semibold)
+                    }
+                }
+                .disabled(membershipActionInFlight)
+                .padding(.horizontal, BarkParkDesign.Spacing.lg)
+                .padding(.vertical, BarkParkDesign.Spacing.sm)
+                .background(BarkParkDesign.Colors.dogPrimary)
+                .foregroundColor(.white)
+                .clipShape(Capsule())
+
+                Button(role: .destructive, action: { respondToInvite(for: dog, accept: false) }) {
+                    Text("Decline")
+                        .fontWeight(.semibold)
+                }
+                .disabled(membershipActionInFlight)
+                .padding(.horizontal, BarkParkDesign.Spacing.lg)
+                .padding(.vertical, BarkParkDesign.Spacing.sm)
+                .background(BarkParkDesign.Colors.tertiaryBackground)
+                .foregroundColor(BarkParkDesign.Colors.primaryText)
+                .clipShape(Capsule())
+            }
+        }
+        .padding(BarkParkDesign.Spacing.md)
+        .background(BarkParkDesign.Colors.secondaryBackground)
+        .clipShape(RoundedRectangle(cornerRadius: BarkParkDesign.CornerRadius.medium))
+        .padding(.horizontal, BarkParkDesign.Spacing.md)
+        .padding(.top, BarkParkDesign.Spacing.md)
+    }
+
+    private func respondToInvite(for dog: Dog, accept: Bool) {
+        guard let membershipId = dogProfileViewModel.membershipIdForCurrentUser(for: dog) else { return }
+        membershipActionInFlight = true
+
+        Task {
+            let success = await dogProfileViewModel.respondToInvite(for: dog, membershipId: membershipId, accept: accept)
+            membershipActionInFlight = false
+
+            if success && !accept {
                 dismiss()
             }
         }
@@ -315,7 +462,17 @@ struct PreviewData {
             "bio": "Buddy is a friendly and energetic Golden Retriever who loves to play fetch and swim.",
             "profileImageUrl": null,
             "galleryImages": [],
-            "userId": 1,
+            "owners": [
+                {
+                    "id": 1,
+                    "firstName": "Alex",
+                    "lastName": "Rathe",
+                    "role": "owner",
+                    "status": "active",
+                    "membershipId": 1
+                }
+            ],
+            "currentUserRole": "owner",
             "createdAt": "2023-01-01T00:00:00.000Z",
             "updatedAt": "2023-01-01T00:00:00.000Z"
         }

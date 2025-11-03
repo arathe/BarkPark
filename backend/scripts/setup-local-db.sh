@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- Dogs table with extended fields
 CREATE TABLE IF NOT EXISTS dogs (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    primary_owner_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     name VARCHAR(100) NOT NULL,
     breed VARCHAR(100),
     weight DECIMAL(5,2),
@@ -69,6 +69,18 @@ CREATE TABLE IF NOT EXISTS dogs (
     size_category VARCHAR(20),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS dog_memberships (
+    id SERIAL PRIMARY KEY,
+    dog_id INTEGER NOT NULL REFERENCES dogs(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role VARCHAR(50) NOT NULL DEFAULT 'owner',
+    status VARCHAR(50) NOT NULL DEFAULT 'active',
+    invited_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(dog_id, user_id)
 );
 
 -- Dog parks table with lat/lng
@@ -196,7 +208,9 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 
 -- Create indexes
 CREATE INDEX IF NOT EXISTS idx_dog_parks_location ON dog_parks (latitude, longitude);
-CREATE INDEX IF NOT EXISTS idx_dogs_user_id ON dogs(user_id);
+CREATE INDEX IF NOT EXISTS idx_dogs_primary_owner_id ON dogs(primary_owner_id);
+CREATE INDEX IF NOT EXISTS idx_dog_memberships_dog_id ON dog_memberships(dog_id);
+CREATE INDEX IF NOT EXISTS idx_dog_memberships_user_id ON dog_memberships(user_id);
 CREATE INDEX IF NOT EXISTS idx_friendships_user_id ON friendships(user_id);
 CREATE INDEX IF NOT EXISTS idx_friendships_friend_id ON friendships(friend_id);
 CREATE INDEX IF NOT EXISTS idx_checkins_user_id ON checkins(user_id);
@@ -218,6 +232,8 @@ END;
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_dogs_updated_at BEFORE UPDATE ON dogs
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_dog_memberships_updated_at BEFORE UPDATE ON dog_memberships
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_dog_parks_updated_at BEFORE UPDATE ON dog_parks
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

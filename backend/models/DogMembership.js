@@ -1,492 +1,168 @@
 const pool = require('../config/database');
-const { v4: uuidv4 } = require('uuid');
-const emailServiceInstance = require('../services/emailService');
-const User = require('./User');
 
-const ROLE_PERMISSIONS = {
-  primary_owner: new Set(['view', 'edit', 'manage', 'delete']),
-  co_owner: new Set(['view', 'edit']),
-  viewer: new Set(['view'])
-};
-
-class MembershipError extends Error {
-  constructor(message, statusCode = 400) {
-    super(message);
-    this.statusCode = statusCode;
-  }
-}
+const ACTIVE_STATUS = 'active';
+const INVITED_STATUS = 'invited';
+const MANAGER_ROLES = ['owner', 'manager', 'editor'];
 
 class DogMembership {
-  static get emailService() {
-    return emailServiceInstance;
+  static getQueryClient(client) {
+    return client || pool;
   }
 
-  static hasPermission(role, permission) {
-    const allowed = ROLE_PERMISSIONS[role] || new Set();
-    return allowed.has(permission);
+  static async create({ dogId, userId, role = 'owner', status = ACTIVE_STATUS, invitedBy = null }, client) {
+    const db = this.getQueryClient(client);
+    const query = `
+      INSERT INTO dog_memberships (dog_id, user_id, role, status, invited_by)
+      VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (dog_id, user_id) DO UPDATE
+      SET role = EXCLUDED.role,
+          status = EXCLUDED.status,
+          invited_by = EXCLUDED.invited_by,
+          updated_at = CURRENT_TIMESTAMP
+      RETURNING *
+    `;
+    const values = [dogId, userId, role, status, invitedBy];
+    const result = await db.query(query, values);
+    return result.rows[0];
   }
 
-  static async getActiveMembership(userId, dogId, client = pool) {
-    const executor = client;
-    const result = await executor.query(
-      `SELECT * FROM dog_memberships WHERE dog_id = $1 AND user_id = $2 AND status = 'active'`,
-      [dogId, userId]
-    );
+  static async inviteOwner({ dogId, invitedUserId, invitedBy, role = 'owner' }, client) {
+    return this.create({
+      dogId,
+      userId: invitedUserId,
+      role,
+      status: INVITED_STATUS,
+      invitedBy
+    }, client);
+  }
+
+  static async acceptInvite(dogId, userId, client) {
+    const db = this.getQueryClient(client);
+    const query = `
+      UPDATE dog_memberships
+      SET status = $3, updated_at = CURRENT_TIMESTAMP
+      WHERE dog_id = $1 AND user_id = $2 AND status = $4
+      RETURNING *
+    `;
+    const values = [dogId, userId, ACTIVE_STATUS, INVITED_STATUS];
+    const result = await db.query(query, values);
     return result.rows[0] || null;
   }
 
-  static async authorize(userId, dogId, permission = 'view', client = pool) {
-    const membership = await this.getActiveMembership(userId, dogId, client);
+  static async findMembership(dogId, userId, { roles, statuses } = {}, client) {
+    const db = this.getQueryClient(client);
+    const conditions = ['dog_id = $1', 'user_id = $2'];
+    const values = [dogId, userId];
+    let paramIndex = values.length + 1;
 
-    if (!membership) {
-      throw new MembershipError('Dog not found or access denied', 404);
+    if (roles && roles.length) {
+      conditions.push(`role = ANY($${paramIndex}::text[])`);
+      values.push(roles);
+      paramIndex += 1;
     }
 
-    if (!this.hasPermission(membership.role, permission)) {
-      throw new MembershipError('Insufficient permissions for this action', 403);
+    if (statuses && statuses.length) {
+      conditions.push(`status = ANY($${paramIndex}::text[])`);
+      values.push(statuses);
     }
 
-    return membership;
+    const query = `
+      SELECT *
+      FROM dog_memberships
+      WHERE ${conditions.join(' AND ')}
+      LIMIT 1
+    `;
+    const result = await db.query(query, values);
+    return result.rows[0] || null;
   }
 
-  static async listMembers(dogId, { includeInvitations = true } = {}, client = pool) {
-    const executor = client;
+  static async findActiveMembership(dogId, userId, client) {
+    return this.findMembership(dogId, userId, { statuses: [ACTIVE_STATUS] }, client);
+  }
 
-    const membersResult = await executor.query(
-      `
-        SELECT
-          dm.*, 
-          u.email AS user_email,
-          u.first_name AS user_first_name,
-          u.last_name AS user_last_name,
-          u.profile_image_url AS user_profile_image_url
-        FROM dog_memberships dm
-        JOIN users u ON u.id = dm.user_id
-        WHERE dm.dog_id = $1 AND dm.status = 'active'
-        ORDER BY
-          CASE dm.role
-            WHEN 'primary_owner' THEN 0
-            WHEN 'co_owner' THEN 1
-            ELSE 2
-          END,
-          u.first_name,
-          u.last_name
-      `,
-      [dogId]
+  static async findManagerMembership(dogId, userId, client) {
+    return this.findMembership(
+      dogId,
+      userId,
+      { statuses: [ACTIVE_STATUS], roles: MANAGER_ROLES },
+      client
     );
-
-    let invitations = [];
-    if (includeInvitations) {
-      const inviteResult = await executor.query(
-        `
-          SELECT
-            di.*, 
-            u.email AS invited_user_email,
-            u.first_name AS invited_user_first_name,
-            u.last_name AS invited_user_last_name,
-            u.profile_image_url AS invited_user_profile_image_url
-          FROM dog_membership_invitations di
-          LEFT JOIN users u ON u.id = di.invited_user_id
-          WHERE di.dog_id = $1 AND di.status = 'pending'
-          ORDER BY di.created_at DESC
-        `,
-        [dogId]
-      );
-      invitations = inviteResult.rows.map(row => this.formatInvitationRow(row));
-    }
-
-    return {
-      members: membersResult.rows.map(row => this.formatMemberRow(row)),
-      invitations
-    };
   }
 
-  static formatMemberRow(row) {
+  static async canManage(dogId, userId, client) {
+    const membership = await this.findManagerMembership(dogId, userId, client);
+    return Boolean(membership);
+  }
+
+  static async remove(dogId, userId, client) {
+    const db = this.getQueryClient(client);
+    const query = `
+      DELETE FROM dog_memberships
+      WHERE dog_id = $1 AND user_id = $2
+      RETURNING *
+    `;
+    const result = await db.query(query, [dogId, userId]);
+    return result.rows[0] || null;
+  }
+
+  static async listOwners(dogId, client) {
+    const ownersByDog = await this.listOwnersForDogs([dogId], client);
+    return ownersByDog[dogId] || [];
+  }
+
+  static async listOwnersForDogs(dogIds, client) {
+    if (!dogIds || dogIds.length === 0) {
+      return {};
+    }
+
+    const db = this.getQueryClient(client);
+    const query = `
+      SELECT
+        dm.dog_id,
+        dm.role,
+        dm.status,
+        dm.invited_by,
+        dm.created_at,
+        dm.updated_at,
+        u.id AS user_id,
+        u.first_name,
+        u.last_name,
+        u.profile_image_url
+      FROM dog_memberships dm
+      JOIN users u ON u.id = dm.user_id
+      WHERE dm.dog_id = ANY($1::int[])
+        AND dm.status = $2
+      ORDER BY dm.dog_id, u.first_name, u.last_name
+    `;
+    const result = await db.query(query, [dogIds, ACTIVE_STATUS]);
+
+    return result.rows.reduce((acc, row) => {
+      if (!acc[row.dog_id]) {
+        acc[row.dog_id] = [];
+      }
+      acc[row.dog_id].push(this.serializeMembershipRow(row));
+      return acc;
+    }, {});
+  }
+
+  static serializeMembershipRow(row) {
+    if (!row) return null;
     return {
-      membershipId: row.id,
-      dogId: row.dog_id,
-      userId: row.user_id,
+      id: row.user_id,
+      firstName: row.first_name,
+      lastName: row.last_name,
+      profileImageUrl: row.profile_image_url,
       role: row.role,
       status: row.status,
       invitedBy: row.invited_by,
       joinedAt: row.created_at,
-      updatedAt: row.updated_at,
-      isPrimaryOwner: row.role === 'primary_owner',
-      user: {
-        id: row.user_id,
-        email: row.user_email,
-        firstName: row.user_first_name,
-        lastName: row.user_last_name,
-        fullName: [row.user_first_name, row.user_last_name].filter(Boolean).join(' ').trim(),
-        profileImageUrl: row.user_profile_image_url
-      }
+      updatedAt: row.updated_at
     };
-  }
-
-  static formatInvitationRow(row) {
-    const invitedEmail = row.email || row.invited_user_email;
-    const firstName = row.invited_user_first_name;
-    const lastName = row.invited_user_last_name;
-    return {
-      id: row.id,
-      dogId: row.dog_id,
-      invitedUserId: row.invited_user_id,
-      email: invitedEmail,
-      role: row.role,
-      status: row.status,
-      invitedBy: row.invited_by,
-      expiresAt: row.expires_at,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-      user: row.invited_user_id
-        ? {
-            id: row.invited_user_id,
-            email: invitedEmail,
-            firstName,
-            lastName,
-            fullName: [firstName, lastName].filter(Boolean).join(' ').trim(),
-            profileImageUrl: row.invited_user_profile_image_url
-          }
-        : null
-    };
-  }
-
-  static async addMembership({ dogId, userId, role = 'co_owner', invitedBy }, client = pool) {
-    const executor = client;
-    const result = await executor.query(
-      `
-        INSERT INTO dog_memberships (dog_id, user_id, role, status, invited_by)
-        VALUES ($1, $2, $3, 'active', $4)
-        ON CONFLICT (dog_id, user_id) DO UPDATE
-        SET role = EXCLUDED.role,
-            status = 'active',
-            invited_by = EXCLUDED.invited_by,
-            updated_at = CURRENT_TIMESTAMP
-        RETURNING *
-      `,
-      [dogId, userId, role, invitedBy]
-    );
-    return result.rows[0];
-  }
-
-  static async inviteMember({
-    dogId,
-    inviterId,
-    role = 'co_owner',
-    targetUserId = null,
-    email = null,
-    dogName,
-    inviterName
-  }, client = pool) {
-    const executor = client;
-
-    if (!['co_owner', 'viewer', 'primary_owner'].includes(role)) {
-      throw new MembershipError('Invalid role specified for invitation', 400);
-    }
-
-    if (!targetUserId && !email) {
-      throw new MembershipError('Either userId or email is required to invite a member', 400);
-    }
-
-    let targetUser = null;
-    if (targetUserId) {
-      const result = await executor.query(
-        `SELECT id, email, first_name, last_name FROM users WHERE id = $1`,
-        [targetUserId]
-      );
-      targetUser = result.rows[0];
-      if (!targetUser) {
-        throw new MembershipError('Target user not found', 404);
-      }
-      email = targetUser.email;
-    } else {
-      const normalizedEmail = email.trim().toLowerCase();
-      email = normalizedEmail;
-      const existingUser = await User.findByEmail(normalizedEmail);
-      if (existingUser) {
-        targetUser = existingUser;
-      }
-    }
-
-    // Prevent inviting someone who is already an active member
-    if (targetUser) {
-      const existingMembership = await executor.query(
-        `SELECT 1 FROM dog_memberships WHERE dog_id = $1 AND user_id = $2 AND status = 'active'`,
-        [dogId, targetUser.id]
-      );
-      if (existingMembership.rows.length > 0) {
-        throw new MembershipError('User is already an active member of this dog profile', 409);
-      }
-    }
-
-    // Prevent duplicate pending invitations
-    const pendingInviteCheck = await executor.query(
-      `
-        SELECT 1
-        FROM dog_membership_invitations
-        WHERE dog_id = $1
-          AND status = 'pending'
-          AND (
-            ($2::INT IS NOT NULL AND invited_user_id = $2)
-            OR (LOWER(email) = LOWER($3) AND $3 IS NOT NULL)
-          )
-      `,
-      [dogId, targetUser ? targetUser.id : null, email]
-    );
-
-    if (pendingInviteCheck.rows.length > 0) {
-      throw new MembershipError('An active invitation already exists for this user', 409);
-    }
-
-    const token = uuidv4();
-
-    const insertResult = await executor.query(
-      `
-        INSERT INTO dog_membership_invitations (
-          dog_id, email, invited_user_id, invited_by, role, token
-        )
-        VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING *
-      `,
-      [dogId, email, targetUser ? targetUser.id : null, inviterId, role, token]
-    );
-
-    const invitation = insertResult.rows[0];
-
-    try {
-      await this.emailService.sendDogInvitation({
-        toEmail: email,
-        dogName,
-        inviterName,
-        token,
-        dogId,
-        role
-      });
-    } catch (emailError) {
-      console.error('Failed to send dog invitation email:', emailError);
-    }
-
-    return this.formatInvitationRow({ ...invitation, ...this._mapInviteUserFields(targetUser) });
-  }
-
-  static _mapInviteUserFields(user) {
-    if (!user) return {};
-    return {
-      invited_user_email: user.email,
-      invited_user_first_name: user.first_name,
-      invited_user_last_name: user.last_name,
-      invited_user_profile_image_url: user.profile_image_url
-    };
-  }
-
-  static async respondToInvitation({
-    dogId,
-    invitationId,
-    userId,
-    token,
-    action
-  }, client = null) {
-    let executor = client;
-    let releaseClient = false;
-
-    if (!executor) {
-      executor = await pool.connect();
-      releaseClient = true;
-    }
-
-    const lowerAction = action.toLowerCase();
-    if (!['accept', 'decline'].includes(lowerAction)) {
-      if (releaseClient) executor.release();
-      throw new MembershipError('Action must be either accept or decline', 400);
-    }
-
-    try {
-      await executor.query('BEGIN');
-
-      const invitationResult = await executor.query(
-        `
-          SELECT *
-          FROM dog_membership_invitations
-          WHERE id = $1 AND dog_id = $2 AND status = 'pending'
-          FOR UPDATE
-        `,
-        [invitationId, dogId]
-      );
-
-      const invitation = invitationResult.rows[0];
-      if (!invitation) {
-        throw new MembershipError('Invitation not found or no longer active', 404);
-      }
-
-      if (invitation.token !== token) {
-        throw new MembershipError('Invalid invitation token', 403);
-      }
-
-      const userResult = await executor.query(
-        `SELECT id, email, first_name, last_name, profile_image_url FROM users WHERE id = $1`,
-        [userId]
-      );
-      const user = userResult.rows[0];
-      if (!user) {
-        throw new MembershipError('User not found', 404);
-      }
-
-      if (invitation.invited_user_id && invitation.invited_user_id !== userId) {
-        throw new MembershipError('You are not authorized to respond to this invitation', 403);
-      }
-
-      if (!invitation.invited_user_id && invitation.email && invitation.email.toLowerCase() !== user.email.toLowerCase()) {
-        throw new MembershipError('This invitation is addressed to a different email address', 403);
-      }
-
-      if (lowerAction === 'decline') {
-        const updateResult = await executor.query(
-          `
-            UPDATE dog_membership_invitations
-            SET status = 'declined', invited_user_id = $3, updated_at = CURRENT_TIMESTAMP
-            WHERE id = $1 AND dog_id = $2
-            RETURNING *
-          `,
-          [invitationId, dogId, userId]
-        );
-
-        await executor.query('COMMIT');
-        return { invitation: this.formatInvitationRow(updateResult.rows[0]) };
-      }
-
-      const acceptedInviteResult = await executor.query(
-        `
-          UPDATE dog_membership_invitations
-          SET status = 'accepted', invited_user_id = $3, updated_at = CURRENT_TIMESTAMP
-          WHERE id = $1 AND dog_id = $2
-          RETURNING *
-        `,
-        [invitationId, dogId, userId]
-      );
-
-      const inviteRow = acceptedInviteResult.rows[0];
-
-      const membershipRow = await this.addMembership({
-        dogId,
-        userId,
-        role: inviteRow.role,
-        invitedBy: inviteRow.invited_by
-      }, executor);
-
-      await executor.query('COMMIT');
-
-      return {
-        membership: this.formatMemberRow({
-          ...membershipRow,
-          user_email: user.email,
-          user_first_name: user.first_name,
-          user_last_name: user.last_name,
-          user_profile_image_url: user.profile_image_url
-        })
-      };
-    } catch (error) {
-      await executor.query('ROLLBACK');
-      throw error;
-    } finally {
-      if (releaseClient) {
-        executor.release();
-      }
-    }
-  }
-
-  static async updateRole({ dogId, memberId, role, actingUserId }, client = pool) {
-    if (!['primary_owner', 'co_owner', 'viewer'].includes(role)) {
-      throw new MembershipError('Invalid role specified', 400);
-    }
-
-    await this.authorize(actingUserId, dogId, 'manage', client);
-
-    const executor = client;
-
-    const membershipResult = await executor.query(
-      `SELECT * FROM dog_memberships WHERE id = $1 AND dog_id = $2 AND status = 'active'`,
-      [memberId, dogId]
-    );
-
-    const membership = membershipResult.rows[0];
-    if (!membership) {
-      throw new MembershipError('Membership not found', 404);
-    }
-
-    if (membership.role === 'primary_owner' && role !== 'primary_owner') {
-      const primaryCount = await this.countActivePrimaryOwners(dogId, executor);
-      if (primaryCount <= 1) {
-        throw new MembershipError('Each dog must have at least one primary owner', 400);
-      }
-    }
-
-    const updateResult = await executor.query(
-      `
-        UPDATE dog_memberships
-        SET role = $3, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $1 AND dog_id = $2
-        RETURNING *
-      `,
-      [memberId, dogId, role]
-    );
-
-    const updated = updateResult.rows[0];
-    const user = await User.findById(updated.user_id);
-
-    return this.formatMemberRow({
-      ...updated,
-      user_email: user.email,
-      user_first_name: user.first_name,
-      user_last_name: user.last_name,
-      user_profile_image_url: user.profile_image_url
-    });
-  }
-
-  static async removeMember({ dogId, memberId, actingUserId }, client = pool) {
-    await this.authorize(actingUserId, dogId, 'manage', client);
-
-    const executor = client;
-
-    const membershipResult = await executor.query(
-      `SELECT * FROM dog_memberships WHERE id = $1 AND dog_id = $2 AND status = 'active'`,
-      [memberId, dogId]
-    );
-
-    const membership = membershipResult.rows[0];
-    if (!membership) {
-      throw new MembershipError('Membership not found', 404);
-    }
-
-    if (membership.role === 'primary_owner') {
-      const primaryCount = await this.countActivePrimaryOwners(dogId, executor);
-      if (primaryCount <= 1) {
-        throw new MembershipError('Cannot remove the last primary owner', 400);
-      }
-    }
-
-    await executor.query(
-      `
-        UPDATE dog_memberships
-        SET status = 'revoked', updated_at = CURRENT_TIMESTAMP
-        WHERE id = $1
-      `,
-      [memberId]
-    );
-  }
-
-  static async countActivePrimaryOwners(dogId, client = pool) {
-    const executor = client;
-    const result = await executor.query(
-      `SELECT COUNT(*) FROM dog_memberships WHERE dog_id = $1 AND status = 'active' AND role = 'primary_owner'`,
-      [dogId]
-    );
-    return parseInt(result.rows[0].count, 10);
-  }
-
-  static async getOwners(dogId, client = pool) {
-    const { members } = await this.listMembers(dogId, { includeInvitations: false }, client);
-    return members;
   }
 }
 
-module.exports = { DogMembership, MembershipError };
+DogMembership.ACTIVE_STATUS = ACTIVE_STATUS;
+DogMembership.INVITED_STATUS = INVITED_STATUS;
+DogMembership.MANAGER_ROLES = MANAGER_ROLES;
+
+module.exports = DogMembership;

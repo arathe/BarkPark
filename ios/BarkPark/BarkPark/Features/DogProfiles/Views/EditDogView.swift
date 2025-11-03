@@ -862,7 +862,25 @@ struct EditPreviewData {
             "bio": "Buddy is a friendly and energetic Golden Retriever who loves to play fetch and swim.",
             "profileImageUrl": null,
             "galleryImages": ["https://example.com/image1.jpg", "https://example.com/image2.jpg"],
-            "userId": 1,
+            "owners": [
+                {
+                    "id": 1,
+                    "firstName": "Alex",
+                    "lastName": "Rathe",
+                    "role": "owner",
+                    "status": "active",
+                    "membershipId": 1
+                },
+                {
+                    "id": 2,
+                    "firstName": "Taylor",
+                    "lastName": "Smith",
+                    "role": "caretaker",
+                    "status": "invited",
+                    "membershipId": 2
+                }
+            ],
+            "currentUserRole": "owner",
             "createdAt": "2023-01-01T00:00:00.000Z",
             "updatedAt": "2023-01-01T00:00:00.000Z"
         }

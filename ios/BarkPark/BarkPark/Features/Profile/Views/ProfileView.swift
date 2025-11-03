@@ -123,16 +123,13 @@ struct ProfileView: View {
                 
                 // Settings Section
                 Section("Settings") {
-                    SettingsRow(icon: "bell", title: "Notifications", subtitle: "Manage your notifications")
-                    
                     Button(action: {
                         showingPrivacySettings = true
                     }) {
                         SettingsRow(icon: "lock", title: "Privacy", subtitle: "Control your search visibility")
                     }
                     .buttonStyle(PlainButtonStyle())
-                    
-                    SettingsRow(icon: "questionmark.circle", title: "Help & Support", subtitle: "Get help")
+
                     SettingsRow(icon: "info.circle", title: "About", subtitle: "App information")
                 }
                 

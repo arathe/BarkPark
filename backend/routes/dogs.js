@@ -167,24 +167,27 @@ router.put('/:id', [
 // Delete dog profile
 router.delete('/:id', async (req, res) => {
   try {
-    await DogMembership.authorize(req.user.id, req.params.id, 'delete');
-    const dog = await Dog.findById(req.params.id);
+    const dog = await Dog.findByIdAndUser(req.params.id, req.user.id);
 
     if (!dog) {
       return res.status(404).json({ error: 'Dog not found' });
     }
 
-    if (dog.profileImageUrl) {
-      await deleteFromS3(dog.profileImageUrl);
+    const deletedDog = await Dog.delete(req.params.id, req.user.id);
+
+    if (!deletedDog) {
+      return res.status(403).json({ error: 'Not authorized to delete dog' });
     }
 
-    if (dog.galleryImages && dog.galleryImages.length > 0) {
-      for (const imageUrl of dog.galleryImages) {
+    if (deletedDog.profileImageUrl) {
+      await deleteFromS3(deletedDog.profileImageUrl);
+    }
+
+    if (deletedDog.galleryImages && deletedDog.galleryImages.length > 0) {
+      for (const imageUrl of deletedDog.galleryImages) {
         await deleteFromS3(imageUrl);
       }
     }
-
-    await Dog.delete(req.params.id, req.user.id);
 
     res.json({ message: 'Dog profile deleted successfully' });
 
