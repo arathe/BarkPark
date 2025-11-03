@@ -162,7 +162,7 @@ def main():
         sql_statements.append("")
     
     # Write to file
-    output_file = '/Users/austinrathe/Documents/Developer/BarkPark/backend/scripts/import-nyc-dog-runs.sql'
+    output_file = '/Users/austinrathe/Documents/Developer/BarkPark/backend/scripts/012_import_nyc_dog_runs.sql'
     with open(output_file, 'w') as f:
         f.write('\n'.join(sql_statements))
     
