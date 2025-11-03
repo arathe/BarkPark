@@ -1,6 +1,6 @@
 const pool = require('../config/database');
 const { v4: uuidv4 } = require('uuid');
-const EmailService = require('../services/emailService');
+const emailServiceInstance = require('../services/emailService');
 const User = require('./User');
 
 const ROLE_PERMISSIONS = {
@@ -18,10 +18,7 @@ class MembershipError extends Error {
 
 class DogMembership {
   static get emailService() {
-    if (!this._emailService) {
-      this._emailService = new EmailService();
-    }
-    return this._emailService;
+    return emailServiceInstance;
   }
 
   static hasPermission(role, permission) {
