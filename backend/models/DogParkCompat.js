@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const DogMembership = require('./DogMembership');
 
 // Compatible version of DogPark model that works with both PostGIS and non-PostGIS databases
 class DogParkCompat {
@@ -436,26 +437,39 @@ class DogParkCompat {
 
   static async getActiveCheckIns(parkId) {
     const query = `
-      SELECT 
+      SELECT
         c.id, c.user_id, c.checked_in_at, c.dogs,
         u.first_name, u.last_name, u.profile_image_url,
-        ARRAY_AGG(
+        dogs_info.dog_details
+      FROM checkins c
+      LEFT JOIN users u ON c.user_id = u.id
+      LEFT JOIN LATERAL (
+        SELECT ARRAY_AGG(
           JSON_BUILD_OBJECT(
             'id', d.id,
             'name', d.name,
             'breed', d.breed,
             'profile_image_url', d.profile_image_url
           )
-        ) FILTER (WHERE d.id IS NOT NULL) as dog_details
-      FROM checkins c
-      LEFT JOIN users u ON c.user_id = u.id
-      LEFT JOIN dogs d ON d.id = ANY(c.dogs) AND d.user_id = c.user_id
+          ORDER BY d.name
+        ) AS dog_details
+        FROM UNNEST(c.dogs) AS dog_id
+        JOIN dogs d ON d.id = dog_id
+        JOIN dog_memberships dm
+          ON dm.dog_id = d.id
+         AND dm.user_id = c.user_id
+         AND dm.status = $2
+         AND dm.role = ANY($3::text[])
+      ) dogs_info ON TRUE
       WHERE c.dog_park_id = $1 AND c.checked_out_at IS NULL
-      GROUP BY c.id, u.id
       ORDER BY c.checked_in_at DESC
     `;
-    
-    const result = await pool.query(query, [parkId]);
+
+    const result = await pool.query(query, [
+      parkId,
+      DogMembership.ACTIVE_STATUS,
+      DogMembership.MANAGER_ROLES
+    ]);
     return result.rows;
   }
 }

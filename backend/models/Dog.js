@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const DogMembership = require('./DogMembership');
 
 class Dog {
   static async create(dogData) {
@@ -22,47 +23,97 @@ class Dog {
       profileImageUrl
     } = dogData;
 
-    const query = `
-      INSERT INTO dogs (
-        user_id, name, breed, birthday, weight, gender, size_category,
-        energy_level, friendliness_dogs, friendliness_people, training_level,
-        favorite_activities, is_vaccinated, is_spayed_neutered, special_needs,
-        bio, profile_image_url
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-      RETURNING *
-    `;
+    const client = await pool.connect();
 
-    const values = [
-      userId, name, breed, birthday, weight, gender, sizeCategory,
-      energyLevel, friendlinessDogs, friendlinessPeople, trainingLevel,
-      JSON.stringify(favoriteActivities || []), isVaccinated, isSpayedNeutered,
-      specialNeeds, bio, profileImageUrl
-    ];
+    try {
+      await client.query('BEGIN');
 
-    const result = await pool.query(query, values);
-    return this.formatDog(result.rows[0]);
+      const insertDogQuery = `
+        INSERT INTO dogs (
+          primary_owner_id, name, breed, birthday, weight, gender, size_category,
+          energy_level, friendliness_dogs, friendliness_people, training_level,
+          favorite_activities, is_vaccinated, is_spayed_neutered, special_needs,
+          bio, profile_image_url
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+        RETURNING *
+      `;
+
+      const insertDogValues = [
+        userId, name, breed, birthday, weight, gender, sizeCategory,
+        energyLevel, friendlinessDogs, friendlinessPeople, trainingLevel,
+        JSON.stringify(favoriteActivities || []), isVaccinated, isSpayedNeutered,
+        specialNeeds, bio, profileImageUrl
+      ];
+
+      const dogResult = await client.query(insertDogQuery, insertDogValues);
+      const dogRow = dogResult.rows[0];
+
+      await DogMembership.create({
+        dogId: dogRow.id,
+        userId,
+        role: 'owner',
+        status: DogMembership.ACTIVE_STATUS,
+        invitedBy: userId
+      }, client);
+
+      await client.query('COMMIT');
+
+      return await this.findById(dogRow.id);
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   static async findByUserId(userId) {
-    const query = 'SELECT * FROM dogs WHERE user_id = $1 ORDER BY created_at DESC';
-    const result = await pool.query(query, [userId]);
-    return result.rows.map(dog => this.formatDog(dog));
+    const query = `
+      SELECT d.*
+      FROM dogs d
+      INNER JOIN dog_memberships dm
+        ON dm.dog_id = d.id
+       AND dm.user_id = $1
+       AND dm.status = $2
+      ORDER BY d.created_at DESC
+    `;
+
+    const result = await pool.query(query, [userId, DogMembership.ACTIVE_STATUS]);
+    const dogIds = result.rows.map(row => row.id);
+    const ownersByDog = await DogMembership.listOwnersForDogs(dogIds);
+
+    return result.rows.map(dog => this.formatDog(dog, ownersByDog[dog.id]));
   }
 
   static async findById(dogId) {
     const query = 'SELECT * FROM dogs WHERE id = $1';
     const result = await pool.query(query, [dogId]);
-    return result.rows[0] ? this.formatDog(result.rows[0]) : null;
+
+    if (!result.rows[0]) {
+      return null;
+    }
+
+    const owners = await DogMembership.listOwners(dogId);
+    return this.formatDog(result.rows[0], owners);
   }
 
   static async findByIdAndUser(dogId, userId) {
-    const query = 'SELECT * FROM dogs WHERE id = $1 AND user_id = $2';
-    const result = await pool.query(query, [dogId, userId]);
-    return result.rows[0] ? this.formatDog(result.rows[0]) : null;
+    const membership = await DogMembership.findManagerMembership(dogId, userId);
+
+    if (!membership) {
+      return null;
+    }
+
+    return await this.findById(dogId);
   }
 
   static async update(dogId, userId, updates) {
+    const membership = await DogMembership.findManagerMembership(dogId, userId);
+    if (!membership) {
+      return null;
+    }
+
     const allowedFields = [
       'name', 'breed', 'birthday', 'weight', 'gender', 'size_category',
       'energy_level', 'friendliness_dogs', 'friendliness_people', 'training_level',
@@ -93,23 +144,38 @@ class Dog {
     }
 
     fields.push('updated_at = CURRENT_TIMESTAMP');
-    values.push(dogId, userId);
+    values.push(dogId);
 
     const query = `
-      UPDATE dogs 
+      UPDATE dogs
       SET ${fields.join(', ')}
-      WHERE id = $${paramCount} AND user_id = $${paramCount + 1}
+      WHERE id = $${paramCount}
       RETURNING *
     `;
 
     const result = await pool.query(query, values);
-    return result.rows[0] ? this.formatDog(result.rows[0]) : null;
+    if (!result.rows[0]) {
+      return null;
+    }
+
+    const owners = await DogMembership.listOwners(dogId);
+    return this.formatDog(result.rows[0], owners);
   }
 
   static async delete(dogId, userId) {
-    const query = 'DELETE FROM dogs WHERE id = $1 AND user_id = $2 RETURNING *';
-    const result = await pool.query(query, [dogId, userId]);
-    return result.rows[0] ? this.formatDog(result.rows[0]) : null;
+    const membership = await DogMembership.findMembership(
+      dogId,
+      userId,
+      { statuses: [DogMembership.ACTIVE_STATUS], roles: ['owner'] }
+    );
+
+    if (!membership) {
+      return null;
+    }
+
+    const query = 'DELETE FROM dogs WHERE id = $1 RETURNING *';
+    const result = await pool.query(query, [dogId]);
+    return result.rows[0] ? this.formatDog(result.rows[0], []) : null;
   }
 
   static async addGalleryImage(dogId, userId, imageUrl) {
@@ -134,15 +200,18 @@ class Dog {
   }
 
   // Helper method to format dog data for API responses
-  static formatDog(dog) {
+  static formatDog(dog, ownersOverride = null) {
     if (!dog) return null;
 
     // Calculate age from birthday
     const age = dog.birthday ? this.calculateAge(dog.birthday) : null;
 
+    const owners = this.normalizeOwners(ownersOverride || dog.owners);
+
     return {
       id: dog.id,
-      userId: dog.user_id,
+      userId: dog.primary_owner_id,
+      primaryOwnerId: dog.primary_owner_id,
       name: dog.name,
       breed: dog.breed,
       birthday: dog.birthday,
@@ -161,9 +230,29 @@ class Dog {
       bio: dog.bio,
       profileImageUrl: dog.profile_image_url,
       galleryImages: this.parseJSON(dog.gallery_images),
+      owners,
       createdAt: dog.created_at,
       updatedAt: dog.updated_at
     };
+  }
+
+  static normalizeOwners(ownersData) {
+    if (!ownersData) return [];
+
+    if (Array.isArray(ownersData)) {
+      return ownersData;
+    }
+
+    if (typeof ownersData === 'object') {
+      return [ownersData];
+    }
+
+    try {
+      const parsed = JSON.parse(ownersData);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      return [];
+    }
   }
 
   static calculateAge(birthday) {
