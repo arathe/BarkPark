@@ -9,6 +9,8 @@ import SwiftUI
 
 struct RootView: View {
     @StateObject private var authManager = AuthenticationManager()
+    @State private var showEnvironmentBanner = APIConfiguration.currentEnvironment != .production
+    @State private var hasScheduledBannerDismissal = false
     
     var body: some View {
         ZStack(alignment: .top) {
@@ -21,10 +23,25 @@ struct RootView: View {
             }
             .environmentObject(authManager)
             
-            EnvironmentBannerView()
-                .padding(.top, 12)
-                .padding(.horizontal, 16)
-                .allowsHitTesting(false)
+            if showEnvironmentBanner {
+                EnvironmentBannerView()
+                    .padding(.top, 12)
+                    .padding(.horizontal, 16)
+                    .allowsHitTesting(false)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.easeInOut, value: showEnvironmentBanner)
+        .onAppear {
+            guard showEnvironmentBanner else { return }
+            guard !hasScheduledBannerDismissal else { return }
+            hasScheduledBannerDismissal = true
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
+                withAnimation {
+                    showEnvironmentBanner = false
+                }
+            }
         }
     }
 }

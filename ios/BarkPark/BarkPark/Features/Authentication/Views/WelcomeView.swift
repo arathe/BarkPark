@@ -10,6 +10,7 @@ import SwiftUI
 struct WelcomeView: View {
     @State private var showLogin = false
     @State private var showSignUp = false
+    @State private var showEnvironmentDetails = false
     
     var body: some View {
         NavigationView {
@@ -57,6 +58,18 @@ struct WelcomeView: View {
                     }
                     .padding(.horizontal, BarkParkDesign.Spacing.lg)
                     
+                    Button {
+                        showEnvironmentDetails = true
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "info.circle")
+                            Text("Environment Details")
+                        }
+                        .font(.footnote)
+                    }
+                    .foregroundColor(BarkParkDesign.Colors.secondaryText)
+                    .padding(.top, BarkParkDesign.Spacing.sm)
+                    
                     Spacer()
                 }
             }
@@ -66,6 +79,9 @@ struct WelcomeView: View {
         }
         .sheet(isPresented: $showSignUp) {
             SignUpView()
+        }
+        .sheet(isPresented: $showEnvironmentDetails) {
+            EnvironmentDebugView()
         }
     }
 }
