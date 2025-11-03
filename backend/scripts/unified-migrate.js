@@ -127,6 +127,11 @@ const migrations = [
     id: '015_rename_friendship_indexes',
     file: '015_rename_friendship_indexes.sql',
     description: 'Rename friendship indexes to align with user_id/friend_id naming'
+  },
+  {
+    id: '016_add_dog_parks_lat_long',
+    file: '016_add_dog_parks_lat_long.sql',
+    description: 'Add latitude/longitude scalar columns and backfill from PostGIS data'
   }
 ];
 

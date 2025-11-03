@@ -2,7 +2,7 @@
 -- Generated from dog_runs_enriched.csv
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -11,6 +11,7 @@ INSERT INTO dog_parks (
     'Frank Decolvenaere Dog Run, New York, NY 11209',
     40.612313897294925,
     -74.03650678412465,
+    ST_MakePoint(-74.03650678412465, 40.612313897294925)::geography,
     '{"Synthetic surface","Seating available","Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -28,7 +29,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -37,6 +38,7 @@ INSERT INTO dog_parks (
     'Frank S. Hackett Park Dog Run, New York, NY 10471',
     40.90135705164516,
     -73.905665046473,
+    ST_MakePoint(-73.905665046473, 40.90135705164516)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -54,7 +56,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -63,6 +65,7 @@ INSERT INTO dog_parks (
     'Kensington Dog Run, New York, NY 11226',
     40.64922961677055,
     -73.9714968265382,
+    ST_MakePoint(-73.9714968265382, 40.64922961677055)::geography,
     '{"Natural surface","Seating available","Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -80,7 +83,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -89,6 +92,7 @@ INSERT INTO dog_parks (
     'Triborough Bridge Playground C Dog Run, New York, NY 11102',
     40.77402156354413,
     -73.92203493112895,
+    ST_MakePoint(-73.92203493112895, 40.77402156354413)::geography,
     '{"Asphalt surface","Seating available","Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -106,7 +110,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -115,6 +119,7 @@ INSERT INTO dog_parks (
     'Bronx River Park Dog Run, New York, NY 10462',
     40.85574079104197,
     -73.8707908532998,
+    ST_MakePoint(-73.8707908532998, 40.85574079104197)::geography,
     '{"Seating available","Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -132,7 +137,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -141,6 +146,7 @@ INSERT INTO dog_parks (
     'Sirius Dog Run, New York, NY nan',
     40.711928554227256,
     -74.01681166888038,
+    ST_MakePoint(-74.01681166888038, 40.711928554227256)::geography,
     '{"Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -158,7 +164,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -167,6 +173,7 @@ INSERT INTO dog_parks (
     'West Thames Street Dog Run, New York, NY nan',
     40.70724611439286,
     -74.01634094360534,
+    ST_MakePoint(-74.01634094360534, 40.70724611439286)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -184,7 +191,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -193,6 +200,7 @@ INSERT INTO dog_parks (
     'Bellevue South Park Dog Run, New York, NY nan',
     40.740041095912524,
     -73.97832053294691,
+    ST_MakePoint(-73.97832053294691, 40.740041095912524)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     '09:00:00',
@@ -210,7 +218,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -219,6 +227,7 @@ INSERT INTO dog_parks (
     'Ida Court Dog Run, New York, NY nan',
     40.53834544277189,
     -74.1874164080278,
+    ST_MakePoint(-74.1874164080278, 40.53834544277189)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -236,7 +245,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -245,6 +254,7 @@ INSERT INTO dog_parks (
     'Pier 84 Dog Run, New York, NY nan',
     40.76359559500704,
     -74.00052945033534,
+    ST_MakePoint(-74.00052945033534, 40.76359559500704)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -262,7 +272,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -271,6 +281,7 @@ INSERT INTO dog_parks (
     'Tribeca Dog Park, New York, NY nan',
     40.72153555284229,
     -74.01244630958982,
+    ST_MakePoint(-74.01244630958982, 40.72153555284229)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -288,7 +299,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -297,6 +308,7 @@ INSERT INTO dog_parks (
     'Cooper Park Small Dog Run, New York, NY nan',
     40.71542350573422,
     -73.93633586930186,
+    ST_MakePoint(-73.93633586930186, 40.71542350573422)::geography,
     '{"Sand surface","Seating available"}',
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -314,7 +326,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -323,6 +335,7 @@ INSERT INTO dog_parks (
     'Cooper Park Large Dog Run, New York, NY nan',
     40.715467926913306,
     -73.93616492948709,
+    ST_MakePoint(-73.93616492948709, 40.715467926913306)::geography,
     '{"Sand surface","Seating available"}',
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -340,7 +353,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -349,6 +362,7 @@ INSERT INTO dog_parks (
     'Riverside Park South Dog Run, New York, NY nan',
     40.781135449251956,
     -73.98772926764406,
+    ST_MakePoint(-73.98772926764406, 40.781135449251956)::geography,
     '{"Natural surface","Seating available","Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -366,7 +380,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -375,6 +389,7 @@ INSERT INTO dog_parks (
     'Greenwood Playground Dog Run, New York, NY 11218',
     40.649409142603616,
     -73.97619088044168,
+    ST_MakePoint(-73.97619088044168, 40.649409142603616)::geography,
     '{"Natural surface"}',
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -392,7 +407,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -401,6 +416,7 @@ INSERT INTO dog_parks (
     'Fox Playground Dog Run, New York, NY 10455',
     40.8149567650444,
     -73.89822371990438,
+    ST_MakePoint(-73.89822371990438, 40.8149567650444)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     '07:00:00',
@@ -418,7 +434,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -427,6 +443,7 @@ INSERT INTO dog_parks (
     'Fort Independence Playground Dog Run, New York, NY nan',
     40.88153523239843,
     -73.89464998638445,
+    ST_MakePoint(-73.89464998638445, 40.88153523239843)::geography,
     '{"Seating available","Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     '07:00:00',
@@ -444,7 +461,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -453,6 +470,7 @@ INSERT INTO dog_parks (
     'Overlook Dog Park / The Barking Lot, New York, NY nan',
     40.71079844104306,
     -73.83631846029287,
+    ST_MakePoint(-73.83631846029287, 40.71079844104306)::geography,
     '{"Natural surface","Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -470,7 +488,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -479,6 +497,7 @@ INSERT INTO dog_parks (
     'East River Esplanade Waterfront Dog Run, New York, NY nan',
     40.70435656880518,
     -74.00589950932688,
+    ST_MakePoint(-74.00589950932688, 40.70435656880518)::geography,
     '{"Concrete surface","Seating available","Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -496,7 +515,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -505,6 +524,7 @@ INSERT INTO dog_parks (
     'North End Dog Run, New York, NY nan',
     40.71639499735246,
     -74.0149196018411,
+    ST_MakePoint(-74.0149196018411, 40.71639499735246)::geography,
     '{"Seating available","Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -522,7 +542,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -531,6 +551,7 @@ INSERT INTO dog_parks (
     'Robin Kovary Run for Small Dogs, New York, NY 10011',
     40.73022459322584,
     -73.99768480672438,
+    ST_MakePoint(-73.99768480672438, 40.73022459322584)::geography,
     '{"Natural surface","Seating available","Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -548,7 +569,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -557,6 +578,7 @@ INSERT INTO dog_parks (
     'Stuyvesant Square Dog Park, New York, NY 10003',
     40.73317315010797,
     -73.98391986317684,
+    ST_MakePoint(-73.98391986317684, 40.73317315010797)::geography,
     '{"Concrete surface","Seating available","Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     '07:00:00',
@@ -574,7 +596,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -583,6 +605,7 @@ INSERT INTO dog_parks (
     'Riverside Park Dog Run (W. 142nd St.), New York, NY nan',
     40.82518712812843,
     -73.95441012913086,
+    ST_MakePoint(-73.95441012913086, 40.82518712812843)::geography,
     '{"Natural surface","Seating available"}',
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -600,7 +623,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -609,6 +632,7 @@ INSERT INTO dog_parks (
     'Soundview Park Dog Run, New York, NY 10473',
     40.81894288786234,
     -73.87748385052835,
+    ST_MakePoint(-73.87748385052835, 40.81894288786234)::geography,
     '{"Sand surface","Seating available"}',
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -626,7 +650,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -635,6 +659,7 @@ INSERT INTO dog_parks (
     'St. Mary''s Park Dog Run, New York, NY 10454',
     40.809805717959314,
     -73.91221621697598,
+    ST_MakePoint(-73.91221621697598, 40.809805717959314)::geography,
     '{"Natural surface"}',
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -652,7 +677,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -661,6 +686,7 @@ INSERT INTO dog_parks (
     'Washington Park Dog Run, New York, NY 11215',
     40.67286528475229,
     -73.9858087835966,
+    ST_MakePoint(-73.9858087835966, 40.67286528475229)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -678,7 +704,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -687,6 +713,7 @@ INSERT INTO dog_parks (
     'Pier 6 Dog Run, New York, NY 11201',
     40.692831521200986,
     -74.00004416122805,
+    ST_MakePoint(-74.00004416122805, 40.692831521200986)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     '06:30:00',
@@ -704,7 +731,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -713,6 +740,7 @@ INSERT INTO dog_parks (
     'Hunters Point South Park Dog Run, New York, NY 11101',
     40.743399910970105,
     -73.96011162581009,
+    ST_MakePoint(-73.96011162581009, 40.743399910970105)::geography,
     '{"Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     '06:30:00',
@@ -730,7 +758,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -739,6 +767,7 @@ INSERT INTO dog_parks (
     'Lou Lodati Dog Park, New York, NY 11104',
     40.7472127045456,
     -73.9217962649402,
+    ST_MakePoint(-73.9217962649402, 40.7472127045456)::geography,
     '{"Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -756,7 +785,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -765,6 +794,7 @@ INSERT INTO dog_parks (
     'Homer''s Dog Run, New York, NY 10034',
     40.87085776914007,
     -73.92179248756099,
+    ST_MakePoint(-73.92179248756099, 40.87085776914007)::geography,
     '{"Natural surface","Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -782,7 +812,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -791,6 +821,7 @@ INSERT INTO dog_parks (
     'Dog Bone Run, New York, NY Null',
     40.88378811994907,
     -73.88278270889644,
+    ST_MakePoint(-73.88278270889644, 40.88378811994907)::geography,
     '{"Concrete surface"}',
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -808,7 +839,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -817,6 +848,7 @@ INSERT INTO dog_parks (
     'Woodlawn Dog Run, New York, NY Null',
     40.89946602067053,
     -73.87315817379164,
+    ST_MakePoint(-73.87315817379164, 40.89946602067053)::geography,
     '{"Natural surface","Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -834,7 +866,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -843,6 +875,7 @@ INSERT INTO dog_parks (
     'Canine Court Dog Run, New York, NY 10471',
     40.899071536907506,
     -73.895125884814,
+    ST_MakePoint(-73.895125884814, 40.899071536907506)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -860,7 +893,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -869,6 +902,7 @@ INSERT INTO dog_parks (
     'Tribeca Dog Run, New York, NY 10007',
     40.71618119678133,
     -74.01227046002406,
+    ST_MakePoint(-74.01227046002406, 40.71618119678133)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -886,7 +920,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -895,6 +929,7 @@ INSERT INTO dog_parks (
     'The Rocky Run, New York, NY 10032',
     40.84069788546422,
     -73.94554819444434,
+    ST_MakePoint(-73.94554819444434, 40.84069788546422)::geography,
     '{"Natural surface","Seating available"}',
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -912,7 +947,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -921,6 +956,7 @@ INSERT INTO dog_parks (
     'DeWitt Clinton Park Large Dog Run, New York, NY 10019',
     40.76750808547049,
     -73.99439430763938,
+    ST_MakePoint(-73.99439430763938, 40.76750808547049)::geography,
     '{"Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -938,7 +974,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -947,6 +983,7 @@ INSERT INTO dog_parks (
     'DeWitt Clinton Park Small Dog Run, New York, NY 10019',
     40.76769957911417,
     -73.9944822157227,
+    ST_MakePoint(-73.9944822157227, 40.76769957911417)::geography,
     '{"Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -964,7 +1001,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -973,6 +1010,7 @@ INSERT INTO dog_parks (
     'Brooklyn Bridge Park Dog Run, New York, NY 11201',
     40.70441291794277,
     -73.98889097690027,
+    ST_MakePoint(-73.98889097690027, 40.70441291794277)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -990,7 +1028,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -999,6 +1037,7 @@ INSERT INTO dog_parks (
     'Williamsbridge Oval Dog Run, New York, NY 10467',
     40.877906181273964,
     -73.8761421785846,
+    ST_MakePoint(-73.8761421785846, 40.877906181273964)::geography,
     '{"Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -1016,7 +1055,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1025,6 +1064,7 @@ INSERT INTO dog_parks (
     'Manhattan Beach Dog Run (Oriental Boulevard), New York, NY 11235',
     40.57789051234696,
     -73.94245483141644,
+    ST_MakePoint(-73.94245483141644, 40.57789051234696)::geography,
     '{"Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -1042,7 +1082,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1051,6 +1091,7 @@ INSERT INTO dog_parks (
     'Dimattina Park Dog Run - South, New York, NY 11231',
     40.67992879266255,
     -74.00305120100299,
+    ST_MakePoint(-74.00305120100299, 40.67992879266255)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -1068,7 +1109,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1077,6 +1118,7 @@ INSERT INTO dog_parks (
     'Maria Hernandez Park Dog Run, New York, NY 11237',
     40.70381096033493,
     -73.92320122229064,
+    ST_MakePoint(-73.92320122229064, 40.70381096033493)::geography,
     '{"Seating available"}',
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -1094,7 +1136,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1103,6 +1145,7 @@ INSERT INTO dog_parks (
     'Sternberg Park Dog Run, New York, NY 11206',
     40.70619045019168,
     -73.94698310879613,
+    ST_MakePoint(-73.94698310879613, 40.70619045019168)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -1120,7 +1163,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1129,6 +1172,7 @@ INSERT INTO dog_parks (
     'Wolfe''s Pond Park Dog Run, New York, NY 10312',
     40.52001769582299,
     -74.18503158566556,
+    ST_MakePoint(-74.18503158566556, 40.52001769582299)::geography,
     '{"Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -1146,7 +1190,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1155,6 +1199,7 @@ INSERT INTO dog_parks (
     'Silver Lake Park Dog Run, New York, NY 10301',
     40.626702924414786,
     -74.0927651355187,
+    ST_MakePoint(-74.0927651355187, 40.626702924414786)::geography,
     '{"Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -1172,7 +1217,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1181,6 +1226,7 @@ INSERT INTO dog_parks (
     'Conference House Park Dog Run, New York, NY 10307',
     40.50034706929861,
     -74.25017430828869,
+    ST_MakePoint(-74.25017430828869, 40.50034706929861)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -1198,7 +1244,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1207,6 +1253,7 @@ INSERT INTO dog_parks (
     'Bloomingdale Park Dog Run, New York, NY 10309',
     40.53357681031137,
     -74.21147028589863,
+    ST_MakePoint(-74.21147028589863, 40.53357681031137)::geography,
     '{"Natural surface","Seating available"}',
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -1224,7 +1271,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1233,6 +1280,7 @@ INSERT INTO dog_parks (
     'Windmuller Park Dog Run, New York, NY 11377',
     40.74583303816196,
     -73.90852127096527,
+    ST_MakePoint(-73.90852127096527, 40.74583303816196)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -1250,7 +1298,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1259,6 +1307,7 @@ INSERT INTO dog_parks (
     'Veteran''s Grove Dog Run, New York, NY 11373',
     40.742484898185374,
     -73.87774000657929,
+    ST_MakePoint(-73.87774000657929, 40.742484898185374)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -1276,7 +1325,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1285,6 +1334,7 @@ INSERT INTO dog_parks (
     'Underbridge Playground Dog Run, New York, NY 11375',
     40.733665928134094,
     -73.84490546275457,
+    ST_MakePoint(-73.84490546275457, 40.733665928134094)::geography,
     '{"Seating available"}',
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -1302,7 +1352,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1311,6 +1361,7 @@ INSERT INTO dog_parks (
     'Sherry Park Dog Run, New York, NY 11377',
     40.74144151575805,
     -73.89898429225877,
+    ST_MakePoint(-73.89898429225877, 40.74144151575805)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -1328,7 +1379,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1337,6 +1388,7 @@ INSERT INTO dog_parks (
     'Rockaway Freeway Dog Park, New York, NY 11693',
     40.59152764843032,
     -73.80842731417049,
+    ST_MakePoint(-73.80842731417049, 40.59152764843032)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -1354,7 +1406,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1363,6 +1415,7 @@ INSERT INTO dog_parks (
     'Murray Playground Dog Run, New York, NY 11101',
     40.74689166833943,
     -73.9484798313606,
+    ST_MakePoint(-73.9484798313606, 40.74689166833943)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -1380,7 +1433,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1389,6 +1442,7 @@ INSERT INTO dog_parks (
     'Little Bay Park Dog Run, New York, NY 11360',
     40.78794400018938,
     -73.79284763590378,
+    ST_MakePoint(-73.79284763590378, 40.78794400018938)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -1406,7 +1460,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1415,6 +1469,7 @@ INSERT INTO dog_parks (
     'Forest Park Dog Run, New York, NY 11385',
     40.696914748320964,
     -73.86018266254078,
+    ST_MakePoint(-73.86018266254078, 40.696914748320964)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     '09:00:00',
@@ -1432,7 +1487,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1441,6 +1496,7 @@ INSERT INTO dog_parks (
     'Cunningham Park Dog Run, New York, NY 11423',
     40.726487145708646,
     -73.7755832097389,
+    ST_MakePoint(-73.7755832097389, 40.726487145708646)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -1458,7 +1514,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1467,6 +1523,7 @@ INSERT INTO dog_parks (
     'Washington Square Park Dog Run, New York, NY 10011',
     40.73079911300472,
     -73.99849263326139,
+    ST_MakePoint(-73.99849263326139, 40.73079911300472)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -1484,7 +1541,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1493,6 +1550,7 @@ INSERT INTO dog_parks (
     'Union Square Park Dog Run, New York, NY 10003',
     40.73539246410828,
     -73.99095698122969,
+    ST_MakePoint(-73.99095698122969, 40.73539246410828)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -1510,7 +1568,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1519,6 +1577,7 @@ INSERT INTO dog_parks (
     'Tompkins Square Park Dog Run, New York, NY 10009',
     40.72645335278598,
     -73.98141327542261,
+    ST_MakePoint(-73.98141327542261, 40.72645335278598)::geography,
     '{"Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -1536,7 +1595,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1545,6 +1604,7 @@ INSERT INTO dog_parks (
     'Theodore Roosevelt Park Dog Run, New York, NY 10024',
     40.7819726858672,
     -73.97356522953291,
+    ST_MakePoint(-73.97356522953291, 40.7819726858672)::geography,
     '{"Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -1562,7 +1622,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1571,6 +1631,7 @@ INSERT INTO dog_parks (
     'St. Nicholas Park Dog Run, New York, NY 10031',
     40.817794729838226,
     -73.94928819447615,
+    ST_MakePoint(-73.94928819447615, 40.817794729838226)::geography,
     '{"Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -1588,7 +1649,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1597,6 +1658,7 @@ INSERT INTO dog_parks (
     'Robert Moses Playground Dog Run, New York, NY 10017',
     40.7481418999281,
     -73.96882015296923,
+    ST_MakePoint(-73.96882015296923, 40.7481418999281)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -1614,7 +1676,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1623,6 +1685,7 @@ INSERT INTO dog_parks (
     'Riverside Park Dog Run (72nd St), New York, NY 10024',
     40.7813529495921,
     -73.98658491354695,
+    ST_MakePoint(-73.98658491354695, 40.7813529495921)::geography,
     '{"Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -1640,7 +1703,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1649,6 +1712,7 @@ INSERT INTO dog_parks (
     'Riverside Park Dog Run (87th St), New York, NY 10024',
     40.78998674582576,
     -73.98093357866503,
+    ST_MakePoint(-73.98093357866503, 40.78998674582576)::geography,
     '{"Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -1666,7 +1730,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1675,6 +1739,7 @@ INSERT INTO dog_parks (
     'Riverside Park Dog Run (105th St), New York, NY 10024',
     40.80271155887992,
     -73.97144791980544,
+    ST_MakePoint(-73.97144791980544, 40.80271155887992)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -1692,7 +1757,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1701,6 +1766,7 @@ INSERT INTO dog_parks (
     'Peter Detmold Park Dog Run, New York, NY 10022',
     40.75363499230809,
     -73.96381290702455,
+    ST_MakePoint(-73.96381290702455, 40.75363499230809)::geography,
     '{"Seating available","Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -1718,7 +1784,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1727,6 +1793,7 @@ INSERT INTO dog_parks (
     'Morningside Park Dog Run, New York, NY 10026',
     40.8045142400111,
     -73.95902744007678,
+    ST_MakePoint(-73.95902744007678, 40.8045142400111)::geography,
     '{"Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -1744,7 +1811,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1753,6 +1820,7 @@ INSERT INTO dog_parks (
     'Thomas Jefferson Park Dog Run, New York, NY 10029',
     40.79201479100018,
     -73.93528895439637,
+    ST_MakePoint(-73.93528895439637, 40.79201479100018)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -1770,7 +1838,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1779,6 +1847,7 @@ INSERT INTO dog_parks (
     'Marcus Garvey Park Dog Run, New York, NY 10027',
     40.80282551555144,
     -73.94342049558139,
+    ST_MakePoint(-73.94342049558139, 40.80282551555144)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -1796,7 +1865,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1805,6 +1874,7 @@ INSERT INTO dog_parks (
     'Madison Square Park Dog Run, New York, NY 10010',
     40.74210582626826,
     -73.98877885626241,
+    ST_MakePoint(-73.98877885626241, 40.74210582626826)::geography,
     '{"Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -1822,7 +1892,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1831,6 +1901,7 @@ INSERT INTO dog_parks (
     'J. Hood Wright Park Dog Run, New York, NY 10033',
     40.846406995874254,
     -73.94218065781386,
+    ST_MakePoint(-73.94218065781386, 40.846406995874254)::geography,
     '{"Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -1848,7 +1919,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1857,6 +1928,7 @@ INSERT INTO dog_parks (
     'Highbridge Park Dog Run, New York, NY 10040',
     40.85591775325249,
     -73.92499381237899,
+    ST_MakePoint(-73.92499381237899, 40.85591775325249)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -1874,7 +1946,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1883,6 +1955,7 @@ INSERT INTO dog_parks (
     'Fort Tryon Park Dog Run, New York, NY 10040',
     40.86195015593058,
     -73.93196990995384,
+    ST_MakePoint(-73.93196990995384, 40.86195015593058)::geography,
     '{"Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -1900,7 +1973,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1909,6 +1982,7 @@ INSERT INTO dog_parks (
     'Fishbridge Garden Dog Run, New York, NY 10038',
     40.709326804724064,
     -74.00164591567291,
+    ST_MakePoint(-74.00164591567291, 40.709326804724064)::geography,
     '{"Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -1926,7 +2000,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1935,6 +2009,7 @@ INSERT INTO dog_parks (
     'Andrew Haswell Green Dog Run, New York, NY 10065',
     40.76011094307365,
     -73.9570668056758,
+    ST_MakePoint(-73.9570668056758, 40.76011094307365)::geography,
     '{"Seating available"}',
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -1952,7 +2027,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1961,6 +2036,7 @@ INSERT INTO dog_parks (
     'Corlears Hook Park Dog Run, New York, NY 10002',
     40.711855182717855,
     -73.97947522594802,
+    ST_MakePoint(-73.97947522594802, 40.711855182717855)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -1978,7 +2054,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -1987,6 +2063,7 @@ INSERT INTO dog_parks (
     'Coleman Oval Park Dog Run, New York, NY 10002',
     40.71116987740717,
     -73.99349109050382,
+    ST_MakePoint(-73.99349109050382, 40.71116987740717)::geography,
     '{"Seating available"}',
     'Please follow NYC Parks Department rules and regulations',
     '07:00:00',
@@ -2004,7 +2081,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -2013,6 +2090,7 @@ INSERT INTO dog_parks (
     'Carl Schurz Park Small Dog Run, New York, NY 10028',
     40.7738798386899,
     -73.9440195074753,
+    ST_MakePoint(-73.9440195074753, 40.7738798386899)::geography,
     '{"Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -2030,7 +2108,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -2039,6 +2117,7 @@ INSERT INTO dog_parks (
     'Carl Schurz Park Large Dog Run, New York, NY 10028',
     40.774331486213796,
     -73.94404415590044,
+    ST_MakePoint(-73.94404415590044, 40.774331486213796)::geography,
     '{"Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -2056,7 +2135,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -2065,6 +2144,7 @@ INSERT INTO dog_parks (
     'Adam Yauch Park Dog Run, New York, NY 11201',
     40.69228955053956,
     -73.99913350399208,
+    ST_MakePoint(-73.99913350399208, 40.69228955053956)::geography,
     '{"Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -2082,7 +2162,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -2091,6 +2171,7 @@ INSERT INTO dog_parks (
     'Owl''s Head Park Dog Run, New York, NY 11220',
     40.639942598322136,
     -74.03516330324591,
+    ST_MakePoint(-74.03516330324591, 40.639942598322136)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -2108,7 +2189,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -2117,6 +2198,7 @@ INSERT INTO dog_parks (
     'McGolrick Park Dog Run, New York, NY 11222',
     40.72323363586249,
     -73.94391776901901,
+    ST_MakePoint(-73.94391776901901, 40.72323363586249)::geography,
     '{"Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -2134,7 +2216,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -2143,6 +2225,7 @@ INSERT INTO dog_parks (
     'McCarren Park Dog Run, New York, NY 11211',
     40.71995679300122,
     -73.9531487158512,
+    ST_MakePoint(-73.9531487158512, 40.71995679300122)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -2160,7 +2243,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -2169,6 +2252,7 @@ INSERT INTO dog_parks (
     'Hillside Park Dog Run, New York, NY 11201',
     40.70102059449023,
     -73.99485938863606,
+    ST_MakePoint(-73.99485938863606, 40.70102059449023)::geography,
     '{"Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -2186,7 +2270,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -2195,6 +2279,7 @@ INSERT INTO dog_parks (
     'Herbert Von King Park Dog Run, New York, NY 11216',
     40.68990543798157,
     -73.947974331475,
+    ST_MakePoint(-73.947974331475, 40.68990543798157)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -2212,7 +2297,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -2221,6 +2306,7 @@ INSERT INTO dog_parks (
     'Dyker Beach Park Dog Run, New York, NY 11228',
     40.61745541495801,
     -74.02144864288913,
+    ST_MakePoint(-74.02144864288913, 40.61745541495801)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -2238,7 +2324,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -2247,6 +2333,7 @@ INSERT INTO dog_parks (
     'DiMattina Park Dog Run - North, New York, NY 11231',
     40.68108973709557,
     -74.00242395798611,
+    ST_MakePoint(-74.00242395798611, 40.68108973709557)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     NULL,
@@ -2264,7 +2351,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -2273,6 +2360,7 @@ INSERT INTO dog_parks (
     'Seton Park Dog Run, New York, NY 10471',
     40.88655336213484,
     -73.9162091925375,
+    ST_MakePoint(-73.9162091925375, 40.88655336213484)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -2290,7 +2378,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -2299,6 +2387,7 @@ INSERT INTO dog_parks (
     'Pelham Bay Park Dog Run, New York, NY 10465',
     40.850532214468906,
     -73.82126657937096,
+    ST_MakePoint(-73.82126657937096, 40.850532214468906)::geography,
     '{"Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -2316,7 +2405,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -2325,6 +2414,7 @@ INSERT INTO dog_parks (
     'Franz Sigel Park Dog Run, New York, NY 10451',
     40.822998298398,
     -73.92601378337277,
+    ST_MakePoint(-73.92601378337277, 40.822998298398)::geography,
     NULL,
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',
@@ -2342,7 +2432,7 @@ INSERT INTO dog_parks (
 );
 
 INSERT INTO dog_parks (
-    name, description, address, latitude, longitude, amenities, rules,
+    name, description, address, latitude, longitude, location, amenities, rules,
     hours_open, hours_close, website, phone, rating, review_count,
     surface_type, has_seating, zipcode, borough, created_at, updated_at
 ) VALUES (
@@ -2351,6 +2441,7 @@ INSERT INTO dog_parks (
     'Ewen Park Dog Run, New York, NY 10463',
     40.88216985427035,
     -73.91023102260864,
+    ST_MakePoint(-73.91023102260864, 40.88216985427035)::geography,
     '{"Highly rated"}',
     'Please follow NYC Parks Department rules and regulations',
     '06:00:00',

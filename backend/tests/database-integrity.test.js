@@ -74,6 +74,36 @@ describe('Database Schema Integrity', () => {
       expect(columns.post_id).toBeDefined();
       expect(columns.comment_id).toBeDefined();
     });
+
+    it('should expose latitude/longitude scalar columns on dog_parks', async () => {
+      const columnQuery = `
+        SELECT column_name, udt_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'dog_parks'
+          AND column_name IN ('latitude', 'longitude')
+      `;
+
+      const columns = await pool.query(columnQuery);
+      const columnNames = columns.rows.map(row => row.column_name);
+
+      expect(columnNames).toContain('latitude');
+      expect(columnNames).toContain('longitude');
+
+      columns.rows.forEach(row => {
+        expect(row.udt_name).toBe('float8');
+      });
+
+      const nullCountQuery = `
+        SELECT COUNT(*) AS missing
+        FROM dog_parks
+        WHERE location IS NOT NULL
+          AND (latitude IS NULL OR longitude IS NULL)
+      `;
+
+      const nullCountResult = await pool.query(nullCountQuery);
+      expect(parseInt(nullCountResult.rows[0].missing, 10)).toBe(0);
+    });
   });
 
   describe('Required Tables Exist', () => {
