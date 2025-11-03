@@ -47,7 +47,7 @@ class EmailService {
   async sendPasswordResetEmail(email, resetToken) {
     try {
       const transporter = this.isTestMode ? await this.getTestTransporter() : this.transporter;
-      
+
       // For mobile app, we'll use a deep link or have users enter the token manually
       const resetUrl = `${this.appUrl}/reset-password?token=${resetToken}`;
       
@@ -75,6 +75,111 @@ class EmailService {
       console.error('Error sending password reset email:', error);
       throw new Error('Failed to send password reset email');
     }
+  }
+
+  async sendDogInvitation({ toEmail, dogName, inviterName, token, dogId, role }) {
+    try {
+      const transporter = this.isTestMode ? await this.getTestTransporter() : this.transporter;
+
+      const inviteUrl = `${this.appUrl}/dogs/${dogId}/invitations/${token}`;
+      const subjectRole = role === 'viewer' ? 'view' : 'co-manage';
+      const subject = `${inviterName} invited you to ${subjectRole} ${dogName}`;
+
+      const mailOptions = {
+        from: `${this.appName} <${this.fromEmail}>`,
+        to: toEmail,
+        subject,
+        html: this.getDogInvitationTemplate({ inviterName, dogName, token, inviteUrl, role: subjectRole }),
+        text: this.getDogInvitationTextTemplate({ inviterName, dogName, token, inviteUrl, role: subjectRole })
+      };
+
+      const info = await transporter.sendMail(mailOptions);
+
+      if (this.isTestMode) {
+        console.log('Test invitation email sent: %s', info.messageId);
+        console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
+      }
+
+      return {
+        success: true,
+        messageId: info.messageId,
+        previewUrl: this.isTestMode ? nodemailer.getTestMessageUrl(info) : null
+      };
+    } catch (error) {
+      console.error('Error sending dog invitation email:', error);
+      throw new Error('Failed to send dog invitation email');
+    }
+  }
+
+  getDogInvitationTemplate({ inviterName, dogName, token, inviteUrl, role }) {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>BarkPark Dog Invitation</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 24px;
+          }
+          .container {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 32px;
+            max-width: 560px;
+            margin: 0 auto;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+          }
+          .cta {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #FF6B6B;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 24px;
+            font-weight: 600;
+            margin-top: 16px;
+          }
+          .token {
+            font-family: monospace;
+            font-size: 18px;
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            display: inline-block;
+            margin-top: 12px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h2>You have a new BarkPark invitation 🐾</h2>
+          <p><strong>${inviterName}</strong> invited you to ${role} <strong>${dogName}</strong>.</p>
+          <p>Enter this invitation code in the BarkPark app to accept:</p>
+          <div class="token">${token}</div>
+          <p>You can also follow this link: <a class="cta" href="${inviteUrl}">Open Invitation</a></p>
+          <p>If you don't have the BarkPark app yet, download it and log in with this email address.</p>
+          <p>If you weren't expecting this, you can safely ignore it.</p>
+          <p style="margin-top:24px;color:#888;font-size:12px;">This invitation link expires in 7 days.</p>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  getDogInvitationTextTemplate({ inviterName, dogName, token, inviteUrl, role }) {
+    return `
+${inviterName} invited you to ${role} ${dogName} on BarkPark.
+
+Invitation code: ${token}
+Open the invitation: ${inviteUrl}
+
+Enter the code in the BarkPark app to accept. If you weren't expecting this message you can ignore it.
+`;
   }
 
   getPasswordResetTemplate(token, resetUrl) {

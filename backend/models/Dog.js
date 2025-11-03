@@ -87,7 +87,42 @@ class Dog {
   }
 
   static async findById(dogId) {
-    const query = 'SELECT * FROM dogs WHERE id = $1';
+    const query = `
+      SELECT
+        d.*,
+        owners.members AS owners
+      FROM dogs d
+      LEFT JOIN LATERAL (
+        SELECT json_agg(
+          json_build_object(
+            'membershipId', dm2.id,
+            'userId', dm2.user_id,
+            'role', dm2.role,
+            'status', dm2.status,
+            'invitedBy', dm2.invited_by,
+            'isPrimaryOwner', dm2.role = 'primary_owner',
+            'joinedAt', dm2.created_at,
+            'updatedAt', dm2.updated_at,
+            'user', json_build_object(
+              'id', u2.id,
+              'email', u2.email,
+              'firstName', u2.first_name,
+              'lastName', u2.last_name,
+              'fullName', CONCAT(u2.first_name, ' ', u2.last_name),
+              'profileImageUrl', u2.profile_image_url
+            )
+          )
+          ORDER BY CASE dm2.role WHEN 'primary_owner' THEN 0 WHEN 'co_owner' THEN 1 ELSE 2 END,
+            u2.first_name,
+            u2.last_name
+        ) AS members
+        FROM dog_memberships dm2
+        JOIN users u2 ON u2.id = dm2.user_id
+        WHERE dm2.dog_id = d.id AND dm2.status = 'active'
+      ) owners ON TRUE
+      WHERE d.id = $1
+    `;
+
     const result = await pool.query(query, [dogId]);
 
     if (!result.rows[0]) {
@@ -128,8 +163,7 @@ class Dog {
     Object.keys(updates).forEach(key => {
       if (allowedFields.includes(key) && updates[key] !== undefined) {
         fields.push(`${key} = $${paramCount}`);
-        
-        // Handle JSON fields
+
         if (key === 'favorite_activities' || key === 'gallery_images') {
           values.push(JSON.stringify(updates[key]));
         } else {
@@ -179,31 +213,31 @@ class Dog {
   }
 
   static async addGalleryImage(dogId, userId, imageUrl) {
-    // Get current gallery images
-    const dog = await this.findByIdAndUser(dogId, userId);
+    await DogMembership.authorize(userId, dogId, 'edit');
+    const dog = await this.findById(dogId);
     if (!dog) return null;
 
     const currentGallery = dog.galleryImages || [];
     const updatedGallery = [...currentGallery, imageUrl];
 
-    return await this.update(dogId, userId, { gallery_images: updatedGallery });
+    return this.updateById(dogId, { gallery_images: updatedGallery });
   }
 
   static async removeGalleryImage(dogId, userId, imageUrl) {
-    const dog = await this.findByIdAndUser(dogId, userId);
+    await DogMembership.authorize(userId, dogId, 'edit');
+    const dog = await this.findById(dogId);
     if (!dog) return null;
 
     const currentGallery = dog.galleryImages || [];
     const updatedGallery = currentGallery.filter(url => url !== imageUrl);
 
-    return await this.update(dogId, userId, { gallery_images: updatedGallery });
+    return this.updateById(dogId, { gallery_images: updatedGallery });
   }
 
   // Helper method to format dog data for API responses
   static formatDog(dog, ownersOverride = null) {
     if (!dog) return null;
 
-    // Calculate age from birthday
     const age = dog.birthday ? this.calculateAge(dog.birthday) : null;
 
     const owners = this.normalizeOwners(ownersOverride || dog.owners);
@@ -215,7 +249,7 @@ class Dog {
       name: dog.name,
       breed: dog.breed,
       birthday: dog.birthday,
-      age: age,
+      age,
       weight: dog.weight,
       gender: dog.gender,
       sizeCategory: dog.size_category,
@@ -270,15 +304,27 @@ class Dog {
 
   static parseJSON(jsonData) {
     if (!jsonData) return [];
-    
-    // If it's already an object/array, return it
+
     if (typeof jsonData === 'object') {
       return jsonData;
     }
-    
-    // If it's a string, try to parse it
+
     try {
       return JSON.parse(jsonData);
+    } catch (error) {
+      return [];
+    }
+  }
+
+  static parseOwners(ownerData) {
+    if (!ownerData) return [];
+
+    if (typeof ownerData === 'object') {
+      return ownerData;
+    }
+
+    try {
+      return JSON.parse(ownerData);
     } catch (error) {
       return [];
     }
