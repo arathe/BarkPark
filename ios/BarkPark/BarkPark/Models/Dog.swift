@@ -85,6 +85,33 @@ struct Dog: Codable, Identifiable {
         updatedAt = try container.decode(String.self, forKey: .updatedAt)
     }
 
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encodeIfPresent(breed, forKey: .breed)
+        try container.encodeIfPresent(birthday, forKey: .birthday)
+        try container.encodeIfPresent(age, forKey: .age)
+        try container.encodeIfPresent(weight, forKey: .weight)
+        try container.encode(gender, forKey: .gender)
+        try container.encode(sizeCategory, forKey: .sizeCategory)
+        try container.encode(energyLevel, forKey: .energyLevel)
+        try container.encode(friendlinessDogs, forKey: .friendlinessDogs)
+        try container.encode(friendlinessPeople, forKey: .friendlinessPeople)
+        try container.encode(trainingLevel, forKey: .trainingLevel)
+        try container.encode(favoriteActivities, forKey: .favoriteActivities)
+        try container.encode(isVaccinated, forKey: .isVaccinated)
+        try container.encode(isSpayedNeutered, forKey: .isSpayedNeutered)
+        try container.encodeIfPresent(specialNeeds, forKey: .specialNeeds)
+        try container.encodeIfPresent(bio, forKey: .bio)
+        try container.encodeIfPresent(profileImageUrl, forKey: .profileImageUrl)
+        try container.encode(galleryImages, forKey: .galleryImages)
+        try container.encode(owners, forKey: .owners)
+        try container.encodeIfPresent(currentUserRole, forKey: .currentUserRole)
+        try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(updatedAt, forKey: .updatedAt)
+    }
+
     // CodingKeys for custom decoder
     private enum CodingKeys: String, CodingKey {
         case id, name, breed, birthday, age, weight, gender

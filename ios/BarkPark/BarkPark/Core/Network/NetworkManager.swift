@@ -138,6 +138,18 @@ class NetworkManager {
                 throw APIError.validationFailed(msg)
             }
             throw APIError.validationFailed("Invalid request")
+        case 409, 422:
+            if let errorResponse = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let errorMessage = errorResponse["error"] as? String {
+                throw APIError.validationFailed(errorMessage)
+            }
+            if let errors = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let errorArray = errors["errors"] as? [[String: Any]],
+               let firstError = errorArray.first,
+               let msg = firstError["msg"] as? String {
+                throw APIError.validationFailed(msg)
+            }
+            throw APIError.validationFailed("Request could not be completed (status \(httpResponse.statusCode)).")
         case 401:
             if let errorResponse = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let errorMessage = errorResponse["error"] as? String {
@@ -159,7 +171,11 @@ class NetworkManager {
         case 500...599:
             throw APIError.serverError
         default:
-            throw APIError.invalidResponse
+            if let errorResponse = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let errorMessage = errorResponse["error"] as? String {
+                throw APIError.validationFailed(errorMessage)
+            }
+            throw APIError.validationFailed("Unexpected response from server (status \(httpResponse.statusCode)).")
         }
     }
 }
