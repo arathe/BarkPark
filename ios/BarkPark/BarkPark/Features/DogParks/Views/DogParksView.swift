@@ -20,6 +20,7 @@ struct DogParksView: View {
     )
     @State private var mapViewID = UUID() // Use this to force recreate the map when needed
     @State private var centerOnLocation: CLLocationCoordinate2D?
+    @FocusState private var searchFieldFocused: Bool
     
     var body: some View {
         NavigationView {
@@ -61,7 +62,9 @@ struct DogParksView: View {
                             
                             TextField("Search dog parks...", text: $viewModel.searchText)
                                 .font(BarkParkDesign.Typography.body)
-                                .foregroundColor(BarkParkDesign.Colors.primaryText)
+                                .foregroundColor(.primary)
+                                .tint(BarkParkDesign.Colors.dogPrimary)
+                                .focused($searchFieldFocused)
                                 .onSubmit {
                                     Task {
                                         await viewModel.searchParks(viewModel.searchText)
@@ -93,9 +96,13 @@ struct DogParksView: View {
                         }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 10)
-                        .background(Color.white)
+                        .background(Color(.systemBackground))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.black.opacity(0.05), lineWidth: 1)
+                        )
+                        .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)
                         
                         // Location button
                         Button(action: {
@@ -116,6 +123,20 @@ struct DogParksView: View {
                                 .foregroundColor(locationManager.hasLocationPermission ? BarkParkDesign.Colors.dogPrimary : BarkParkDesign.Colors.secondaryText)
                                 .clipShape(Circle())
                                 .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                        }
+                        
+                        if searchFieldFocused || !viewModel.searchText.isEmpty {
+                            Button("Cancel") {
+                                withAnimation {
+                                    searchFieldFocused = false
+                                }
+                                viewModel.clearSearch()
+                                showingSearchResults = false
+                            }
+                            .font(BarkParkDesign.Typography.body)
+                            .foregroundColor(BarkParkDesign.Colors.dogPrimary)
+                            .padding(.leading, 4)
+                            .transition(.opacity.combined(with: .move(edge: .trailing)))
                         }
                     }
                     .padding(.horizontal, BarkParkDesign.Spacing.md)

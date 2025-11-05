@@ -10,7 +10,7 @@ struct ForgotPasswordView: View {
             ZStack {
                 // Background gradient
                 LinearGradient(
-                    gradient: Gradient(colors: [BarkParkDesign.Colors.dogPrimary.opacity(0.1), Color.white]),
+                    gradient: Gradient(colors: [Color(.systemGray6), Color.white]),
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
@@ -43,9 +43,11 @@ struct ForgotPasswordView: View {
                                 .foregroundColor(BarkParkDesign.Colors.secondaryText)
                             
                             TextField("your@email.com", text: $viewModel.email)
+                                .foregroundColor(.primary)
                                 .textFieldStyle(BarkParkTextFieldStyle())
                                 .keyboardType(.emailAddress)
                                 .autocapitalization(.none)
+                                .textInputAutocapitalization(.never)
                                 .disabled(viewModel.showResetTokenView)
                         }
                         .padding(.horizontal)
@@ -129,9 +131,13 @@ struct BarkParkTextFieldStyle: TextFieldStyle {
     func _body(configuration: TextField<Self._Label>) -> some View {
         configuration
             .padding()
-            .background(Color.gray.opacity(0.1))
+            .background(Color(.systemBackground))
             .cornerRadius(BarkParkDesign.CornerRadius.medium)
-    }
+            .overlay(
+                RoundedRectangle(cornerRadius: BarkParkDesign.CornerRadius.medium)
+                    .stroke(Color.black.opacity(0.05), lineWidth: 1)
+            )
+}
 }
 
 struct ForgotPasswordView_Previews: PreviewProvider {
