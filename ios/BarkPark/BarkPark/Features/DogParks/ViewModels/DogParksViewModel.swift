@@ -205,6 +205,7 @@ class DogParksViewModel: ObservableObject {
     func loadParksAtLocation(latitude: Double, longitude: Double, customRadius: Double? = nil) async {
         isLoading = true
         errorMessage = nil
+        defer { isLoading = false }
         
         let radius = customRadius ?? searchRadius
         
@@ -225,11 +226,11 @@ class DogParksViewModel: ObservableObject {
                 print("🌐 DogParksViewModel: Park loading was cancelled")
             } else {
                 print("🌐 DogParksViewModel: Error loading parks: \(error)")
-                errorMessage = "Failed to load nearby parks: \(error.localizedDescription)"
+                if parks.isEmpty {
+                    errorMessage = "Failed to load nearby parks: \(error.localizedDescription)"
+                }
             }
         }
-        
-        isLoading = false
     }
     
     func selectPark(_ park: DogPark) {
