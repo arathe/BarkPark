@@ -6,28 +6,7 @@ const jwt = require('jsonwebtoken');
 const testDataFactory = require('../utils/testDataFactory');
 
 // Mock the auth middleware to avoid database lookups
-jest.mock('../../middleware/auth', () => {
-  const mockJwt = require('jsonwebtoken');
-  return {
-    verifyToken: (req, res, next) => {
-      const authHeader = req.headers.authorization;
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Access token required' });
-      }
-      const token = authHeader.substring(7);
-      try {
-        const decoded = mockJwt.verify(token, process.env.JWT_SECRET || 'test-jwt-secret-key');
-        req.user = { id: decoded.userId };
-        next();
-      } catch (error) {
-        return res.status(401).json({ error: 'Invalid token' });
-      }
-    },
-    generateToken: (userId) => {
-      return mockJwt.sign({ userId }, process.env.JWT_SECRET || 'test-jwt-secret-key');
-    }
-  };
-});
+jest.mock('../../middleware/auth', () => require('../utils/testMocks').mockAuthMiddleware());
 
 const app = require('../../server');
 

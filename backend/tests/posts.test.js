@@ -1,5 +1,5 @@
 const request = require('supertest');
-const express = require('express');
+const createTestApp = require('./utils/createTestApp');
 const pool = require('../config/database');
 const Post = require('../models/Post');
 const PostLike = require('../models/PostLike');
@@ -10,12 +10,9 @@ const testDataFactory = require('./utils/testDataFactory');
 jest.mock('../middleware/auth', () => require('./utils/testMocks').mockAuthMiddleware());
 
 // Create app instance
-const app = express();
-app.use(express.json());
-
 // Import routes
 const postRoutes = require('../routes/posts');
-app.use('/api/posts', postRoutes);
+const app = createTestApp({ '/api/posts': postRoutes });
 
 // Import test data factory
 const User = require('../models/User');

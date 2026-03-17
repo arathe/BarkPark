@@ -1,39 +1,12 @@
 const request = require('supertest');
-const express = require('express');
+const createTestApp = require('../utils/createTestApp');
 const User = require('../../models/User');
 const Dog = require('../../models/Dog');
 const pool = require('../../config/database');
 const jwt = require('jsonwebtoken');
 
 // Mock auth middleware
-jest.mock('../../middleware/auth', () => ({
-  verifyToken: (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ error: 'No token provided' });
-    }
-    // Extract user ID from bearer token for tests
-    const token = authHeader.split(' ')[1];
-    // Simple decode for test tokens
-    const parts = token.split('.');
-    if (parts.length === 3) {
-      try {
-        const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
-        req.userId = payload.userId;
-        req.user = { id: payload.userId };
-      } catch (e) {
-        // Fallback for simple test tokens
-        req.userId = parseInt(token);
-        req.user = { id: parseInt(token) };
-      }
-    } else {
-      // Simple test token format
-      req.userId = parseInt(token);
-      req.user = { id: parseInt(token) };
-    }
-    next();
-  }
-}));
+jest.mock('../../middleware/auth', () => require('../utils/testMocks').mockAuthMiddleware());
 
 // Mock S3 functions
 jest.mock('../../config/s3', () => ({
@@ -45,10 +18,8 @@ jest.mock('../../config/s3', () => ({
 const { uploadToS3, deleteFromS3 } = require('../../config/s3');
 
 // Create test app
-const app = express();
-app.use(express.json());
 const dogRoutes = require('../../routes/dogs');
-app.use('/api/dogs', dogRoutes);
+const app = createTestApp({ '/api/dogs': dogRoutes });
 
 // Mock multer to handle file uploads in tests
 const mockFile = {

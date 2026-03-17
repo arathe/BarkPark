@@ -1,5 +1,5 @@
 const request = require('supertest');
-const express = require('express');
+const createTestApp = require('./utils/createTestApp');
 const pool = require('../config/database');
 const Notification = require('../models/Notification');
 const testDataFactory = require('./utils/testDataFactory');
@@ -7,15 +7,13 @@ const testDataFactory = require('./utils/testDataFactory');
 // Mock auth middleware
 jest.mock('../middleware/auth', () => require('./utils/testMocks').mockAuthMiddleware());
 
-// Create app instance
-const app = express();
-app.use(express.json());
-
 // Import routes
 const notificationRoutes = require('../routes/notifications');
 const postRoutes = require('../routes/posts');
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/posts', postRoutes);
+const app = createTestApp({
+  '/api/notifications': notificationRoutes,
+  '/api/posts': postRoutes,
+});
 
 describe('Notifications API', () => {
   let authToken;
