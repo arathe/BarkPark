@@ -1,4 +1,5 @@
 const express = require('express');
+const { handleValidationErrors } = require('../middleware/validation');
 const { body, param, validationResult } = require('express-validator');
 const Friendship = require('../models/Friendship');
 const { verifyToken } = require('../middleware/auth');
@@ -11,12 +12,8 @@ router.use(verifyToken);
 // Send a friend request
 router.post('/request', [
   body('userId').isInt({ min: 1 }).withMessage('Valid user ID is required')
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const { userId } = req.body;
     const requesterId = req.user.id;
@@ -47,12 +44,8 @@ router.post('/request', [
 // Accept a friend request
 router.put('/:id/accept', [
   param('id').isInt({ min: 1 }).withMessage('Valid friendship ID is required')
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const friendshipId = parseInt(req.params.id);
     const userId = req.user.id;
@@ -83,12 +76,8 @@ router.put('/:id/accept', [
 // Decline a friend request
 router.put('/:id/decline', [
   param('id').isInt({ min: 1 }).withMessage('Valid friendship ID is required')
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const friendshipId = parseInt(req.params.id);
     const userId = req.user.id;
@@ -118,12 +107,8 @@ router.put('/:id/decline', [
 // Cancel a sent friend request
 router.delete('/:id/cancel', [
   param('id').isInt({ min: 1 }).withMessage('Valid friendship ID is required')
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const friendshipId = parseInt(req.params.id);
     const userId = req.user.id;
@@ -205,12 +190,8 @@ router.get('/requests', async (req, res) => {
 // Remove a friend
 router.delete('/:friendId', [
   param('friendId').isInt({ min: 1 }).withMessage('Valid friend ID is required')
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const friendId = parseInt(req.params.friendId);
     const userId = req.user.id;
@@ -231,12 +212,8 @@ router.delete('/:friendId', [
 // Get friendship status with another user
 router.get('/status/:userId', [
   param('userId').isInt({ min: 1 }).withMessage('Valid user ID is required')
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const otherUserId = parseInt(req.params.userId);
     const userId = req.user.id;
@@ -268,12 +245,8 @@ router.get('/status/:userId', [
 // Connect via QR code
 router.post('/qr-connect', [
   body('qrData').isString().isLength({ min: 1 }).withMessage('QR data is required')
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const { qrData } = req.body;
     const requesterId = req.user.id;

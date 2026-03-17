@@ -1,4 +1,5 @@
 const express = require('express');
+const { handleValidationErrors } = require('../middleware/validation');
 const { param, validationResult } = require('express-validator');
 const User = require('../models/User');
 const Dog = require('../models/Dog');
@@ -14,12 +15,8 @@ router.use(verifyToken);
 // Get user profile by ID (for friends and users who have sent friend requests)
 router.get('/:userId/profile', [
   param('userId').isInt({ min: 1 }).withMessage('Valid user ID is required')
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const targetUserId = parseInt(req.params.userId);
     const requestingUserId = req.user.id;

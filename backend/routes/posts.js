@@ -1,4 +1,5 @@
 const express = require('express');
+const { handleValidationErrors } = require('../middleware/validation');
 const router = express.Router();
 const { body, param, query, validationResult } = require('express-validator');
 const { verifyToken: requireAuth } = require('../middleware/auth');
@@ -37,12 +38,8 @@ router.post('/', requireAuth, [
   body('visibility').optional().isIn(['public', 'friends', 'private']),
   body('checkInId').optional().isInt(),
   body('sharedPostId').optional().isInt()
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const { content, postType, visibility, checkInId, sharedPostId } = req.body;
     
@@ -74,12 +71,8 @@ router.post('/', requireAuth, [
 router.get('/feed', requireAuth, [
   query('limit').optional().isInt({ min: 1, max: 100 }),
   query('offset').optional().isInt({ min: 0 })
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const limit = parseInt(req.query.limit) || 20;
     const offset = parseInt(req.query.offset) || 0;
@@ -103,12 +96,8 @@ router.get('/feed', requireAuth, [
 // Get single post
 router.get('/:id', requireAuth, [
   param('id').isInt()
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const post = await Post.findById(req.params.id);
     
@@ -134,12 +123,8 @@ router.get('/user/:userId', requireAuth, [
   param('userId').isInt(),
   query('limit').optional().isInt({ min: 1, max: 100 }),
   query('offset').optional().isInt({ min: 0 })
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const limit = parseInt(req.query.limit) || 20;
     const offset = parseInt(req.query.offset) || 0;
@@ -164,12 +149,8 @@ router.get('/user/:userId', requireAuth, [
 // Delete post
 router.delete('/:id', requireAuth, [
   param('id').isInt()
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const deleted = await Post.delete(req.params.id, req.user.id);
     
@@ -187,12 +168,8 @@ router.delete('/:id', requireAuth, [
 // Upload media for a post
 router.post('/:id/media', requireAuth, upload.array('media', 10), [
   param('id').isInt()
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const postId = parseInt(req.params.id);
     
@@ -227,12 +204,8 @@ router.post('/:id/media', requireAuth, upload.array('media', 10), [
 router.post('/:id/like', requireAuth, [
   param('id').isInt(),
   body('reactionType').optional().isIn(['like', 'love', 'laugh', 'wow'])
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const postId = parseInt(req.params.id);
     const reactionType = req.body.reactionType || 'like';
@@ -259,12 +232,8 @@ router.get('/:id/likes', requireAuth, [
   param('id').isInt(),
   query('limit').optional().isInt({ min: 1, max: 100 }),
   query('offset').optional().isInt({ min: 0 })
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const postId = parseInt(req.params.id);
     const limit = parseInt(req.query.limit) || 50;
@@ -289,12 +258,8 @@ router.post('/:id/comment', requireAuth, [
   param('id').isInt(),
   body('content').isString().trim().isLength({ min: 1, max: 1000 }),
   body('parentCommentId').optional().isInt()
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const postId = parseInt(req.params.id);
     const { content, parentCommentId } = req.body;
@@ -324,12 +289,8 @@ router.get('/:id/comments', requireAuth, [
   param('id').isInt(),
   query('limit').optional().isInt({ min: 1, max: 100 }),
   query('offset').optional().isInt({ min: 0 })
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const postId = parseInt(req.params.id);
     const limit = parseInt(req.query.limit) || 50;
@@ -351,12 +312,8 @@ router.get('/:id/comments', requireAuth, [
 // Delete comment
 router.delete('/comments/:id', requireAuth, [
   param('id').isInt()
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const commentId = parseInt(req.params.id);
     const deleted = await PostComment.delete(commentId, req.user.id);

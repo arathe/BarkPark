@@ -1,4 +1,5 @@
 const express = require('express');
+const { handleValidationErrors } = require('../middleware/validation');
 const router = express.Router();
 const { param, query, validationResult } = require('express-validator');
 const { verifyToken: requireAuth } = require('../middleware/auth');
@@ -8,12 +9,8 @@ const Notification = require('../models/Notification');
 router.get('/', requireAuth, [
   query('limit').optional().isInt({ min: 1, max: 100 }),
   query('offset').optional().isInt({ min: 0 })
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const limit = parseInt(req.query.limit) || 50;
     const offset = parseInt(req.query.offset) || 0;
@@ -56,12 +53,8 @@ router.get('/unread-count', requireAuth, async (req, res) => {
 // Mark notification as read
 router.put('/:id/read', requireAuth, [
   param('id').isInt()
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const notificationId = parseInt(req.params.id);
     const success = await Notification.markAsRead(notificationId, req.user.id);

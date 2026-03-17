@@ -1,4 +1,5 @@
 const express = require('express');
+const { handleValidationErrors } = require('../middleware/validation');
 const { body, validationResult } = require('express-validator');
 const Dog = require('../models/Dog');
 const { verifyToken } = require('../middleware/auth');
@@ -54,12 +55,8 @@ router.post('/', [
   body('isSpayedNeutered').optional().isBoolean(),
   body('specialNeeds').optional().trim(),
   body('bio').optional().trim().isLength({ max: 1000 })
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const dogData = {
       userId: req.user.id,
@@ -115,12 +112,8 @@ router.put('/:id', [
   body('isSpayedNeutered').optional().isBoolean(),
   body('specialNeeds').optional().trim(),
   body('bio').optional().trim().isLength({ max: 1000 })
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const updates = {};
     const allowedFields = [
@@ -263,12 +256,8 @@ router.post('/:id/gallery', uploadMultiple('images', 5), async (req, res) => {
 // Set profile image from gallery
 router.put('/:id/profile-image-from-gallery', [
   body('imageUrl').isURL().withMessage('Valid image URL is required')
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const dog = await Dog.findByIdAndUser(req.params.id, req.user.id);
     if (!dog) {
@@ -306,12 +295,8 @@ router.put('/:id/profile-image-from-gallery', [
 // Delete gallery image
 router.delete('/:id/gallery', [
   body('imageUrl').isURL().withMessage('Valid image URL is required')
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const dog = await Dog.findByIdAndUser(req.params.id, req.user.id);
     if (!dog) {

@@ -1,4 +1,5 @@
 const express = require('express');
+const { handleValidationErrors } = require('../middleware/validation');
 const { body, query, validationResult } = require('express-validator');
 const DogPark = require('../models/DogParkCompat');
 const CheckIn = require('../models/CheckIn');
@@ -15,12 +16,8 @@ router.get('/', [
   query('latitude').isFloat({ min: -90, max: 90 }).withMessage('Valid latitude required'),
   query('longitude').isFloat({ min: -180, max: 180 }).withMessage('Valid longitude required'),
   query('radius').optional().isFloat({ min: 0.1, max: 100 }).withMessage('Radius must be between 0.1 and 100 km')
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const { latitude, longitude, radius = 10 } = req.query;
     
@@ -64,12 +61,8 @@ router.get('/search', [
   query('q').trim().isLength({ min: 1 }).withMessage('Search query is required'),
   query('latitude').optional().isFloat({ min: -90, max: 90 }),
   query('longitude').optional().isFloat({ min: -180, max: 180 })
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const { q: query, latitude, longitude } = req.query;
     
@@ -207,12 +200,8 @@ router.get('/:id/friends', async (req, res) => {
 // Check into a park
 router.post('/:id/checkin', [
   body('dogsPresent').optional().isArray().withMessage('Dogs present must be an array of dog IDs')
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const park = await DogPark.findById(req.params.id);
     if (!park) {
@@ -329,12 +318,8 @@ router.post('/', [
   body('rules').optional().trim(),
   body('hoursOpen').optional().matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/),
   body('hoursClose').optional().matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/)
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     // TODO: Add admin role check here
     

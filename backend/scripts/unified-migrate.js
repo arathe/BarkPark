@@ -84,6 +84,10 @@ const migrations = [
     id: '008_add_password_reset',
     file: '008_add_password_reset.sql',
     description: 'Add password reset functionality'
+  },
+  {
+    file: '010_add_performance_indexes.sql',
+    description: 'Add performance indexes for feed, friendships, checkins, notifications'
   }
 ];
 

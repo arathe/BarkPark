@@ -9,9 +9,15 @@ import Foundation
 
 // MARK: - API Configuration
 struct APIConfiguration {
-    // Use your Mac's IP address for iOS Simulator
-    // localhost doesn't work in the simulator
-    static let baseURL = "http://192.168.86.67:3000/api"
+    #if DEBUG
+    // Debug builds default to localhost.
+    // Override by setting BARKPARK_API_URL in the Xcode scheme's environment variables,
+    // e.g. http://192.168.x.x:3000/api when testing on a physical device.
+    static let baseURL = ProcessInfo.processInfo.environment["BARKPARK_API_URL"]
+        ?? "http://localhost:3000/api"
+    #else
+    static let baseURL = "https://barkpark-production.up.railway.app/api"
+    #endif
 }
 
 // MARK: - Network Errors

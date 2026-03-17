@@ -1,4 +1,5 @@
 const express = require('express');
+const { handleValidationErrors } = require('../middleware/validation');
 const { body, query, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { generateToken, verifyToken } = require('../middleware/auth');
@@ -15,12 +16,8 @@ router.post('/register', [
   body('firstName').trim().isLength({ min: 1 }).withMessage('First name is required'),
   body('lastName').trim().isLength({ min: 1 }).withMessage('Last name is required'),
   body('phone').optional().isMobilePhone()
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const { email, password, firstName, lastName, phone } = req.body;
 
@@ -66,12 +63,8 @@ router.post('/register', [
 router.post('/login', [
   body('email').isEmail().normalizeEmail(),
   body('password').exists().withMessage('Password is required')
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const { email, password } = req.body;
 
@@ -137,12 +130,8 @@ router.put('/me', verifyToken, [
   body('email').optional().isEmail().normalizeEmail(),
   body('phone').optional().isMobilePhone(),
   body('isSearchable').optional().isBoolean().withMessage('isSearchable must be a boolean')
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const updates = {};
     if (req.body.firstName) updates.first_name = req.body.firstName;
@@ -177,12 +166,8 @@ router.put('/me', verifyToken, [
 router.post('/change-password', verifyToken, [
   body('currentPassword').isLength({ min: 1 }).withMessage('Current password is required'),
   body('newPassword').isLength({ min: 8 }).withMessage('New password must be at least 8 characters')
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const { currentPassword, newPassword } = req.body;
     const userId = req.user.id;
@@ -294,12 +279,8 @@ router.delete('/me/profile-photo', verifyToken, async (req, res) => {
 // Search users by name or email
 router.get('/search', verifyToken, [
   query('q').isLength({ min: 2 }).withMessage('Search query must be at least 2 characters')
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const searchQuery = req.query.q.trim();
     const currentUserId = req.user.id;
@@ -358,12 +339,8 @@ router.get('/search', verifyToken, [
 // Request password reset
 router.post('/forgot-password', [
   body('email').isEmail().normalizeEmail()
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const { email } = req.body;
 
@@ -411,12 +388,8 @@ router.post('/forgot-password', [
 router.post('/reset-password', [
   body('token').isLength({ min: 5, max: 5 }).withMessage('Invalid reset token'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const { token, password } = req.body;
 
@@ -443,12 +416,8 @@ router.post('/reset-password', [
 // Verify reset token (optional endpoint for better UX)
 router.get('/verify-reset-token', [
   query('token').isLength({ min: 5, max: 5 }).withMessage('Invalid reset token')
-], async (req, res) => {
+], handleValidationErrors, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
     const { token } = req.query;
 
