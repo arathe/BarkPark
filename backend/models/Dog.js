@@ -113,24 +113,40 @@ class Dog {
   }
 
   static async addGalleryImage(dogId, userId, imageUrl) {
-    // Get current gallery images
-    const dog = await this.findByIdAndUser(dogId, userId);
-    if (!dog) return null;
-
-    const currentGallery = dog.galleryImages || [];
-    const updatedGallery = [...currentGallery, imageUrl];
-
-    return await this.update(dogId, userId, { gallery_images: updatedGallery });
+    // Atomic JSON array append — avoids read-modify-write race condition
+    const pool = require('../config/database');
+    const query = `
+      UPDATE dogs
+      SET gallery_images = (
+        SELECT json_agg(elem)
+        FROM (
+          SELECT elem FROM json_array_elements_text(gallery_images) AS elem
+          UNION ALL
+          SELECT $3
+        ) AS combined
+      )
+      WHERE id = $1 AND user_id = $2
+      RETURNING *
+    `;
+    const result = await pool.query(query, [dogId, userId, imageUrl]);
+    return result.rows[0] ? this.formatDog(result.rows[0]) : null;
   }
 
   static async removeGalleryImage(dogId, userId, imageUrl) {
-    const dog = await this.findByIdAndUser(dogId, userId);
-    if (!dog) return null;
-
-    const currentGallery = dog.galleryImages || [];
-    const updatedGallery = currentGallery.filter(url => url !== imageUrl);
-
-    return await this.update(dogId, userId, { gallery_images: updatedGallery });
+    // Atomic JSON array removal — avoids read-modify-write race condition
+    const pool = require('../config/database');
+    const query = `
+      UPDATE dogs
+      SET gallery_images = (
+        SELECT COALESCE(json_agg(elem), '[]'::json)
+        FROM json_array_elements_text(gallery_images) AS elem
+        WHERE elem != $3
+      )
+      WHERE id = $1 AND user_id = $2
+      RETURNING *
+    `;
+    const result = await pool.query(query, [dogId, userId, imageUrl]);
+    return result.rows[0] ? this.formatDog(result.rows[0]) : null;
   }
 
   // Helper method to format dog data for API responses

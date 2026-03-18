@@ -4,6 +4,10 @@ const pool = require('../config/database');
 const Dog = require('../models/Dog');
 const testDataFactory = require('./utils/testDataFactory');
 
+// Returns a Jan-1 birthday N years ago (January ensures the birthday has
+// always passed by the time tests run, so age is exactly N).
+const yearsAgo = (n) => `${new Date().getFullYear() - n}-01-01`;
+
 // Mock auth middleware
 jest.mock('../middleware/auth', () => require('./utils/testMocks').mockAuthMiddleware());
 
@@ -102,7 +106,7 @@ describe('Dogs API', () => {
         .send({
           name: 'Charlie',
           breed: 'Labrador',
-          birthday: '2022-01-01',
+          birthday: yearsAgo(4),
           weight: 55.5,
           bio: 'Playful lab',
           friendlinessDogs: 5,
@@ -113,7 +117,7 @@ describe('Dogs API', () => {
       expect(res.body).toHaveProperty('dog');
       expect(res.body.dog.name).toBe('Charlie');
       expect(res.body.dog.breed).toBe('Labrador');
-      expect(res.body.dog.age).toBe(3); // Calculated from birthday
+      expect(res.body.dog.age).toBe(4); // Calculated from birthday
       expect(res.body.dog.weight).toBe('55.50');
       expect(res.body.dog.userId).toBe(userId);
       
@@ -252,7 +256,7 @@ describe('Dogs API', () => {
         .send({
           name: 'Updated Name',
           breed: 'Pembroke Welsh Corgi',
-          birthday: '2020-01-01',
+          birthday: yearsAgo(6),
           weight: 27.5,
           bio: 'Updated description',
           friendlinessDogs: 5,
@@ -263,7 +267,7 @@ describe('Dogs API', () => {
       expect(res.body).toHaveProperty('dog');
       expect(res.body.dog.name).toBe('Updated Name');
       expect(res.body.dog.breed).toBe('Pembroke Welsh Corgi');
-      expect(res.body.dog.age).toBe(5); // Calculated from birthday
+      expect(res.body.dog.age).toBe(6); // Calculated from birthday
       expect(res.body.dog.weight).toBe('27.50');
       expect(res.body.dog.bio).toBe('Updated description');
     });
@@ -466,7 +470,7 @@ describe('Dogs API', () => {
         .send({
           name: 'Decimal Dog',
           breed: 'Test',
-          birthday: '2022-06-01',
+          birthday: yearsAgo(3),
           weight: 35.75
         });
 

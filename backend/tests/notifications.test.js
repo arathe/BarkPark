@@ -48,7 +48,7 @@ describe('Notifications API', () => {
 
     // Create friendship so they can interact
     await pool.query(`
-      INSERT INTO friendships (user_id, friend_id, status)
+      INSERT INTO friendships (requester_id, addressee_id, status)
       VALUES ($1, $2, 'accepted')
     `, [userId, otherUserId]);
 
@@ -69,12 +69,12 @@ describe('Notifications API', () => {
     beforeEach(async () => {
       // Create various types of notifications
       await pool.query(`
-        INSERT INTO notifications (user_id, type, data, read, created_at)
+        INSERT INTO notifications (user_id, type, actor_id, post_id, is_read, created_at)
         VALUES 
-          ($1, 'like', $2, false, NOW() - INTERVAL '1 hour'),
-          ($1, 'comment', $2, false, NOW() - INTERVAL '2 hours'),
-          ($1, 'friend_post', $2, true, NOW() - INTERVAL '3 hours')
-      `, [userId, JSON.stringify({ actorId: otherUserId, postId: postId })]);
+          ($1, 'like', $2, $3, false, NOW() - INTERVAL '1 hour'),
+          ($1, 'comment', $2, $3, false, NOW() - INTERVAL '2 hours'),
+          ($1, 'friend_post', $2, $3, true, NOW() - INTERVAL '3 hours')
+      `, [userId, otherUserId, postId]);
     });
 
     it('should get notifications for authenticated user', async () => {
@@ -95,7 +95,7 @@ describe('Notifications API', () => {
       expect(notification).toHaveProperty('id');
       expect(notification).toHaveProperty('type');
       expect(notification).toHaveProperty('actor_id');
-      expect(notification).toHaveProperty('read');
+      expect(notification).toHaveProperty('is_read');
       expect(notification).toHaveProperty('created_at');
       expect(notification).toHaveProperty('text'); // Formatted text
     });
@@ -158,10 +158,10 @@ describe('Notifications API', () => {
     beforeEach(async () => {
       // Create a new unread notification
       const result = await pool.query(`
-        INSERT INTO notifications (user_id, type, data, read)
-        VALUES ($1, 'like', $2, false)
+        INSERT INTO notifications (user_id, type, actor_id, post_id, is_read)
+        VALUES ($1, 'like', $2, $3, false)
         RETURNING id
-      `, [userId, JSON.stringify({ actorId: otherUserId, postId: postId })]);
+      `, [userId, otherUserId, postId]);
       notificationId = result.rows[0].id;
     });
 
@@ -175,10 +175,10 @@ describe('Notifications API', () => {
 
       // Verify notification was marked as read
       const check = await pool.query(
-        'SELECT read FROM notifications WHERE id = $1',
+        'SELECT is_read FROM notifications WHERE id = $1',
         [notificationId]
       );
-      expect(check.rows[0].read).toBe(true);
+      expect(check.rows[0].is_read).toBe(true);
     });
 
     it('should handle non-existent notification', async () => {
@@ -192,10 +192,10 @@ describe('Notifications API', () => {
     it('should not allow marking other user notifications as read', async () => {
       // Create notification for other user
       const result = await pool.query(`
-        INSERT INTO notifications (user_id, type, data, read)
+        INSERT INTO notifications (user_id, type, actor_id, is_read)
         VALUES ($1, 'friend_post', $2, false)
         RETURNING id
-      `, [otherUserId, JSON.stringify({ actorId: userId })]);
+      `, [otherUserId, userId]);
       const othersNotificationId = result.rows[0].id;
 
       const res = await request(app)
@@ -206,10 +206,10 @@ describe('Notifications API', () => {
       
       // Verify notification is still unread
       const check = await pool.query(
-        'SELECT read FROM notifications WHERE id = $1',
+        'SELECT is_read FROM notifications WHERE id = $1',
         [othersNotificationId]
       );
-      expect(check.rows[0].read).toBe(false);
+      expect(check.rows[0].is_read).toBe(false);
     });
 
     it('should require authentication', async () => {
@@ -224,12 +224,12 @@ describe('Notifications API', () => {
     beforeEach(async () => {
       // Create multiple unread notifications
       await pool.query(`
-        INSERT INTO notifications (user_id, type, data, read)
+        INSERT INTO notifications (user_id, type, actor_id, post_id, is_read)
         VALUES 
-          ($1, 'like', $2, false),
-          ($1, 'comment', $2, false),
-          ($1, 'friend_checkin', $2, false)
-      `, [userId, JSON.stringify({ actorId: otherUserId })]);
+          ($1, 'like', $2, $3, false),
+          ($1, 'comment', $2, $3, false),
+          ($1, 'friend_checkin', $2, $3, false)
+      `, [userId, otherUserId, postId]);
     });
 
     it('should mark all notifications as read', async () => {
@@ -243,7 +243,7 @@ describe('Notifications API', () => {
 
       // Verify all notifications are read
       const check = await pool.query(
-        'SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND read = false',
+        'SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND is_read = false',
         [userId]
       );
       expect(parseInt(check.rows[0].count)).toBe(0);
@@ -275,11 +275,11 @@ describe('Notifications API', () => {
       // Check that notification was created
       const notifCheck = await pool.query(`
         SELECT * FROM notifications 
-        WHERE user_id = $1 AND type = 'like' AND data->>'postId' = $2 AND data->>'actorId' = $3
+        WHERE user_id = $1 AND type = 'like' AND post_id = $2::int AND actor_id = $3::int
       `, [userId, newPostId.toString(), otherUserId.toString()]);
 
       expect(notifCheck.rows.length).toBe(1);
-      expect(notifCheck.rows[0].read).toBe(false);
+      expect(notifCheck.rows[0].is_read).toBe(false);
     });
 
     it('should create notification when post is commented on', async () => {
@@ -302,11 +302,11 @@ describe('Notifications API', () => {
       // Check that notification was created
       const notifCheck = await pool.query(`
         SELECT * FROM notifications 
-        WHERE user_id = $1 AND type = 'comment' AND data->>'postId' = $2 AND data->>'actorId' = $3
+        WHERE user_id = $1 AND type = 'comment' AND post_id = $2::int AND actor_id = $3::int
       `, [userId, newPostId.toString(), otherUserId.toString()]);
 
       expect(notifCheck.rows.length).toBe(1);
-      expect(notifCheck.rows[0].read).toBe(false);
+      expect(notifCheck.rows[0].is_read).toBe(false);
     });
 
     it('should not create notification for own actions', async () => {
@@ -326,7 +326,7 @@ describe('Notifications API', () => {
       // Check that no notification was created
       const notifCheck = await pool.query(`
         SELECT * FROM notifications 
-        WHERE user_id = $1 AND type = 'like' AND data->>'postId' = $2 AND data->>'actorId' = $1::text
+        WHERE user_id = $1 AND type = 'like' AND post_id = $2::int AND actor_id = $1
       `, [userId, newPostId.toString()]);
 
       expect(notifCheck.rows.length).toBe(0);
@@ -337,10 +337,10 @@ describe('Notifications API', () => {
     it('should handle concurrent read operations', async () => {
       // Create a notification
       const result = await pool.query(`
-        INSERT INTO notifications (user_id, type, data, read)
-        VALUES ($1, 'like', $2, false)
+        INSERT INTO notifications (user_id, type, actor_id, post_id, is_read)
+        VALUES ($1, 'like', $2, $3, false)
         RETURNING id
-      `, [userId, JSON.stringify({ actorId: otherUserId })]);
+      `, [userId, otherUserId, postId]);
       const notifId = result.rows[0].id;
 
       // Send multiple read requests concurrently
@@ -359,10 +359,10 @@ describe('Notifications API', () => {
 
       // Notification should still be marked as read only once
       const check = await pool.query(
-        'SELECT read FROM notifications WHERE id = $1',
+        'SELECT is_read FROM notifications WHERE id = $1',
         [notifId]
       );
-      expect(check.rows[0].read).toBe(true);
+      expect(check.rows[0].is_read).toBe(true);
     });
 
     it('should validate notification ID format', async () => {
@@ -375,14 +375,13 @@ describe('Notifications API', () => {
 
     it('should handle large number of notifications', async () => {
       // Create many notifications
-      const values = Array(50).fill().map((_, i) => 
-        `(${userId}, 'like', '${JSON.stringify({ actorId: otherUserId }).replace(/'/g, "''")}', false, NOW() - INTERVAL '${i} minutes')`
-      ).join(',');
-      
-      await pool.query(`
-        INSERT INTO notifications (user_id, type, data, read, created_at)
-        VALUES ${values}
-      `);
+      for (let i = 0; i < 50; i++) {
+        await pool.query(
+          `INSERT INTO notifications (user_id, type, actor_id, post_id, is_read, created_at)
+           VALUES ($1, 'like', $2, $3, false, NOW() - INTERVAL '${i} minutes')`,
+          [userId, otherUserId, postId]
+        );
+      }
 
       const res = await request(app)
         .get('/api/notifications?limit=100')

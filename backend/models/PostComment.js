@@ -27,16 +27,11 @@ class PostComment {
       const postResult = await client.query(postQuery, [postId]);
       
       if (postResult.rows[0] && postResult.rows[0].user_id !== userId) {
-        const data = {
-          actorId: userId,
-          postId: postId,
-          commentId: comment.id
-        };
         const notifQuery = `
-          INSERT INTO notifications (user_id, type, data)
-          VALUES ($1, 'comment', $2)
+          INSERT INTO notifications (user_id, type, actor_id, post_id, comment_id)
+          VALUES ($1, 'comment', $2, $3, $4)
         `;
-        await client.query(notifQuery, [postResult.rows[0].user_id, JSON.stringify(data)]);
+        await client.query(notifQuery, [postResult.rows[0].user_id, userId, postId, comment.id]);
       }
       
       // If replying to a comment, notify the parent comment author
@@ -45,16 +40,11 @@ class PostComment {
         const parentResult = await client.query(parentQuery, [parentCommentId]);
         
         if (parentResult.rows[0] && parentResult.rows[0].user_id !== userId) {
-          const data = {
-            actorId: userId,
-            postId: postId,
-            commentId: comment.id
-          };
           const replyNotifQuery = `
-            INSERT INTO notifications (user_id, type, data)
-            VALUES ($1, 'comment', $2)
+            INSERT INTO notifications (user_id, type, actor_id, post_id, comment_id)
+            VALUES ($1, 'comment', $2, $3, $4)
           `;
-          await client.query(replyNotifQuery, [parentResult.rows[0].user_id, JSON.stringify(data)]);
+          await client.query(replyNotifQuery, [parentResult.rows[0].user_id, userId, postId, comment.id]);
         }
       }
       

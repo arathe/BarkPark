@@ -18,9 +18,9 @@ class Friendship {
     }
 
     const query = `
-      INSERT INTO friendships (user_id, friend_id, status)
+      INSERT INTO friendships (requester_id, addressee_id, status)
       VALUES ($1, $2, 'pending')
-      RETURNING id, user_id, friend_id, status, created_at
+      RETURNING id, requester_id AS user_id, addressee_id AS friend_id, status, created_at
     `;
     
     const values = [requesterId, addresseeId];
@@ -33,8 +33,8 @@ class Friendship {
     const query = `
       UPDATE friendships 
       SET status = 'accepted', updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1 AND friend_id = $2 AND status = 'pending'
-      RETURNING id, user_id, friend_id, status, updated_at
+      WHERE id = $1 AND addressee_id = $2 AND status = 'pending'
+      RETURNING id, requester_id AS user_id, addressee_id AS friend_id, status, updated_at
     `;
     
     const values = [friendshipId, userId];
@@ -51,8 +51,8 @@ class Friendship {
   static async declineFriendRequest(friendshipId, userId) {
     const query = `
       DELETE FROM friendships 
-      WHERE id = $1 AND friend_id = $2 AND status = 'pending'
-      RETURNING id, user_id, friend_id, 'declined' as status, NOW() as updated_at
+      WHERE id = $1 AND addressee_id = $2 AND status = 'pending'
+      RETURNING id, requester_id AS user_id, addressee_id AS friend_id, 'declined' AS status, NOW() AS updated_at
     `;
     
     const values = [friendshipId, userId];
@@ -73,33 +73,33 @@ class Friendship {
         f.status,
         f.created_at as friendship_created_at,
         CASE 
-          WHEN f.user_id = $1 THEN u2.id
+          WHEN f.requester_id = $1 THEN u2.id
           ELSE u1.id
         END as friend_id,
         CASE 
-          WHEN f.user_id = $1 THEN u2.email
+          WHEN f.requester_id = $1 THEN u2.email
           ELSE u1.email
         END as friend_email,
         CASE 
-          WHEN f.user_id = $1 THEN u2.first_name
+          WHEN f.requester_id = $1 THEN u2.first_name
           ELSE u1.first_name
         END as friend_first_name,
         CASE 
-          WHEN f.user_id = $1 THEN u2.last_name
+          WHEN f.requester_id = $1 THEN u2.last_name
           ELSE u1.last_name
         END as friend_last_name,
         CASE 
-          WHEN f.user_id = $1 THEN u2.phone
+          WHEN f.requester_id = $1 THEN u2.phone
           ELSE u1.phone
         END as friend_phone,
         CASE 
-          WHEN f.user_id = $1 THEN u2.profile_image_url
+          WHEN f.requester_id = $1 THEN u2.profile_image_url
           ELSE u1.profile_image_url
         END as friend_profile_image_url
       FROM friendships f
-      JOIN users u1 ON f.user_id = u1.id
-      JOIN users u2 ON f.friend_id = u2.id
-      WHERE (f.user_id = $1 OR f.friend_id = $1)
+      JOIN users u1 ON f.requester_id = u1.id
+      JOIN users u2 ON f.addressee_id = u2.id
+      WHERE (f.requester_id = $1 OR f.addressee_id = $1)
         AND f.status = 'accepted'
       ORDER BY f.created_at DESC
     `;
@@ -127,40 +127,40 @@ class Friendship {
         f.id as friendship_id,
         f.status,
         f.created_at,
-        f.user_id,
-        f.friend_id,
+        f.requester_id AS user_id,
+        f.addressee_id AS friend_id,
         CASE 
-          WHEN f.user_id = $1 THEN 'sent'
+          WHEN f.requester_id = $1 THEN 'sent'
           ELSE 'received'
         END as request_type,
         CASE 
-          WHEN f.user_id = $1 THEN u2.id
+          WHEN f.requester_id = $1 THEN u2.id
           ELSE u1.id
         END as other_user_id,
         CASE 
-          WHEN f.user_id = $1 THEN u2.email
+          WHEN f.requester_id = $1 THEN u2.email
           ELSE u1.email
         END as other_user_email,
         CASE 
-          WHEN f.user_id = $1 THEN u2.first_name
+          WHEN f.requester_id = $1 THEN u2.first_name
           ELSE u1.first_name
         END as other_user_first_name,
         CASE 
-          WHEN f.user_id = $1 THEN u2.last_name
+          WHEN f.requester_id = $1 THEN u2.last_name
           ELSE u1.last_name
         END as other_user_last_name,
         CASE 
-          WHEN f.user_id = $1 THEN u2.phone
+          WHEN f.requester_id = $1 THEN u2.phone
           ELSE u1.phone
         END as other_user_phone,
         CASE 
-          WHEN f.user_id = $1 THEN u2.profile_image_url
+          WHEN f.requester_id = $1 THEN u2.profile_image_url
           ELSE u1.profile_image_url
         END as other_user_profile_image_url
       FROM friendships f
-      JOIN users u1 ON f.user_id = u1.id
-      JOIN users u2 ON f.friend_id = u2.id
-      WHERE (f.user_id = $1 OR f.friend_id = $1)
+      JOIN users u1 ON f.requester_id = u1.id
+      JOIN users u2 ON f.addressee_id = u2.id
+      WHERE (f.requester_id = $1 OR f.addressee_id = $1)
         AND f.status = 'pending'
       ORDER BY f.created_at DESC
     `;
@@ -186,8 +186,8 @@ class Friendship {
   static async removeFriend(userId, friendId) {
     const query = `
       DELETE FROM friendships 
-      WHERE ((user_id = $1 AND friend_id = $2) 
-             OR (user_id = $2 AND friend_id = $1))
+      WHERE ((requester_id = $1 AND addressee_id = $2) 
+             OR (requester_id = $2 AND addressee_id = $1))
         AND status = 'accepted'
       RETURNING id
     `;
@@ -205,10 +205,10 @@ class Friendship {
   // Get friendship status between two users
   static async getFriendshipStatus(userId, otherUserId) {
     const query = `
-      SELECT id, user_id, friend_id, status, created_at, updated_at
+      SELECT id, requester_id AS user_id, addressee_id AS friend_id, status, created_at, updated_at
       FROM friendships
-      WHERE (user_id = $1 AND friend_id = $2)
-         OR (user_id = $2 AND friend_id = $1)
+      WHERE (requester_id = $1 AND addressee_id = $2)
+         OR (requester_id = $2 AND addressee_id = $1)
     `;
     
     const result = await pool.query(query, [userId, otherUserId]);
@@ -218,10 +218,10 @@ class Friendship {
   // Helper method to check for existing friendship
   static async findExistingFriendship(userId1, userId2) {
     const query = `
-      SELECT id, user_id, friend_id, status
+      SELECT id, requester_id AS user_id, addressee_id AS friend_id, status
       FROM friendships
-      WHERE ((user_id = $1 AND friend_id = $2)
-         OR (user_id = $2 AND friend_id = $1))
+      WHERE ((requester_id = $1 AND addressee_id = $2)
+         OR (requester_id = $2 AND addressee_id = $1))
          AND status IN ('pending', 'accepted')
     `;
     
@@ -233,7 +233,7 @@ class Friendship {
   static async cancelFriendRequest(friendshipId, userId) {
     const query = `
       DELETE FROM friendships 
-      WHERE id = $1 AND user_id = $2 AND status = 'pending'
+      WHERE id = $1 AND requester_id = $2 AND status = 'pending'
       RETURNING id
     `;
     

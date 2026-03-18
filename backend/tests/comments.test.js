@@ -43,7 +43,7 @@ describe('Comments API', () => {
 
     // Create friendship between user1 and user2
     await pool.query(`
-      INSERT INTO friendships (user_id, friend_id, status)
+      INSERT INTO friendships (requester_id, addressee_id, status)
       VALUES ($1, $2, 'accepted'), ($2, $1, 'accepted')
     `, [userId, userId2]);
 
@@ -113,13 +113,13 @@ describe('Comments API', () => {
       const notifResult = await pool.query(`
         SELECT * FROM notifications 
         WHERE user_id = $1 AND type = 'comment' 
-        AND data->>'postId' = $2::text
+        AND post_id = $2::int
         ORDER BY created_at DESC
         LIMIT 1
       `, [userId, postId]);
 
       expect(notifResult.rows.length).toBe(1);
-      expect(notifResult.rows[0].data.actorId).toBe(userId2);
+      expect(notifResult.rows[0].actor_id).toBe(userId2);
     });
 
     it('should create a threaded reply', async () => {
@@ -171,13 +171,13 @@ describe('Comments API', () => {
       const notifResult = await pool.query(`
         SELECT * FROM notifications 
         WHERE user_id = $1 AND type = 'comment' 
-        AND data->>'postId' = $2::text
+        AND post_id = $2::int
         ORDER BY created_at DESC
         LIMIT 1
       `, [userId, postId]);
 
       expect(notifResult.rows.length).toBeGreaterThan(0);
-      expect(notifResult.rows[0].data.actorId).toBe(userId2);
+      expect(notifResult.rows[0].actor_id).toBe(userId2);
     });
 
     it('should fail to comment on non-existent post', async () => {

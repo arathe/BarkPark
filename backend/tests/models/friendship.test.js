@@ -38,7 +38,7 @@ describe('Friendship Model - State Machine & Bidirectional Relationships', () =>
 
   afterEach(async () => {
     // Clean up in reverse order due to foreign key constraints
-    await pool.query('DELETE FROM friendships WHERE user_id IN ($1, $2, $3, $4) OR friend_id IN ($1, $2, $3, $4)', 
+    await pool.query('DELETE FROM friendships WHERE requester_id IN ($1, $2, $3, $4) OR addressee_id IN ($1, $2, $3, $4)', 
       [user1.id, user2.id, user3.id, user4.id]);
     await pool.query('DELETE FROM users WHERE id IN ($1, $2, $3, $4)', 
       [user1.id, user2.id, user3.id, user4.id]);

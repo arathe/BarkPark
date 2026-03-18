@@ -524,7 +524,7 @@ describe('Check-In API Routes', () => {
       oldTime.setHours(oldTime.getHours() - 3);
 
       const result = await pool.query(`
-        INSERT INTO checkins (user_id, dog_park_id, dogs, checked_in_at)
+        INSERT INTO checkins (user_id, dog_park_id, dogs_present, checked_in_at)
         VALUES ($1, $2, $3, $4)
         RETURNING *
       `, [user1.id, park1.id, [], oldTime]);

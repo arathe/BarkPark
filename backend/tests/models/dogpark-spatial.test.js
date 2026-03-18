@@ -80,7 +80,7 @@ describe('DogPark Model - PostGIS Spatial Queries', () => {
         latitude: 51.507268,
         longitude: -0.165730,
         description: 'International test case',
-        borough: 'International'
+        borough: 'Other'
       }
     ];
 
@@ -97,7 +97,7 @@ describe('DogPark Model - PostGIS Spatial Queries', () => {
         hoursOpen: '06:00',
         hoursClose: '22:00',
         rules: 'Dogs must be leashed',
-        surfaceType: 'grass',
+        surfaceType: 'Natural',
         hasSeating: true,
         zipcode: '10001',
         rating: 4.5,
@@ -168,7 +168,7 @@ describe('DogPark Model - PostGIS Spatial Queries', () => {
         description: 'West of date line',
         hoursOpen: '06:00',
         hoursClose: '18:00',
-        borough: 'International'
+        borough: 'Other'
       });
 
       const dateLinePark2 = await DogPark.create({
@@ -179,7 +179,7 @@ describe('DogPark Model - PostGIS Spatial Queries', () => {
         description: 'East of date line',
         hoursOpen: '06:00',
         hoursClose: '18:00',
-        borough: 'International'
+        borough: 'Other'
       });
 
       try {
@@ -208,7 +208,7 @@ describe('DogPark Model - PostGIS Spatial Queries', () => {
         description: 'Very cold dog park',
         hoursOpen: '00:00',
         hoursClose: '23:59',
-        borough: 'Arctic'
+        borough: 'Other'
       });
 
       try {
@@ -310,7 +310,7 @@ describe('DogPark Model - PostGIS Spatial Queries', () => {
         address: 'West of date line',
         hoursOpen: '06:00',
         hoursClose: '18:00',
-        borough: 'Pacific'
+        borough: 'Other'
       });
       
       const park2 = await DogPark.create({
@@ -320,7 +320,7 @@ describe('DogPark Model - PostGIS Spatial Queries', () => {
         address: 'East of date line',
         hoursOpen: '06:00',
         hoursClose: '18:00',
-        borough: 'Pacific'
+        borough: 'Other'
       });
 
       try {
@@ -405,7 +405,7 @@ describe('DogPark Model - PostGIS Spatial Queries', () => {
         description: 'Far away park',
         hoursOpen: '06:00',
         hoursClose: '18:00',
-        borough: 'International'
+        borough: 'Other'
       });
 
       try {
@@ -526,7 +526,7 @@ describe('DogPark Model - PostGIS Spatial Queries', () => {
         description: 'Testing coordinate precision',
         hoursOpen: '06:00',
         hoursClose: '18:00',
-        borough: 'Test'
+        borough: 'Manhattan'
       });
 
       try {
@@ -542,38 +542,19 @@ describe('DogPark Model - PostGIS Spatial Queries', () => {
   });
 
   describe('Legacy compatibility', () => {
-    test('should work with parks that only have lat/lng columns', async () => {
-      if (hasPostGIS) {
-        // Insert a park without setting location column
-        const result = await pool.query(`
-          INSERT INTO dog_parks (name, address, latitude, longitude, hours_open, hours_close)
-          VALUES ($1, $2, $3, $4, $5, $6)
-          RETURNING id
-        `, ['Legacy Park', 'Legacy Address', 40.7, -74.0, '06:00', '18:00']);
-        
-        const legacyParkId = result.rows[0].id;
-
-        try {
-          // Should still be able to find it
-          const park = await DogPark.findById(legacyParkId);
-          expect(park).toBeDefined();
-          expect(park.latitude).toBe(40.7);
-          expect(park.longitude).toBe(-74.0);
-          
-          // Should work in spatial queries after location is populated
-          await pool.query(`
-            UPDATE dog_parks 
-            SET location = ST_MakePoint(longitude, latitude)::geography
-            WHERE id = $1
-          `, [legacyParkId]);
-          
-          const nearby = await DogPark.findNearby(40.7, -74.0, 1);
-          const found = nearby.find(p => p.id === legacyParkId);
-          expect(found).toBeDefined();
-        } finally {
-          await pool.query('DELETE FROM dog_parks WHERE id = $1', [legacyParkId]);
-        }
-      }
+    test('schema uses PostGIS location column exclusively', async () => {
+      // lat/lng columns were removed in favour of PostGIS geography(Point).
+      // Verify the schema: location column present, no separate latitude/longitude columns.
+      const colCheck = await pool.query(`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'dog_parks'
+        AND column_name IN ('latitude', 'longitude', 'location')
+        ORDER BY column_name
+      `);
+      const cols = colCheck.rows.map(r => r.column_name);
+      expect(cols).toContain('location');
+      expect(cols).not.toContain('latitude');
+      expect(cols).not.toContain('longitude');
     });
   });
 });

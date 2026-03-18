@@ -108,11 +108,11 @@ class Post {
         p.user_id = $1 OR
         p.user_id IN (
           SELECT CASE 
-            WHEN user_id = $1 THEN friend_id
-            ELSE user_id
+            WHEN requester_id = $1 THEN addressee_id
+            ELSE requester_id
           END
           FROM friendships
-          WHERE (user_id = $1 OR friend_id = $1)
+          WHERE (requester_id = $1 OR addressee_id = $1)
           AND status = 'accepted'
         )
       )

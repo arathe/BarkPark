@@ -71,7 +71,7 @@ beforeAll(async () => {
       SELECT column_name 
       FROM information_schema.columns 
       WHERE table_name = 'friendships' 
-      AND column_name IN ('user_id', 'friend_id')
+      AND column_name IN ('requester_id', 'addressee_id')
     `);
     
     if (friendshipCheck.rows.length !== 2) {
@@ -94,7 +94,7 @@ beforeEach(async () => {
   try {
     // Clear all data except dog_parks (which are fixtures)
     // Using TRUNCATE with RESTART IDENTITY to reset auto-increment sequences
-    await pool.query('TRUNCATE TABLE notifications, post_comments, post_likes, post_media, posts, checkins, dogs, friendships, password_reset_attempts, password_reset_codes, users RESTART IDENTITY CASCADE');
+    await pool.query('TRUNCATE TABLE notifications, post_comments, post_likes, post_media, posts, checkins, dogs, friendships, password_reset_attempts, users RESTART IDENTITY CASCADE');
   } catch (error) {
     console.error('Error cleaning test database:', error.message);
     throw error;

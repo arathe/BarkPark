@@ -86,6 +86,12 @@ const migrations = [
     description: 'Add password reset functionality'
   },
   {
+    id: '009_add_password_reset_attempts',
+    file: '009_add_password_reset_attempts.sql',
+    description: 'Add password reset rate-limiting attempts table'
+  },
+  {
+    id: '010_add_performance_indexes',
     file: '010_add_performance_indexes.sql',
     description: 'Add performance indexes for feed, friendships, checkins, notifications'
   }

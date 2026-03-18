@@ -35,16 +35,16 @@ describe('CheckIn Model - Concurrency & Time-Sensitive Operations', () => {
     
     // Create test parks directly via SQL to avoid PostGIS issues
     const park1Result = await pool.query(`
-      INSERT INTO dog_parks (name, address, latitude, longitude, hours_open, hours_close)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING id, name, address, latitude, longitude
+      INSERT INTO dog_parks (name, address, location, hours_open, hours_close)
+      VALUES ($1, $2, ST_MakePoint($4, $3)::geography, $5, $6)
+      RETURNING id, name, address, ST_X(location::geometry) as longitude, ST_Y(location::geometry) as latitude
     `, ['Test Park 1', '123 Test St', 40.7128, -74.0060, '06:00', '22:00']);
     park1 = park1Result.rows[0];
     
     const park2Result = await pool.query(`
-      INSERT INTO dog_parks (name, address, latitude, longitude, hours_open, hours_close)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING id, name, address, latitude, longitude
+      INSERT INTO dog_parks (name, address, location, hours_open, hours_close)
+      VALUES ($1, $2, ST_MakePoint($4, $3)::geography, $5, $6)
+      RETURNING id, name, address, ST_X(location::geometry) as longitude, ST_Y(location::geometry) as latitude
     `, ['Test Park 2', '456 Test Ave', 40.7589, -73.9851, '06:00', '22:00']);
     park2 = park2Result.rows[0];
     
@@ -68,7 +68,7 @@ describe('CheckIn Model - Concurrency & Time-Sensitive Operations', () => {
       if (user1?.id) {
         await pool.query('DELETE FROM checkins WHERE user_id IN ($1, $2, $3)', [user1.id, user2?.id, user3?.id].filter(Boolean));
         await pool.query('DELETE FROM dogs WHERE user_id IN ($1, $2, $3)', [user1.id, user2?.id, user3?.id].filter(Boolean));
-        await pool.query('DELETE FROM friendships WHERE user_id IN ($1, $2, $3) OR friend_id IN ($1, $2, $3)', 
+        await pool.query('DELETE FROM friendships WHERE requester_id IN ($1, $2, $3) OR addressee_id IN ($1, $2, $3)', 
           [user1.id, user2?.id, user3?.id].filter(Boolean));
         await pool.query('DELETE FROM users WHERE id IN ($1, $2, $3)', [user1.id, user2?.id, user3?.id].filter(Boolean));
       }
@@ -305,7 +305,7 @@ describe('CheckIn Model - Concurrency & Time-Sensitive Operations', () => {
       checkInTime.setHours(checkInTime.getHours() - 2); // 2 hours ago
       
       const result = await pool.query(`
-        INSERT INTO checkins (user_id, dog_park_id, dogs, checked_in_at)
+        INSERT INTO checkins (user_id, dog_park_id, dogs_present, checked_in_at)
         VALUES ($1, $2, $3, $4)
         RETURNING *
       `, [user1.id, park1.id, [], checkInTime]);
@@ -350,7 +350,7 @@ describe('CheckIn Model - Concurrency & Time-Sensitive Operations', () => {
       oldTime.setHours(oldTime.getHours() - 48);
       
       await pool.query(`
-        INSERT INTO checkins (user_id, dog_park_id, dogs, checked_in_at, checked_out_at)
+        INSERT INTO checkins (user_id, dog_park_id, dogs_present, checked_in_at, checked_out_at)
         VALUES ($1, $2, $3, $4, $5)
       `, [user2.id, park1.id, [], oldTime, oldTime]);
       
@@ -517,7 +517,7 @@ describe('CheckIn Model - Concurrency & Time-Sensitive Operations', () => {
       oldTime.setHours(oldTime.getHours() - 6); // 6 hours ago
       
       await pool.query(`
-        INSERT INTO checkins (user_id, dog_park_id, dogs, checked_in_at)
+        INSERT INTO checkins (user_id, dog_park_id, dogs_present, checked_in_at)
         VALUES ($1, $2, $3, $4)
       `, [user1.id, park1.id, [], oldTime]);
       

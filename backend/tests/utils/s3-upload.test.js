@@ -1,6 +1,9 @@
 // This test file tests the S3 utilities
 // AWS SDK is already mocked globally in setup.js
 
+// Set bucket name BEFORE the module loads so bucketName is evaluated correctly
+process.env.S3_BUCKET_NAME = 'test-bucket';
+
 const { uploadToS3, deleteFromS3, generateFilename } = require('../../config/s3');
 const AWS = require('aws-sdk');
 
